@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, CheckCircle2, ExternalLink, Pencil, Trash2, Navigation, Share2 } from 'lucide-react';
+import { MapPin, CheckCircle2, ExternalLink, Pencil, Trash2, Navigation, MapPinned } from 'lucide-react';
 import type { Restaurant } from '../../types/restaurant';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { CategoryBadge } from '../category/CategoryBadge';
@@ -115,7 +115,7 @@ export function RestaurantCard({ restaurant: r, onEdit, onDetail, onReview, onJu
             shared ? 'text-green-500' : 'text-orange-500 hover:text-orange-600'
           }`}
         >
-          <Share2 size={12} /> {shared ? 'いこう！済み' : 'いこう'}
+          <MapPinned size={12} /> {shared ? 'いこう！済み' : 'いこう'}
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Map, Bookmark, Share2, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
+import { Map, Bookmark, MapPinned, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useRestaurantContext } from '../../context/RestaurantContext';
@@ -313,7 +313,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
             { id: 'map', label: 'マップ', icon: Map },
             { id: 'list', label: 'キープ', icon: Bookmark },
             { id: 'keep', label: '友達', icon: Users },
-            { id: 'share', label: 'いこう', icon: Share2 },
+            { id: 'share', label: 'いこう', icon: MapPinned },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
