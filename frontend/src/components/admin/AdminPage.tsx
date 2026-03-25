@@ -241,9 +241,14 @@ export function AdminPage() {
                     <div className={`w-2.5 h-2.5 rounded-full ${a.lastSeenAgo === 'オンライン' ? 'bg-green-400' : 'bg-gray-500'}`} />
                     <span className="font-medium text-sm">{a.nickname}</span>
                   </div>
-                  <span className={`text-xs ${a.lastSeenAgo === 'オンライン' ? 'text-green-400' : 'text-gray-400'}`}>
-                    {a.lastSeenAgo}
-                  </span>
+                  <div className="text-right">
+                    <span className={`text-xs ${a.lastSeenAgo === 'オンライン' ? 'text-green-400' : 'text-gray-400'}`}>
+                      {a.lastSeenAgo}
+                    </span>
+                    <p className="text-[10px] text-gray-500">
+                      {new Date(a.lastSeen).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
