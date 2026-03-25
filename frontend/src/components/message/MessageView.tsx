@@ -80,8 +80,9 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
       return;
     }
 
+    const target: string = selectedTarget;
     // キャッシュがあれば即座にセット
-    const cached = msgCache[selectedTarget];
+    const cached = msgCache[target];
     if (cached) {
       setMessages(cached.messages);
       setConvStatus(cached.status);
@@ -100,7 +101,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
 
     async function fetchMessages() {
       try {
-        const data = await api.getMessagesWithUser(selectedTarget, !isFirst);
+        const data = await api.getMessagesWithUser(target, !isFirst);
         isFirst = false;
         if (cancelled) return;
         const msgs = data.messages;
@@ -112,7 +113,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
           setConvStatus(data.status);
           setRequestedBy(data.requestedBy);
           // キャッシュ更新
-          msgCache[selectedTarget] = { messages: msgs, status: data.status, requestedBy: data.requestedBy };
+          msgCache[target] = { messages: msgs, status: data.status, requestedBy: data.requestedBy };
         }
       } catch { /* ignore */ }
     }
@@ -121,10 +122,10 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
     const interval = setInterval(fetchMessages, 3000);
 
     // ニックネーム取得
-    if (!nicknamesFetchedRef.current.has(selectedTarget) && !nicknames[selectedTarget]) {
-      nicknamesFetchedRef.current.add(selectedTarget);
-      api.getUserProfile(selectedTarget).then((p) => {
-        if (!cancelled) setNicknames((prev) => ({ ...prev, [selectedTarget]: p.nickname }));
+    if (!nicknamesFetchedRef.current.has(target) && !nicknames[target]) {
+      nicknamesFetchedRef.current.add(target);
+      api.getUserProfile(target).then((p) => {
+        if (!cancelled) setNicknames((prev) => ({ ...prev, [target]: p.nickname }));
       }).catch(() => {});
     }
 

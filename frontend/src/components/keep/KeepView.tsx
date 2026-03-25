@@ -152,7 +152,7 @@ export function KeepView({ onDetail, onOpenProfile, onOpenMessage }: Props) {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUserData[]>([]);
   const [followSectionOpen, setFollowSectionOpen] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // フォロー中ユーザーを取得（並列化）
   useEffect(() => {

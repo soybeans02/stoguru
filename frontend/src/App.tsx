@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import { RestaurantProvider } from './context/RestaurantContext';
 import * as api from './utils/api';
 import { AuthScreen } from './components/auth/AuthScreen';

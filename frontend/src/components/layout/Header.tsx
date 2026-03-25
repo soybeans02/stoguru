@@ -277,8 +277,8 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
                             {n.type === 'follow' && ' があなたをフォローしました'}
                             {n.type === 'follow_request' && ' がフォローリクエストを送りました'}
                             {n.type === 'follow_accepted' && ' がフォローリクエストを承認しました'}
-                            {n.type === 'message_request' && ` からメッセージリクエスト${(n as Record<string, unknown>).content ? `：${(n as Record<string, unknown>).content}` : ''}`}
-                            {n.type === 'message' && ` からメッセージ${(n as Record<string, unknown>).content ? `：${(n as Record<string, unknown>).content}` : ''}`}
+                            {n.type === 'message_request' && ` からメッセージリクエスト${n.content ? `：${n.content}` : ''}`}
+                            {n.type === 'message' && ` からメッセージ${n.content ? `：${n.content}` : ''}`}
                           </p>
                           <p className="text-[10px] text-gray-300">
                             {timeAgo(n.createdAt)}
