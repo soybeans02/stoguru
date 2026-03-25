@@ -190,7 +190,7 @@ export async function getConversations(): Promise<Conversation[]> {
   return res.json();
 }
 
-export async function getMessagesWithUser(targetId: string, skipRead = false): Promise<{ messages: Message[]; status: string | null; requestedBy?: string }> {
+export async function getMessagesWithUser(targetId: string, skipRead = false): Promise<{ messages: Message[]; status: string | null; requestedBy?: string; user1?: string; user2?: string; user1LastRead?: number; user2LastRead?: number }> {
   const url = skipRead ? `${BASE}/messages/${targetId}?skipRead=1` : `${BASE}/messages/${targetId}`;
   const res = await fetch(url, { headers: headers() });
   if (!res.ok) return { messages: [], status: null };

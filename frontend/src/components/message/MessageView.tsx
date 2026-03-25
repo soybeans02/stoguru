@@ -21,6 +21,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
   const [messages, setMessages] = useState<api.Message[]>([]);
   const [convStatus, setConvStatus] = useState<string | null>(null);
   const [requestedBy, setRequestedBy] = useState<string | undefined>();
+  const [otherLastRead, setOtherLastRead] = useState(0);
   const [input, setInput] = useState('');
   const [nicknames, setNicknames] = useState<Record<string, string>>(cachedNicknames ?? {});
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -106,6 +107,11 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
         if (cancelled) return;
         const msgs = data.messages;
         const lastTs = msgs.length > 0 ? msgs[msgs.length - 1].createdAt : 0;
+        // 相手のlastReadを更新
+        if (data.user1 && data.user2) {
+          const otherRead = data.user1 === myId ? (data.user2LastRead ?? 0) : (data.user1LastRead ?? 0);
+          setOtherLastRead(otherRead);
+        }
         if (msgs.length !== prevLen || lastTs !== prevLast) {
           prevLen = msgs.length;
           prevLast = lastTs;
@@ -227,15 +233,6 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
             <p className="text-center text-gray-400 text-sm py-8">メッセージを送ってみましょう</p>
           )}
           {(() => {
-            // 相手のlastReadを取得
-            const conv = conversations.find((c) => {
-              const otherId = c.user1 === myId ? c.user2 : c.user1;
-              return otherId === selectedTarget;
-            });
-            const otherLastRead = conv
-              ? (conv.user1 === myId ? (conv.user2LastRead ?? 0) : (conv.user1LastRead ?? 0))
-              : 0;
-
             // 最後のメッセージが自分のもので、相手が既読なら「既読」を表示
             const lastMsg = messages[messages.length - 1];
             const showReadOnLast = lastMsg

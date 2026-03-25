@@ -275,7 +275,17 @@ router.get('/messages/:targetId', requireAuth, async (req: AuthRequest, res: Res
     skipRead ? Promise.resolve() : markConversationRead(conv.pk as string, myId, conv.user1 as string),
     getMessages(conv.pk as string),
   ]);
-  res.json({ messages, status: conv.status, requestedBy: conv.requestedBy });
+  // 既読マーク後の最新conv取得（自分のlastReadが更新されてるので再取得）
+  const freshConv = skipRead ? conv : (await getConversation(myId, targetId)) ?? conv;
+  res.json({
+    messages,
+    status: freshConv.status,
+    requestedBy: freshConv.requestedBy,
+    user1: freshConv.user1,
+    user2: freshConv.user2,
+    user1LastRead: freshConv.user1LastRead ?? 0,
+    user2LastRead: freshConv.user2LastRead ?? 0,
+  });
 });
 
 // メッセージリクエスト承認
