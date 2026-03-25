@@ -201,12 +201,36 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
             >
               {selectedMarkerIdx === i && (
                 <InfoWindow onCloseClick={() => setSelectedMarkerIdx(null)}>
-                  <div className="text-sm min-w-[120px]">
-                    <p className="font-semibold text-gray-900">{r.name}</p>
-                    {r.address && <p className="text-xs text-gray-500">{r.address}</p>}
-                    <p className="text-xs text-gray-400 mt-1">
-                      {r.hasReview ? 'レビュー済み' : '行きたい'} · {selectedUser.nickname}
-                    </p>
+                  <div style={{ padding: '4px 2px', minWidth: 160, maxWidth: 220, fontFamily: 'system-ui, sans-serif' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{
+                        display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                        background: r.hasReview ? '#86efac' : '#f87171', flexShrink: 0,
+                      }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1f2937', lineHeight: 1.3 }}>{r.name}</span>
+                    </div>
+                    {r.address && (
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: '0 0 4px 14px', lineHeight: 1.3 }}>{r.address}</p>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                      <span style={{
+                        fontSize: 10, color: '#fff', borderRadius: 9999, padding: '2px 8px',
+                        background: r.hasReview ? 'linear-gradient(135deg,#86efac,#4ade80)' : 'linear-gradient(135deg,#f87171,#ef4444)',
+                      }}>
+                        {r.hasReview ? 'レビュー済み' : '行きたい'}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#6b7280' }}>{selectedUser.nickname}</span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDetail(restaurants.find(rest => rest.name === r.name) ?? null); }}
+                      style={{
+                        display: 'block', width: '100%', marginTop: 8, padding: '5px 0',
+                        fontSize: 12, fontWeight: 600, color: '#fff', border: 'none', borderRadius: 8,
+                        background: 'linear-gradient(135deg,#fb923c,#f97316)', cursor: 'pointer',
+                      }}
+                    >
+                      詳細を見る
+                    </button>
                   </div>
                 </InfoWindow>
               )}
