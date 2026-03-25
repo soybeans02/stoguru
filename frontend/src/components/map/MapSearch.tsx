@@ -67,7 +67,7 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
           <Autocomplete
             onLoad={(ac) => { autocompleteRef.current = ac; }}
             onPlaceChanged={onPlaceChanged}
-            options={{ componentRestrictions: { country: 'jp' } }}
+            options={{ types: ['establishment', 'geocode'] }}
           >
             <input
               type="text"
