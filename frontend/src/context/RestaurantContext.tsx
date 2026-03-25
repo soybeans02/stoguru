@@ -61,8 +61,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
           },
         });
         setSyncError(null);
-      } catch (err) {
-        console.warn('DB同期失敗:', err);
+      } catch {
         setSyncError('データの同期に失敗しました。ローカルデータを表示中です。');
       }
     })();
@@ -84,15 +83,13 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
       case 'ADD_RESTAURANT':
       case 'UPDATE_RESTAURANT':
         syncWithRetry(() => api.putRestaurant(action.payload as unknown as Record<string, unknown>))
-          .catch((err) => {
-            console.warn('レストランのDB保存失敗:', err);
+          .catch(() => {
             setSyncError('保存の同期に失敗しました。次回起動時に再同期します。');
           });
         break;
       case 'DELETE_RESTAURANT':
         syncWithRetry(() => api.deleteRestaurant(action.payload.id))
-          .catch((err) => {
-            console.warn('レストランのDB削除失敗:', err);
+          .catch(() => {
             setSyncError('削除の同期に失敗しました。次回起動時に再同期します。');
           });
         break;

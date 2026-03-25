@@ -85,8 +85,8 @@ router.post('/follow/:targetId', requireAuth, async (req: AuthRequest, res: Resp
 router.delete('/follow/:targetId', requireAuth, async (req: AuthRequest, res: Response) => {
   const targetId = req.params.targetId as string;
   await unfollowUser(req.user!.userId, targetId);
-  // リクエストも削除（あれば）
-  await deleteFollowRequest(req.user!.userId, targetId).catch(() => {});
+  // リクエストも削除（あれば）— targetIdが受信者、req.user!.userIdがリクエスター
+  await deleteFollowRequest(targetId, req.user!.userId).catch(() => {});
   res.json({ ok: true });
 });
 

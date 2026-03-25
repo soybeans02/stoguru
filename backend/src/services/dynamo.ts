@@ -357,7 +357,7 @@ export async function createShare(data: {
   return item;
 }
 
-export async function getSharesByUser(userId: string, limit = 20) {
+async function getSharesByUser(userId: string, limit = 20) {
   const res = await db.send(new QueryCommand({
     TableName: TABLE.shares,
     KeyConditionExpression: 'userId = :uid',

@@ -31,14 +31,6 @@ export async function deleteRestaurant(id: string) {
   if (!res.ok) throw new Error('Failed to delete restaurant');
 }
 
-export async function syncAllRestaurants(restaurants: Record<string, unknown>[]) {
-  const res = await fetch(`${BASE}/restaurants/sync`, {
-    method: 'POST', headers: headers(), body: JSON.stringify({ restaurants }),
-  });
-  if (!res.ok) throw new Error('Failed to sync restaurants');
-  return res.json();
-}
-
 export async function fetchSettings() {
   const res = await fetch(`${BASE}/settings`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch settings');
