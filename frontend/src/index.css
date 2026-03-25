@@ -24,10 +24,14 @@ html, body {
 }
 /* InfoWindow 閉じるボタン位置調整 */
 .gm-style-iw-c button.gm-ui-hover-effect {
-  top: 0px !important;
-  right: 18px !important;
-  width: 22px !important;
-  height: 22px !important;
+  top: 2px !important;
+  right: 2px !important;
+  width: 28px !important;
+  height: 28px !important;
+  opacity: 0.6 !important;
+}
+.gm-style-iw-c button.gm-ui-hover-effect:hover {
+  opacity: 1 !important;
 }
 
 /* Google Maps フッター・コントロール非表示 */
