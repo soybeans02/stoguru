@@ -219,3 +219,46 @@ export async function rejectMessageRequest(targetId: string) {
   });
   if (!res.ok) throw new Error('Failed to reject');
 }
+
+// ─── シェア ───
+
+export interface ShareItem {
+  userId: string;
+  shareId: string;
+  restaurantName: string;
+  restaurantAddress?: string;
+  lat?: number;
+  lng?: number;
+  comment?: string;
+  createdAt: number;
+  userNickname: string;
+}
+
+export async function createSharePost(data: {
+  restaurantName: string;
+  restaurantAddress?: string;
+  lat?: number;
+  lng?: number;
+  comment?: string;
+}): Promise<ShareItem> {
+  const res = await fetch(`${BASE}/shares`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create share');
+  return res.json();
+}
+
+export async function getSharesFeed(): Promise<ShareItem[]> {
+  const res = await fetch(`${BASE}/shares/feed`, { headers: headers() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function deleteSharePost(createdAt: number): Promise<void> {
+  await fetch(`${BASE}/shares/${createdAt}`, {
+    method: 'DELETE',
+    headers: headers(),
+  });
+}

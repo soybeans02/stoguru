@@ -8,6 +8,7 @@ import {
   createNotification, getNotifications, markNotificationsRead,
   getOrCreateConversation, getConversation, updateConversationStatus,
   getUserConversations, sendMessage, getMessages, markConversationRead,
+  createShare, getSharesFeed, deleteShare,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -300,6 +301,38 @@ router.post('/messages/:targetId/reject', requireAuth, async (req: AuthRequest, 
     return;
   }
   await updateConversationStatus(conv.pk as string, 'rejected');
+  res.json({ ok: true });
+});
+
+// ─── シェア ───
+
+router.post('/shares', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { restaurantName, restaurantAddress, lat, lng, comment } = req.body;
+  if (!restaurantName) { res.status(400).json({ error: 'レストラン名が必要です' }); return; }
+  const userInfo = await getUserById(req.user!.userId);
+  const share = await createShare({
+    userId: req.user!.userId,
+    userNickname: userInfo?.nickname ?? '匿名',
+    restaurantName,
+    restaurantAddress,
+    lat, lng, comment,
+  });
+  res.json(share);
+});
+
+router.get('/shares/feed', requireAuth, async (req: AuthRequest, res: Response) => {
+  const following = await getFollowing(req.user!.userId);
+  const followeeIds = following.map((f) => f.followeeId);
+  // 自分のシェアも含める
+  followeeIds.push(req.user!.userId);
+  const feed = await getSharesFeed(followeeIds);
+  res.json(feed);
+});
+
+router.delete('/shares/:createdAt', requireAuth, async (req: AuthRequest, res: Response) => {
+  const createdAt = Number(req.params.createdAt);
+  if (!createdAt) { res.status(400).json({ error: '無効なパラメータ' }); return; }
+  await deleteShare(req.user!.userId, createdAt);
   res.json({ ok: true });
 });
 

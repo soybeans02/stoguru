@@ -30,6 +30,7 @@ const TABLE = {
   stats: 'GourmetStock_Stats',
   conversations: 'GourmetStock_Conversations',
   messages: 'GourmetStock_Messages',
+  shares: 'GourmetStock_Shares',
 } as const;
 
 // ─── レストラン ───
@@ -334,4 +335,53 @@ export async function deleteAllUserData(userId: string) {
       Key: { followerId: userId, followeeId: f.followeeId },
     }));
   }
+}
+
+// ─── シェア ───
+
+export async function createShare(data: {
+  userId: string;
+  userNickname: string;
+  restaurantName: string;
+  restaurantAddress?: string;
+  lat?: number;
+  lng?: number;
+  comment?: string;
+}) {
+  const item = {
+    ...data,
+    shareId: crypto.randomUUID(),
+    createdAt: Date.now(),
+  };
+  await db.send(new PutCommand({ TableName: TABLE.shares, Item: item }));
+  return item;
+}
+
+export async function getSharesByUser(userId: string, limit = 20) {
+  const res = await db.send(new QueryCommand({
+    TableName: TABLE.shares,
+    KeyConditionExpression: 'userId = :uid',
+    ExpressionAttributeValues: { ':uid': userId },
+    ScanIndexForward: false,
+    Limit: limit,
+  }));
+  return (res.Items ?? []) as Array<{
+    userId: string; shareId: string; restaurantName: string;
+    restaurantAddress?: string; lat?: number; lng?: number;
+    comment?: string; createdAt: number; userNickname: string;
+  }>;
+}
+
+export async function getSharesFeed(followeeIds: string[], limit = 50) {
+  const all = await Promise.all(
+    followeeIds.map((id) => getSharesByUser(id, 20))
+  );
+  return all.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+}
+
+export async function deleteShare(userId: string, createdAt: number) {
+  await db.send(new DeleteCommand({
+    TableName: TABLE.shares,
+    Key: { userId, createdAt },
+  }));
 }

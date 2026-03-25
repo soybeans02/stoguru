@@ -5,6 +5,7 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
+import * as api from '../../utils/api';
 
 interface Props {
   restaurant: Restaurant | null;
@@ -20,6 +21,8 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedInfs, setSelectedInfs] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
+  const [shouldShare, setShouldShare] = useState(false);
+  const [shareComment, setShareComment] = useState('');
 
   useEffect(() => {
     if (r) {
@@ -29,6 +32,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
     } else {
       setName(''); setAddress(''); setNotes('');
       setSelectedCats([]); setSelectedInfs([]); setVideoUrl('');
+      setShouldShare(false); setShareComment('');
     }
   }, [r]);
 
@@ -59,6 +63,15 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
         visitedAt: null, createdAt: now, updatedAt: now,
       };
       dispatch({ type: 'ADD_RESTAURANT', payload: restaurant });
+    }
+    if (shouldShare) {
+      api.createSharePost({
+        restaurantName: name.trim(),
+        restaurantAddress: address.trim() || undefined,
+        lat: r?.lat ?? undefined,
+        lng: r?.lng ?? undefined,
+        comment: shareComment.trim() || 'ここ行きたい！',
+      }).catch(() => {});
     }
     onClose();
   }
@@ -102,6 +115,28 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
             </div>
           </div>
         )}
+
+        {/* シェアオプション */}
+        <div className="border border-orange-200 rounded-lg p-3 bg-orange-50/50">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={shouldShare}
+              onChange={(e) => setShouldShare(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+            />
+            <span className="text-sm font-medium text-gray-700">フォロワーにシェアする</span>
+          </label>
+          {shouldShare && (
+            <input
+              type="text"
+              value={shareComment}
+              onChange={(e) => setShareComment(e.target.value)}
+              placeholder="ここ行きたい！"
+              className="mt-2 w-full px-3 py-1.5 text-sm border border-orange-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-400"
+            />
+          )}
+        </div>
 
         <div className="flex gap-2 pt-2">
           <Button variant="primary" onClick={save} disabled={!name.trim()} className="flex-1">保存</Button>

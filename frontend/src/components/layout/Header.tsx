@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Map, List, Bookmark, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
+import { Map, List, Bookmark, Share2, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import * as api from '../../utils/api';
 
-type Tab = 'map' | 'list' | 'keep';
+type Tab = 'map' | 'list' | 'keep' | 'share';
 type SettingsPage = 'main' | 'account' | 'privacy' | 'following' | 'stat-all' | 'stat-reviewed' | 'stat-wishlist';
 
 function timeAgo(timestamp: number): string {
@@ -313,6 +313,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
             { id: 'map', label: 'マップ', icon: Map },
             { id: 'list', label: 'リスト', icon: List },
             { id: 'keep', label: 'キープ', icon: Bookmark },
+            { id: 'share', label: 'シェア', icon: Share2 },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
