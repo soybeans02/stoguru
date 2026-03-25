@@ -81,12 +81,26 @@ export const stats = {
   startedAt: new Date().toISOString(),
 };
 
+// ─── ユーザーアクティビティ ───
+export const userActivity: Record<string, { lastSeen: number; nickname?: string }> = {};
+
 app.use('/api', (req, _res, next) => {
   stats.total++;
   const key = `${req.method} ${req.path}`;
   stats.byEndpoint[key] = (stats.byEndpoint[key] ?? 0) + 1;
   const hour = new Date().toISOString().slice(0, 13);
   stats.byHour[hour] = (stats.byHour[hour] ?? 0) + 1;
+  // ユーザーアクティビティ追跡（Authorizationヘッダーからユーザー特定）
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    // トークンデコード後にrequireAuthでreq.userがセットされるので、レスポンス後に記録
+    _res.on('finish', () => {
+      const u = (req as any).user;
+      if (u?.userId) {
+        userActivity[u.userId] = { lastSeen: Date.now(), nickname: u.nickname ?? userActivity[u.userId]?.nickname };
+      }
+    });
+  }
   next();
 });
 

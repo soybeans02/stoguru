@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin } from 'lucide-react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin, Activity } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -134,6 +134,7 @@ export function AdminPage() {
   const [error, setError] = useState('');
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [activity, setActivity] = useState<{ userId: string; nickname: string; lastSeen: number; lastSeenAgo: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
@@ -170,6 +171,9 @@ export function AdminPage() {
       fetch(`${API}/stats`, { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.ok ? r.json() : null)
         .then((d) => setStats(d)),
+      fetch(`${API}/activity`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.ok ? r.json() : [])
+        .then((d) => setActivity(d)),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -222,6 +226,29 @@ export function AdminPage() {
       <div className="p-4 space-y-6">
         {/* リクエスト統計 */}
         {stats && <StatsSection stats={stats} userCount={users.length} />}
+
+        {/* ユーザーアクティビティ */}
+        {activity.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Activity size={18} />
+              <h2 className="text-lg font-semibold">最終オンライン</h2>
+            </div>
+            <div className="space-y-2">
+              {activity.map((a) => (
+                <div key={a.userId} className="bg-gray-800 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${a.lastSeenAgo === 'オンライン' ? 'bg-green-400' : 'bg-gray-500'}`} />
+                    <span className="font-medium text-sm">{a.nickname}</span>
+                  </div>
+                  <span className={`text-xs ${a.lastSeenAgo === 'オンライン' ? 'text-green-400' : 'text-gray-400'}`}>
+                    {a.lastSeenAgo}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 mb-4">
           <Users size={18} />

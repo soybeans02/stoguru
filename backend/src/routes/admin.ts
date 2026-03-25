@@ -89,4 +89,28 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
   res.json(result);
 });
 
+// ユーザーアクティビティ（最終オンライン）
+router.get('/activity', requireAdmin, (_req: Request, res: Response) => {
+  const { userActivity } = require('../index');
+  const list = Object.entries(userActivity as Record<string, { lastSeen: number; nickname?: string }>)
+    .map(([userId, data]) => ({
+      userId,
+      nickname: data.nickname ?? '不明',
+      lastSeen: data.lastSeen,
+      lastSeenAgo: formatAgo(data.lastSeen),
+    }))
+    .sort((a, b) => b.lastSeen - a.lastSeen);
+  res.json(list);
+});
+
+function formatAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'オンライン';
+  if (min < 60) return `${min}分前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}時間前`;
+  return `${Math.floor(hr / 24)}日前`;
+}
+
 export default router;
