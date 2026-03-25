@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: system-ui; background: #f5f5f5; display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; }
+  .concept { background: white; border-radius: 16px; padding: 30px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .concept h3 { margin: 12px 0 4px; font-size: 14px; color: #666; }
+  .row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 12px; }
+  .row span { font-size: 20px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- A: ピン + フォーク -->
+<div class="concept">
+  <h3>A: ピン × フォーク</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gA" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#FF6B6B"/>
+        <stop offset="100%" style="stop-color:#FF8E53"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gA)"/>
+    <!-- フォーク -->
+    <line x1="33" y1="18" x2="33" y2="38" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="33" y1="18" x2="33" y2="26" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="29" y1="18" x2="29" y2="26" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="37" y1="18" x2="37" y2="26" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M29 26 Q33 32 37 26" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- ナイフ -->
+    <path d="M47 18 L47 38" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M47 18 Q51 24 47 30" fill="white" opacity="0.9"/>
+  </svg>
+  <div class="row">
+    <span style="color:#FF6B6B">ストグル</span>
+  </div>
+</div>
+
+<!-- B: ピン + お箸 -->
+<div class="concept">
+  <h3>B: ピン × お箸</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gB" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#6C5CE7"/>
+        <stop offset="100%" style="stop-color:#a29bfe"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gB)"/>
+    <!-- 箸 -->
+    <line x1="34" y1="16" x2="34" y2="42" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="46" y1="16" x2="46" y2="42" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+    <!-- 小さい丸（食べ物） -->
+    <circle cx="40" cy="29" r="5" fill="white" opacity="0.3"/>
+  </svg>
+  <div class="row">
+    <span style="color:#6C5CE7">ストグル</span>
+  </div>
+</div>
+
+<!-- C: ピン + スマイル皿 -->
+<div class="concept">
+  <h3>C: ピン × スマイル</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gC" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#00b894"/>
+        <stop offset="100%" style="stop-color:#55efc4"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gC)"/>
+    <circle cx="40" cy="28" r="12" fill="none" stroke="white" stroke-width="2.5"/>
+    <circle cx="35" cy="25" r="1.8" fill="white"/>
+    <circle cx="45" cy="25" r="1.8" fill="white"/>
+    <path d="M34 31 Q40 37 46 31" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div class="row">
+    <span style="color:#00b894">ストグル</span>
+  </div>
+</div>
+
+<!-- D: ミニマルピン + S -->
+<div class="concept">
+  <h3>D: ミニマル S</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gD" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#e17055"/>
+        <stop offset="100%" style="stop-color:#fab1a0"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gD)"/>
+    <text x="40" y="36" text-anchor="middle" fill="white" font-size="28" font-weight="800" font-family="system-ui">S</text>
+  </svg>
+  <div class="row">
+    <span style="color:#e17055">ストグル</span>
+  </div>
+</div>
+
+<!-- E: ピン + ハート -->
+<div class="concept">
+  <h3>E: ピン × ハート</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gE" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#fd79a8"/>
+        <stop offset="100%" style="stop-color:#e84393"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gE)"/>
+    <path d="M40 36 C40 36 28 28 28 23 C28 19 31 16 35 16 C38 16 40 18 40 18 C40 18 42 16 45 16 C49 16 52 19 52 23 C52 28 40 36 40 36Z" fill="white"/>
+  </svg>
+  <div class="row">
+    <span style="color:#e84393">ストグル</span>
+  </div>
+</div>
+
+<!-- F: 丸ピン + 箸クロス -->
+<div class="concept">
+  <h3>F: ピン × 箸クロス</h3>
+  <svg width="80" height="80" viewBox="0 0 80 80">
+    <defs>
+      <linearGradient id="gF" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#0984e3"/>
+        <stop offset="100%" style="stop-color:#74b9ff"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 4C25.088 4 13 16.088 13 31c0 20.25 27 43 27 43s27-22.75 27-43C67 16.088 54.912 4 40 4z" fill="url(#gF)"/>
+    <!-- クロスした箸 -->
+    <line x1="30" y1="18" x2="44" y2="40" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="50" y1="18" x2="36" y2="40" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+  </svg>
+  <div class="row">
+    <span style="color:#0984e3">ストグル</span>
+  </div>
+</div>
+
+</body>
+</html>
