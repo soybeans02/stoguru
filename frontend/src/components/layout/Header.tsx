@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Map, List, Bookmark, Share2, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
+import { Map, Bookmark, Share2, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useRestaurantContext } from '../../context/RestaurantContext';
