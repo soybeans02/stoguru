@@ -1,9 +1,11 @@
-import { MapPin, CheckCircle2, ExternalLink, Pencil, Trash2, Navigation } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, CheckCircle2, ExternalLink, Pencil, Trash2, Navigation, Share2 } from 'lucide-react';
 import type { Restaurant } from '../../types/restaurant';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { CategoryBadge } from '../category/CategoryBadge';
 import { InfluencerBadge } from '../influencer/InfluencerBadge';
 import { StarRating } from '../ui/StarRating';
+import * as api from '../../utils/api';
 
 interface Props {
   restaurant: Restaurant;
@@ -20,6 +22,25 @@ export function RestaurantCard({ restaurant: r, onEdit, onDetail, onReview, onJu
   const isReviewed = !!r.review;
 
   const borderColor = isReviewed ? 'border-l-green-300' : 'border-l-red-400';
+  const [shared, setShared] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleShare() {
+    if (sharing || shared) return;
+    setSharing(true);
+    try {
+      await api.createSharePost({
+        restaurantName: r.name,
+        restaurantAddress: r.address || undefined,
+        lat: r.lat ?? undefined,
+        lng: r.lng ?? undefined,
+        comment: 'ここ行きたい！',
+      });
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
+    } catch { /* ignore */ }
+    setSharing(false);
+  }
 
   function del() {
     if (confirm(`「${r.name}」を削除しますか？`)) {
@@ -82,11 +103,20 @@ export function RestaurantCard({ restaurant: r, onEdit, onDetail, onReview, onJu
         {r.lat != null && r.lng != null && onJumpToMap && (
           <button
             onClick={() => onJumpToMap(r.lat!, r.lng!)}
-            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 font-medium ml-auto"
+            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 font-medium"
           >
             <Navigation size={12} /> マップで見る
           </button>
         )}
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className={`inline-flex items-center gap-1 text-xs font-medium ml-auto transition-colors ${
+            shared ? 'text-green-500' : 'text-orange-500 hover:text-orange-600'
+          }`}
+        >
+          <Share2 size={12} /> {shared ? 'シェアしました！' : 'シェア'}
+        </button>
       </div>
     </div>
   );
