@@ -1,4 +1,4 @@
-import { useRef, useState, type MutableRefObject } from 'react';
+import { useRef, useState, useEffect, type MutableRefObject } from 'react';
 import { Autocomplete } from '@react-google-maps/api';
 import { Search, X, Plus } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
@@ -10,6 +10,20 @@ interface Props {
   onQuickAdd: (name: string, lat: number, lng: number) => void;
 }
 
+const COUNTRY_OPTIONS = [
+  { code: null, label: 'ALL', icon: '⊘' },
+  { code: 'jp', label: '日本', icon: '🇯🇵' },
+  { code: 'us', label: 'アメリカ', icon: '🇺🇸' },
+  { code: 'kr', label: '韓国', icon: '🇰🇷' },
+  { code: 'tw', label: '台湾', icon: '🇹🇼' },
+  { code: 'th', label: 'タイ', icon: '🇹🇭' },
+  { code: 'it', label: 'イタリア', icon: '🇮🇹' },
+  { code: 'fr', label: 'フランス', icon: '🇫🇷' },
+  { code: 'gb', label: 'イギリス', icon: '🇬🇧' },
+  { code: 'cn', label: '中国', icon: '🇨🇳' },
+  { code: 'au', label: 'オーストラリア', icon: '🇦🇺' },
+] as const;
+
 export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
   const { state } = useRestaurantContext();
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -17,6 +31,21 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
   const [pendingPlace, setPendingPlace] = useState<{
     name: string; lat: number; lng: number;
   } | null>(null);
+  const [countryFilter, setCountryFilter] = useState<string | null>('jp');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  const currentCountry = COUNTRY_OPTIONS.find((c) => c.code === countryFilter) ?? COUNTRY_OPTIONS[0];
+
+  // 国フィルター変更時にAutocompleteの制限を更新
+  useEffect(() => {
+    if (autocompleteRef.current) {
+      if (countryFilter) {
+        autocompleteRef.current.setComponentRestrictions({ country: countryFilter });
+      } else {
+        autocompleteRef.current.setComponentRestrictions({ country: [] });
+      }
+    }
+  }, [countryFilter]);
 
   function onPlaceChanged() {
     const place = autocompleteRef.current?.getPlace();
@@ -29,20 +58,17 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
     setQuery(name);
     setPendingPlace(null);
 
-    // マップをその場所へ移動
     if (mapRef.current) {
       mapRef.current.panTo({ lat, lng });
       mapRef.current.setZoom(17);
     }
 
-    // 保存済みのお店と名前が一致するか確認
     const saved = state.restaurants.find(
       (r) => r.name.toLowerCase() === name.toLowerCase(),
     );
     if (saved) {
       onSelect(saved);
     } else {
-      // 未登録なら「追加」バナーを表示
       setPendingPlace({ name, lat, lng });
     }
   }
@@ -65,9 +91,17 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
         <Search size={15} className="text-gray-400 shrink-0" />
         <div className="flex-1 min-w-0">
           <Autocomplete
-            onLoad={(ac) => { autocompleteRef.current = ac; }}
+            onLoad={(ac) => {
+              autocompleteRef.current = ac;
+              if (countryFilter) {
+                ac.setComponentRestrictions({ country: countryFilter });
+              }
+            }}
             onPlaceChanged={onPlaceChanged}
-            options={{ types: ['establishment', 'geocode'] }}
+            options={countryFilter
+              ? { types: ['establishment', 'geocode'], componentRestrictions: { country: countryFilter } }
+              : { types: ['establishment', 'geocode'] }
+            }
           >
             <input
               type="text"
@@ -79,10 +113,41 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
           </Autocomplete>
         </div>
         {query && (
-          <button onClick={clear} className="text-gray-400 hover:text-gray-600 shrink-0 ml-auto">
+          <button onClick={clear} className="text-gray-400 hover:text-gray-600 shrink-0">
             <X size={15} />
           </button>
         )}
+
+        {/* 国フィルターボタン */}
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setShowCountryPicker(!showCountryPicker)}
+            className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-base transition-colors border border-gray-200"
+            title={currentCountry.label}
+          >
+            {currentCountry.icon}
+          </button>
+
+          {showCountryPicker && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowCountryPicker(false)} />
+              <div className="absolute right-0 top-10 z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 min-w-[140px] max-h-[300px] overflow-y-auto">
+                {COUNTRY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.code ?? 'all'}
+                    onClick={() => { setCountryFilter(opt.code); setShowCountryPicker(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                      countryFilter === opt.code ? 'bg-orange-50 text-orange-600 font-medium' : 'text-gray-700'
+                    }`}
+                  >
+                    <span className="text-base">{opt.icon}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 未登録のお店が見つかった場合の追加バナー */}
