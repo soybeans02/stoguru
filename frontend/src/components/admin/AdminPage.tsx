@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Shield, LogOut, Users, BarChart3 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -17,6 +17,112 @@ interface Stats {
   startedAt: string;
   byEndpoint: [string, number][];
   byHour: Record<string, number>;
+}
+
+function classifyEndpoint(ep: string): 'cognito' | 'dynamodb' | 'anthropic' | 'other' {
+  if (ep.includes('/auth/')) return 'cognito';
+  if (ep.includes('/extract-url')) return 'anthropic';
+  return 'dynamodb';
+}
+
+const SERVICE_META = {
+  cognito: { label: 'AWS Cognito（認証）', icon: Key, color: 'text-yellow-400', bg: 'bg-yellow-900/30' },
+  dynamodb: { label: 'AWS DynamoDB（データ）', icon: Database, color: 'text-blue-400', bg: 'bg-blue-900/30' },
+  anthropic: { label: 'Anthropic API（AI解析）', icon: Bot, color: 'text-purple-400', bg: 'bg-purple-900/30' },
+} as const;
+
+function StatsSection({ stats, userCount }: { stats: Stats; userCount: number }) {
+  const serviceStats = useMemo(() => {
+    const result: Record<string, { total: number; endpoints: [string, number][] }> = {
+      cognito: { total: 0, endpoints: [] },
+      dynamodb: { total: 0, endpoints: [] },
+      anthropic: { total: 0, endpoints: [] },
+    };
+    for (const [ep, count] of stats.byEndpoint) {
+      const svc = classifyEndpoint(ep);
+      if (svc === 'other') continue;
+      result[svc].total += count;
+      result[svc].endpoints.push([ep, count]);
+    }
+    return result;
+  }, [stats.byEndpoint]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 size={18} />
+        <h2 className="text-lg font-semibold">リクエスト統計</h2>
+      </div>
+
+      {/* 概要カード */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-2xl font-bold text-blue-400">{stats.total.toLocaleString()}</p>
+          <p className="text-xs text-gray-400">総リクエスト数</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-2xl font-bold text-green-400">{userCount}</p>
+          <p className="text-xs text-gray-400">登録ユーザー数</p>
+        </div>
+      </div>
+
+      {/* サービス別内訳 */}
+      <div className="space-y-3 mb-3">
+        {(Object.entries(SERVICE_META) as [keyof typeof SERVICE_META, typeof SERVICE_META[keyof typeof SERVICE_META]][]).map(([key, meta]) => {
+          const svc = serviceStats[key];
+          const Icon = meta.icon;
+          return (
+            <div key={key} className={`${meta.bg} border border-gray-700 rounded-xl p-4`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Icon size={16} className={meta.color} />
+                <span className={`text-sm font-semibold ${meta.color}`}>{meta.label}</span>
+                <span className="ml-auto text-lg font-bold text-white">{svc.total.toLocaleString()}</span>
+              </div>
+              {svc.endpoints.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {svc.endpoints.map(([ep, count]) => (
+                    <div key={ep} className="flex justify-between text-xs">
+                      <span className="text-gray-400 truncate mr-2">{ep}</span>
+                      <span className="text-gray-300 shrink-0">{count}回</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Google Maps（バックエンド経由しない） */}
+        <div className="bg-green-900/30 border border-gray-700 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-green-400" />
+            <span className="text-sm font-semibold text-green-400">Google Maps API（地図）</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            ブラウザから直接通信のため、ここでは計測不可。
+            <br />Google Cloud Consoleで確認してください。
+          </p>
+        </div>
+      </div>
+
+      {/* 時間帯別 */}
+      <div className="bg-gray-800 rounded-xl p-4 mb-3">
+        <p className="text-sm font-medium mb-2">時間帯別リクエスト数</p>
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {Object.entries(stats.byHour).sort(([a], [b]) => b.localeCompare(a)).map(([hour, count]) => (
+            <div key={hour} className="flex justify-between text-xs">
+              <span className="text-gray-400">{hour.slice(5)}時</span>
+              <span className="text-blue-300">{count}回</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-500 mt-2">
+        サーバー起動: {new Date(stats.startedAt).toLocaleString('ja-JP')}
+      </p>
+    </div>
+  );
 }
 
 export function AdminPage() {
@@ -115,49 +221,7 @@ export function AdminPage() {
 
       <div className="p-4 space-y-6">
         {/* リクエスト統計 */}
-        {stats && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart3 size={18} />
-              <h2 className="text-lg font-semibold">リクエスト統計</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="bg-gray-800 rounded-xl p-4">
-                <p className="text-2xl font-bold text-blue-400">{stats.total.toLocaleString()}</p>
-                <p className="text-xs text-gray-400">総リクエスト数</p>
-              </div>
-              <div className="bg-gray-800 rounded-xl p-4">
-                <p className="text-2xl font-bold text-green-400">{users.length}</p>
-                <p className="text-xs text-gray-400">登録ユーザー数</p>
-              </div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4 mb-3">
-              <p className="text-sm font-medium mb-2">時間帯別リクエスト数</p>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {Object.entries(stats.byHour).sort(([a], [b]) => b.localeCompare(a)).map(([hour, count]) => (
-                  <div key={hour} className="flex justify-between text-xs">
-                    <span className="text-gray-400">{hour.slice(5)}時</span>
-                    <span className="text-blue-300">{count}回</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4">
-              <p className="text-sm font-medium mb-2">エンドポイント別（上位10）</p>
-              <div className="space-y-1">
-                {stats.byEndpoint.slice(0, 10).map(([endpoint, count]) => (
-                  <div key={endpoint} className="flex justify-between text-xs">
-                    <span className="text-gray-400 truncate mr-2">{endpoint}</span>
-                    <span className="text-blue-300 shrink-0">{count}回</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              サーバー起動: {new Date(stats.startedAt).toLocaleString('ja-JP')}
-            </p>
-          </div>
-        )}
+        {stats && <StatsSection stats={stats} userCount={users.length} />}
 
         <div className="flex items-center gap-2 mb-4">
           <Users size={18} />
