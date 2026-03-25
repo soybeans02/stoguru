@@ -226,23 +226,44 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
           {messages.length === 0 && canSend && (
             <p className="text-center text-gray-400 text-sm py-8">メッセージを送ってみましょう</p>
           )}
-          {messages.map((m, i) => {
-            const isMine = m.senderId === myId;
-            return (
-              <div key={`${m.createdAt}-${i}`} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
-                  isMine
-                    ? 'bg-blue-500 text-white rounded-br-md'
-                    : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
-                }`}>
-                  <p>{m.content}</p>
-                  <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {timeAgo(m.createdAt)}
-                  </p>
+          {(() => {
+            // 相手のlastReadを取得
+            const conv = conversations.find((c) => {
+              const otherId = c.user1 === myId ? c.user2 : c.user1;
+              return otherId === selectedTarget;
+            });
+            const otherLastRead = conv
+              ? (conv.user1 === myId ? (conv.user2LastRead ?? 0) : (conv.user1LastRead ?? 0))
+              : 0;
+
+            // 最後のメッセージが自分のもので、相手が既読なら「既読」を表示
+            const lastMsg = messages[messages.length - 1];
+            const showReadOnLast = lastMsg
+              && lastMsg.senderId === myId
+              && lastMsg.createdAt <= otherLastRead;
+
+            return messages.map((m, i) => {
+              const isMine = m.senderId === myId;
+              const showRead = isMine && showReadOnLast && i === messages.length - 1;
+              return (
+                <div key={`${m.createdAt}-${i}`} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
+                    isMine
+                      ? 'bg-blue-500 text-white rounded-br-md'
+                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                  }`}>
+                    <p>{m.content}</p>
+                    <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
+                      {timeAgo(m.createdAt)}
+                    </p>
+                  </div>
+                  {showRead && (
+                    <span className="text-[10px] text-gray-400 mt-0.5 mr-1">既読</span>
+                  )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
           <div ref={bottomRef} />
         </div>
 
