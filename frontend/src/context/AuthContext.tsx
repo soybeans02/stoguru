@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-const API = 'http://localhost:3001/api/auth';
+const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/auth';
 
 interface User {
   userId: string;

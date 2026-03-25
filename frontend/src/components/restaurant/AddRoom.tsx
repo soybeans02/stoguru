@@ -66,7 +66,7 @@ export function AddRoom({ prefill, onPrefillConsumed }: Props) {
     setLoadingUrl(true);
     setUrlError('');
     try {
-      const res = await fetch('http://localhost:3001/api/extract-url', {
+      const res = await fetch((import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/extract-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), caption: caption.trim() || undefined }),

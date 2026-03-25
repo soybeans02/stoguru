@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shield, LogOut, Users, BarChart3 } from 'lucide-react';
 
-const API = 'http://localhost:3001/api/admin';
+const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
 interface UserInfo {
   userId: string;
