@@ -115,7 +115,7 @@ export function RestaurantCard({ restaurant: r, onEdit, onDetail, onReview, onJu
             shared ? 'text-green-500' : 'text-orange-500 hover:text-orange-600'
           }`}
         >
-          <Share2 size={12} /> {shared ? 'シェアしました！' : 'シェア'}
+          <Share2 size={12} /> {shared ? 'いこう！済み' : 'いこう'}
         </button>
       </div>
     </div>

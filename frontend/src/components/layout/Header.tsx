@@ -313,7 +313,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
             { id: 'map', label: 'マップ', icon: Map },
             { id: 'list', label: 'キープ', icon: Bookmark },
             { id: 'keep', label: '友達', icon: Users },
-            { id: 'share', label: 'シェア', icon: Share2 },
+            { id: 'share', label: 'いこう', icon: Share2 },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}

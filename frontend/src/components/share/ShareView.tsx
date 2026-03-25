@@ -40,8 +40,8 @@ export function ShareView({ onOpenProfile, onJumpToMap }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-6">
       <div className="px-4 py-3 border-b bg-white">
-        <h2 className="text-base font-semibold text-gray-900">シェア</h2>
-        <p className="text-xs text-gray-400 mt-0.5">フォロー中の人の行きたいお店</p>
+        <h2 className="text-base font-semibold text-gray-900">いこう</h2>
+        <p className="text-xs text-gray-400 mt-0.5">フォロー中の人が行きたいお店</p>
       </div>
 
       {loading ? (
@@ -49,8 +49,8 @@ export function ShareView({ onOpenProfile, onJumpToMap }: Props) {
       ) : feed.length === 0 ? (
         <div className="text-center py-16 px-4">
           <MapPin size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">まだシェアがありません</p>
-          <p className="text-gray-400 text-xs mt-1">レストランを保存するときに「シェアする」をONにすると、フォロワーのフィードに表示されます</p>
+          <p className="text-gray-500 text-sm">まだ投稿がありません</p>
+          <p className="text-gray-400 text-xs mt-1">レストランを保存するときに「いこう」をONにすると、フォロワーのフィードに表示されます</p>
         </div>
       ) : (
         <div className="divide-y divide-gray-100">

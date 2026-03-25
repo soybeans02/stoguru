@@ -116,7 +116,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
           </div>
         )}
 
-        {/* シェアオプション */}
+        {/* いこうオプション */}
         <div className="border border-orange-200 rounded-lg p-3 bg-orange-50/50">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -125,7 +125,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
               onChange={(e) => setShouldShare(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
             />
-            <span className="text-sm font-medium text-gray-700">フォロワーにシェアする</span>
+            <span className="text-sm font-medium text-gray-700">いこう！に投稿する</span>
           </label>
           {shouldShare && (
             <input
