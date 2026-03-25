@@ -222,7 +222,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
                       <span style={{ fontSize: 11, color: '#6b7280' }}>{selectedUser.nickname}</span>
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); onDetail(state.restaurants.find((rest: Restaurant) => rest.name === r.name) ?? null); }}
+                      onClick={(e) => { e.stopPropagation(); const found = state.restaurants.find((rest: Restaurant) => rest.name === r.name); if (found) onDetail(found); }}
                       style={{
                         display: 'block', width: '100%', marginTop: 8, padding: '5px 0',
                         fontSize: 12, fontWeight: 600, color: '#fff', border: 'none', borderRadius: 8,
