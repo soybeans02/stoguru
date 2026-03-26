@@ -181,6 +181,21 @@ export async function loadStats(): Promise<Record<string, unknown> | null> {
   return (result.Item as Record<string, unknown>) ?? null;
 }
 
+export async function saveActivity(data: Record<string, { lastSeen: number; nickname?: string }>) {
+  await db.send(new PutCommand({
+    TableName: TABLE.stats,
+    Item: { pk: 'user_activity', data, updatedAt: Date.now() },
+  }));
+}
+
+export async function loadActivity(): Promise<Record<string, { lastSeen: number; nickname?: string }> | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.stats,
+    Key: { pk: 'user_activity' },
+  }));
+  return (result.Item?.data as Record<string, { lastSeen: number; nickname?: string }>) ?? null;
+}
+
 // ─── メッセージ ───
 
 function makeConversationId(a: string, b: string): string {

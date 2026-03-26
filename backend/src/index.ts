@@ -6,7 +6,7 @@ import extractRouter from './routes/extract';
 import authRouter from './routes/auth';
 import dataRouter from './routes/data';
 import adminRouter from './routes/admin';
-import { saveStats, loadStats } from './services/dynamo';
+import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 
 dotenv.config({ override: true });
 
@@ -133,7 +133,15 @@ loadStats().then((saved) => {
   }
 }).catch(() => {});
 
-// 5分ごとにDBに統計を保存
+// 起動時にDBからアクティビティを復元
+loadActivity().then((saved) => {
+  if (saved) {
+    Object.assign(userActivity, saved);
+    console.log(`Activity restored: ${Object.keys(saved).length} users`);
+  }
+}).catch(() => {});
+
+// 5分ごとにDBに統計+アクティビティを保存
 setInterval(() => {
   saveStats({
     total: stats.total,
@@ -141,6 +149,7 @@ setInterval(() => {
     byHour: stats.byHour,
     startedAt: stats.startedAt,
   }).catch((err) => console.warn('Stats save failed:', err));
+  saveActivity(userActivity).catch((err) => console.warn('Activity save failed:', err));
 }, 5 * 60 * 1000);
 
 app.listen(PORT, () => {
