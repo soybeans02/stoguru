@@ -69,7 +69,7 @@ function MainApp() {
     setEditRestaurant({
       id: '', name, address: '', lat, lng,
       categoryIds: [], influencerIds: [], sourceVideos: [],
-      notes: '', review: null, status: 'wishlist',
+      notes: '', landmarkMemo: '', review: null, status: 'wishlist',
       visitedAt: null, createdAt: now, updatedAt: now,
     });
     setEditOpen(true);

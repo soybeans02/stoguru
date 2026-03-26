@@ -50,6 +50,13 @@ export function RestaurantModal({ restaurant: r, onClose, onEdit, onReview }: Pr
           </div>
         )}
 
+        {r.landmarkMemo && (
+          <div className="flex items-start gap-1.5">
+            <MapPin size={14} className="text-orange-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-orange-700 bg-orange-50 rounded-lg px-3 py-2 flex-1">{r.landmarkMemo}</p>
+          </div>
+        )}
+
         {r.notes && (
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1">メモ</p>

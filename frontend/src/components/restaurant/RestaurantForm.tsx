@@ -21,16 +21,18 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedInfs, setSelectedInfs] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
+  const [landmarkMemo, setLandmarkMemo] = useState('');
   const [shouldShare, setShouldShare] = useState(false);
   const [shareComment, setShareComment] = useState('');
 
   useEffect(() => {
     if (r) {
       setName(r.name); setAddress(r.address); setNotes(r.notes);
+      setLandmarkMemo(r.landmarkMemo ?? '');
       setSelectedCats(r.categoryIds); setSelectedInfs(r.influencerIds);
       setVideoUrl(r.sourceVideos[0]?.url ?? '');
     } else {
-      setName(''); setAddress(''); setNotes('');
+      setName(''); setAddress(''); setNotes(''); setLandmarkMemo('');
       setSelectedCats([]); setSelectedInfs([]); setVideoUrl('');
       setShouldShare(false); setShareComment('');
     }
@@ -53,13 +55,13 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
     if (r && r.id) {
       dispatch({
         type: 'UPDATE_RESTAURANT',
-        payload: { ...r, name: name.trim(), address: address.trim(), notes: notes.trim(), categoryIds: selectedCats, influencerIds: selectedInfs, sourceVideos, updatedAt: now },
+        payload: { ...r, name: name.trim(), address: address.trim(), notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined, categoryIds: selectedCats, influencerIds: selectedInfs, sourceVideos, updatedAt: now },
       });
     } else {
       const restaurant: Restaurant = {
         id: crypto.randomUUID(), name: name.trim(), address: address.trim(),
         lat: r?.lat ?? null, lng: r?.lng ?? null, categoryIds: selectedCats, influencerIds: selectedInfs,
-        sourceVideos, notes: notes.trim(), review: null, status: 'wishlist',
+        sourceVideos, notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined, review: null, status: 'wishlist',
         visitedAt: null, createdAt: now, updatedAt: now,
       };
       dispatch({ type: 'ADD_RESTAURANT', payload: restaurant });
@@ -83,6 +85,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
         <Input label="住所" value={address} onChange={(e) => setAddress(e.target.value)} />
         <Input label="動画URL（任意）" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
         <Textarea label="メモ" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        <Input label="目印" value={landmarkMemo} onChange={(e) => setLandmarkMemo(e.target.value)} placeholder="例: 3番出口直進、ビル6階" />
 
         {state.influencers.length > 0 && (
           <div>

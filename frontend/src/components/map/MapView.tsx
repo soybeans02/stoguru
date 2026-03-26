@@ -32,7 +32,7 @@ function makeIconUrl(color: string): string {
 interface FollowedUserForMap {
   userId: string;
   nickname: string;
-  restaurants: { name: string; address: string; lat: number | null; lng: number | null; hasReview: boolean }[];
+  restaurants: { name: string; address: string; lat: number | null; lng: number | null; hasReview: boolean; landmarkMemo?: string }[];
 }
 
 interface Props {
@@ -211,6 +211,11 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
                     </div>
                     {r.address && (
                       <p style={{ fontSize: 11, color: '#9ca3af', margin: '0 0 4px 14px', lineHeight: 1.3 }}>{r.address}</p>
+                    )}
+                    {r.landmarkMemo && (
+                      <p style={{ fontSize: 11, color: '#ea580c', margin: '0 0 4px 14px', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: 10 }}>📍</span> {r.landmarkMemo}
+                      </p>
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
                       <span style={{

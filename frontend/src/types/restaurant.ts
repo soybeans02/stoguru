@@ -37,6 +37,7 @@ export interface Restaurant {
   influencerIds: string[];
   sourceVideos: SourceVideo[];
   notes: string;
+  landmarkMemo?: string;
   review: PrivateReview | null;
   status: RestaurantStatus;
   visitedAt: string | null;
