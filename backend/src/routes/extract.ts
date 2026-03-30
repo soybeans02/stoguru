@@ -14,9 +14,9 @@ router.post('/extract-url', async (req: Request, res: Response) => {
 
   try {
     const oembed = await fetchOEmbed(url);
-    // oEmbedのタイトル、または貼り付けたキャプションを使う
+    // キャプション > oEmbedタイトル+ページメタ > oEmbedタイトルのみ
     const textToAnalyze = caption?.trim()
-      || [oembed.title, oembed.authorName].filter(Boolean).join('\n');
+      || [oembed.title, oembed.pageText, oembed.authorName].filter(Boolean).join('\n');
 
     let restaurantName: string | null = null;
     let address: string | null = null;

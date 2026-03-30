@@ -1,4 +1,4 @@
-import { MapPin, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { MapPin, ExternalLink, CheckCircle2, Navigation } from 'lucide-react';
 import type { Restaurant } from '../../types/restaurant';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { Modal } from '../ui/Modal';
@@ -28,6 +28,17 @@ export function RestaurantModal({ restaurant: r, onClose, onEdit, onReview }: Pr
           <p className="flex items-center gap-1.5 text-sm text-gray-600">
             <MapPin size={14} /> {r.address}
           </p>
+        )}
+
+        {r.lat != null && r.lng != null && (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-600 font-medium"
+          >
+            <Navigation size={14} /> 道案内（Google Maps）
+          </a>
         )}
 
         {(cats.length > 0 || infs.length > 0) && (

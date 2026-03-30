@@ -68,6 +68,15 @@ export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, on
               >
                 詳細
               </button>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                道案内
+              </a>
             </div>
           </div>
         </InfoWindow>

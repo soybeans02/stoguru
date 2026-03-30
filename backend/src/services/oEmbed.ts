@@ -2,46 +2,97 @@ export interface OEmbedResult {
   title?: string;
   authorName?: string;
   platform: 'tiktok' | 'instagram' | 'other';
+  pageText?: string; // HTMLから抽出した追加テキスト
+}
+
+// HTMLのmetaタグやog:descriptionなどからテキストを抽出
+async function fetchPageMeta(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; RestaurantBookmark/1.0)',
+        'Accept': 'text/html',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) return '';
+    const html = await res.text();
+    const parts: string[] = [];
+
+    // og:title
+    const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"/i);
+    if (ogTitle?.[1]) parts.push(ogTitle[1]);
+
+    // og:description
+    const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/i);
+    if (ogDesc?.[1]) parts.push(ogDesc[1]);
+
+    // meta description
+    const metaDesc = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"/i);
+    if (metaDesc?.[1]) parts.push(metaDesc[1]);
+
+    // title tag
+    const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if (titleTag?.[1]) parts.push(titleTag[1]);
+
+    return [...new Set(parts)].join('\n').slice(0, 1000);
+  } catch {
+    return '';
+  }
 }
 
 export async function fetchOEmbed(url: string): Promise<OEmbedResult> {
   const isTikTok = url.includes('tiktok.com');
   const isInstagram = url.includes('instagram.com');
 
+  // oEmbedとページメタを並列取得
+  const pageMetaPromise = fetchPageMeta(url);
+
   if (isTikTok) {
     try {
-      const res = await fetch(
-        `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
-        { headers: { 'User-Agent': 'RestaurantBookmark/1.0' } }
-      );
+      const [res, pageMeta] = await Promise.all([
+        fetch(
+          `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+          { headers: { 'User-Agent': 'RestaurantBookmark/1.0' } }
+        ),
+        pageMetaPromise,
+      ]);
       if (res.ok) {
         const data = await res.json() as { title?: string; author_name?: string };
-        return { title: data.title, authorName: data.author_name, platform: 'tiktok' };
+        return { title: data.title, authorName: data.author_name, platform: 'tiktok', pageText: pageMeta };
       }
+      return { platform: 'tiktok', pageText: pageMeta };
     } catch (err) {
       console.warn('[oEmbed] TikTok fetch failed:', err instanceof Error ? err.message : err);
     }
-    return { platform: 'tiktok' };
+    const pageMeta = await pageMetaPromise;
+    return { platform: 'tiktok', pageText: pageMeta };
   }
 
   if (isInstagram) {
     const token = process.env.INSTAGRAM_ACCESS_TOKEN;
     if (token) {
       try {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${token}`,
-          { headers: { 'User-Agent': 'RestaurantBookmark/1.0' } }
-        );
+        const [res, pageMeta] = await Promise.all([
+          fetch(
+            `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${token}`,
+            { headers: { 'User-Agent': 'RestaurantBookmark/1.0' } }
+          ),
+          pageMetaPromise,
+        ]);
         if (res.ok) {
           const data = await res.json() as { title?: string; author_name?: string };
-          return { title: data.title, authorName: data.author_name, platform: 'instagram' };
+          return { title: data.title, authorName: data.author_name, platform: 'instagram', pageText: pageMeta };
         }
+        return { platform: 'instagram', pageText: pageMeta };
       } catch (err) {
         console.warn('[oEmbed] Instagram fetch failed:', err instanceof Error ? err.message : err);
       }
     }
-    return { platform: 'instagram' };
+    const pageMeta = await pageMetaPromise;
+    return { platform: 'instagram', pageText: pageMeta };
   }
 
-  return { platform: 'other' };
+  const pageMeta = await pageMetaPromise;
+  return { platform: 'other', pageText: pageMeta };
 }
