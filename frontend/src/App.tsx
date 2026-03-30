@@ -12,10 +12,9 @@ import { RestaurantForm } from './components/restaurant/RestaurantForm';
 import { ReviewModal } from './components/restaurant/ReviewModal';
 import { UserProfileModal } from './components/user/UserProfileModal';
 import { MessageView } from './components/message/MessageView';
-import { ShareView } from './components/share/ShareView';
 import type { Restaurant } from './types/restaurant';
 
-type Tab = 'map' | 'list' | 'keep' | 'share';
+type Tab = 'map' | 'list' | 'keep';
 
 function MainApp() {
   const { user } = useAuth();
@@ -112,9 +111,6 @@ function MainApp() {
           </div>
           <div style={{ display: tab === 'keep' ? 'block' : 'none' }}>
             <KeepView onDetail={setDetailRestaurant} onOpenProfile={setProfileUserId} onOpenMessage={(targetId) => { setMessageTargetId(targetId); setMessageOpen(true); }} />
-          </div>
-          <div style={{ display: tab === 'share' ? 'block' : 'none' }}>
-            <ShareView onOpenProfile={setProfileUserId} onJumpToMap={handleJumpToMap} />
           </div>
         </main>
 

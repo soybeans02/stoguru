@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, type MutableRefObject } from 'react';
 import { Autocomplete } from '@react-google-maps/api';
-import { Search, X, Plus } from 'lucide-react';
+import { Search, X, Plus, PenLine } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import type { Restaurant } from '../../types/restaurant';
 
@@ -85,6 +85,26 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
     setPendingPlace(null);
   }
 
+  // ストック内検索: 入力中にローカルのレストランをフィルタ
+  const stockMatches = query.length >= 1
+    ? state.restaurants.filter((r) =>
+        r.name.toLowerCase().includes(query.toLowerCase()) ||
+        (r.address && r.address.toLowerCase().includes(query.toLowerCase()))
+      ).slice(0, 5)
+    : [];
+  const [showStockResults, setShowStockResults] = useState(false);
+
+  function handleSelectStock(r: Restaurant) {
+    setQuery(r.name);
+    setShowStockResults(false);
+    setPendingPlace(null);
+    if (mapRef.current && r.lat != null && r.lng != null) {
+      mapRef.current.panTo({ lat: r.lat, lng: r.lng });
+      mapRef.current.setZoom(17);
+    }
+    onSelect(r);
+  }
+
   return (
     <div className="space-y-1">
       <div className="relative bg-white rounded-xl shadow-md border border-gray-100 flex items-center px-3 py-2 gap-2">
@@ -107,7 +127,8 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
               type="text"
               placeholder="お店・場所を検索..."
               value={query}
-              onChange={(e) => { setQuery(e.target.value); setPendingPlace(null); }}
+              onChange={(e) => { setQuery(e.target.value); setPendingPlace(null); setShowStockResults(true); }}
+              onFocus={() => setShowStockResults(true)}
               className="w-full text-sm outline-none bg-transparent"
             />
           </Autocomplete>
@@ -150,6 +171,29 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
         </div>
       </div>
 
+      {/* ストック内検索結果 */}
+      {showStockResults && stockMatches.length > 0 && !pendingPlace && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <p className="text-[10px] text-gray-400 px-3 pt-2 pb-1 font-medium">ストック内の一致</p>
+          {stockMatches.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => handleSelectStock(r)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors text-left border-t border-gray-50"
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: r.review ? '#86efac' : '#ef4444' }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 truncate">{r.name}</p>
+                {r.address && <p className="text-[11px] text-gray-400 truncate">{r.address}</p>}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 未登録のお店が見つかった場合の追加バナー */}
       {pendingPlace && (
         <div className="bg-white rounded-xl shadow-md border border-red-100 px-4 py-3 flex items-center justify-between gap-2">
@@ -164,6 +208,21 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
             <Plus size={12} /> 追加
           </button>
         </div>
+      )}
+
+      {/* 手動追加ボタン */}
+      {!pendingPlace && !query && (
+        <button
+          onClick={() => {
+            const center = mapRef.current?.getCenter();
+            const lat = center?.lat() ?? 35.6762;
+            const lng = center?.lng() ?? 139.6503;
+            onQuickAdd('', lat, lng);
+          }}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-1"
+        >
+          <PenLine size={12} /> Google Mapに載ってないお店を手動で追加
+        </button>
       )}
     </div>
   );

@@ -48,6 +48,11 @@ export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, on
           <div className="min-w-[100px] pr-4">
             <p className="text-[13px] font-bold text-gray-900 leading-tight">{r.name}</p>
             {r.address && <p className="text-[10px] text-gray-400 leading-tight">{r.address}</p>}
+            {r.landmarkMemo && (
+              <p className="text-[10px] leading-tight mt-0.5" style={{ color: '#ea580c' }}>
+                📍 {r.landmarkMemo}
+              </p>
+            )}
             <div className="flex gap-1.5 mt-1">
               {!isReviewed && (
                 <button
