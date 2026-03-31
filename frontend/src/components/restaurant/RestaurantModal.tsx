@@ -1,4 +1,4 @@
-import { MapPin, ExternalLink, CheckCircle2, Navigation } from 'lucide-react';
+import { MapPin, ExternalLink, CheckCircle2, Navigation, Users } from 'lucide-react';
 import type { Restaurant } from '../../types/restaurant';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { Modal } from '../ui/Modal';
@@ -31,14 +31,24 @@ export function RestaurantModal({ restaurant: r, onClose, onEdit, onReview }: Pr
         )}
 
         {r.lat != null && r.lng != null && (
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-600 font-medium"
-          >
-            <Navigation size={14} /> 道案内（Google Maps）
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-600 font-medium"
+            >
+              <Navigation size={14} /> 道案内
+            </a>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-purple-500 hover:text-purple-600 font-medium"
+            >
+              <Users size={14} /> 混雑状況
+            </a>
+          </div>
         )}
 
         {(cats.length > 0 || infs.length > 0) && (
