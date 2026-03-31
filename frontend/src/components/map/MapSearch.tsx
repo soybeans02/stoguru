@@ -219,7 +219,7 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
             const lng = center?.lng() ?? 139.6503;
             onQuickAdd('', lat, lng);
           }}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-1"
+          className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-800 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm border border-gray-200 transition-colors"
         >
           <PenLine size={12} /> Google Mapに載ってないお店を手動で追加
         </button>
