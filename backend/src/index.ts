@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import extractRouter from './routes/extract';
@@ -71,6 +72,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
 // ─── リクエスト統計 ───

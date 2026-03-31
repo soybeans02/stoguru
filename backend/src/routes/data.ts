@@ -38,8 +38,8 @@ router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Res
 
 router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Response) => {
   const { restaurants } = req.body as { restaurants: (Partial<Restaurant> & { id: string })[] };
-  if (!Array.isArray(restaurants)) {
-    res.status(400).json({ error: 'restaurants 配列が必要です' });
+  if (!Array.isArray(restaurants) || restaurants.length > 500) {
+    res.status(400).json({ error: 'restaurants 配列が必要です（上限500件）' });
     return;
   }
   for (const r of restaurants) {
@@ -135,7 +135,7 @@ router.post('/notifications/read', requireAuth, async (req: AuthRequest, res: Re
 // ─── ユーザー検索 ───
 
 router.get('/users/search', requireAuth, async (req: AuthRequest, res: Response) => {
-  const q = ((req.query.q as string) ?? '').trim();
+  const q = ((req.query.q as string) ?? '').trim().slice(0, 100);
   if (!q || q.length < 1) {
     res.json([]);
     return;
@@ -228,8 +228,8 @@ router.post('/messages/:targetId', requireAuth, async (req: AuthRequest, res: Re
   const myId = req.user!.userId;
   const targetId = req.params.targetId as string;
   const { content } = req.body;
-  if (!content || typeof content !== 'string' || content.trim().length === 0) {
-    res.status(400).json({ error: 'メッセージを入力してください' });
+  if (!content || typeof content !== 'string' || content.trim().length === 0 || content.length > 2000) {
+    res.status(400).json({ error: 'メッセージを入力してください（上限2000文字）' });
     return;
   }
 
