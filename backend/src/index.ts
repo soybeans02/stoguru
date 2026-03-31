@@ -3,7 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import extractRouter from './routes/extract';
 import authRouter from './routes/auth';
 import dataRouter from './routes/data';
 import adminRouter from './routes/admin';
@@ -52,17 +51,6 @@ const authLimit = rateLimit({
   message: { error: '認証リクエストが多すぎます。少し待ってください。' },
 });
 
-// AI抽出: 1分10回 + 1日100回（Anthropic API課金防止）
-const extractPerMinute = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  message: { error: 'リクエストが多すぎます。少し待ってから試してください。' },
-});
-const extractDaily = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000,
-  max: 100,
-  message: { error: '1日の利用上限(100回)に達しました。明日また試してください。' },
-});
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
@@ -112,10 +100,6 @@ app.use('/api', globalLimit, hourlyLimit);
 // 認証系に追加制限
 app.use('/api/auth', authLimit);
 app.use('/api/auth', authRouter);
-
-// AI抽出に追加制限
-app.use('/api/extract-url', extractPerMinute, extractDaily);
-app.use('/api', extractRouter);
 
 // 書き込み系エンドポイントに追加制限（PUT/POST/DELETE）
 app.use('/api', (req, _res, next) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2 } from 'lucide-react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2 } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -19,16 +19,14 @@ interface Stats {
   byHour: Record<string, number>;
 }
 
-function classifyEndpoint(ep: string): 'cognito' | 'dynamodb' | 'anthropic' | 'other' {
+function classifyEndpoint(ep: string): 'cognito' | 'dynamodb' | 'other' {
   if (ep.includes('/auth/')) return 'cognito';
-  if (ep.includes('/extract-url')) return 'anthropic';
   return 'dynamodb';
 }
 
 const SERVICE_META = {
   cognito: { label: 'AWS Cognito（認証）', icon: Key, color: 'text-yellow-400', bg: 'bg-yellow-900/30' },
   dynamodb: { label: 'AWS DynamoDB（データ）', icon: Database, color: 'text-blue-400', bg: 'bg-blue-900/30' },
-  anthropic: { label: 'Anthropic API（AI解析）', icon: Bot, color: 'text-purple-400', bg: 'bg-purple-900/30' },
 } as const;
 
 function StatsSection({ stats, userCount }: { stats: Stats; userCount: number }) {
@@ -36,7 +34,6 @@ function StatsSection({ stats, userCount }: { stats: Stats; userCount: number })
     const result: Record<string, { total: number; endpoints: [string, number][] }> = {
       cognito: { total: 0, endpoints: [] },
       dynamodb: { total: 0, endpoints: [] },
-      anthropic: { total: 0, endpoints: [] },
     };
     for (const [ep, count] of stats.byEndpoint) {
       const svc = classifyEndpoint(ep);
