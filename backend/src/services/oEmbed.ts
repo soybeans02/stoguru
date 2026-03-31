@@ -5,8 +5,26 @@ export interface OEmbedResult {
   pageText?: string; // HTMLから抽出した追加テキスト
 }
 
+// URLがプライベートIPやlocalhostでないか検証
+function isAllowedUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    // プライベートIP・localhost・内部ネットワークをブロック
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '[::1]') return false;
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(host)) return false;
+    if (host.endsWith('.local') || host.endsWith('.internal')) return false;
+    // http のみ許可（ftp等をブロック）
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // HTMLのmetaタグやog:descriptionなどからテキストを抽出
 async function fetchPageMeta(url: string): Promise<string> {
+  if (!isAllowedUrl(url)) return '';
   try {
     const res = await fetch(url, {
       headers: {

@@ -9,7 +9,12 @@ import { getUserPoolId } from '../services/cognito';
 const router = Router();
 const cognito = new CognitoIdentityProviderClient({ region: 'ap-northeast-1' });
 
-const ADMIN_JWT_SECRET = process.env.ADMIN_SECRET ?? 'default-admin-secret-change-me';
+function getAdminSecret(): string {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) throw new Error('ADMIN_SECRET environment variable is required');
+  return secret;
+}
+const ADMIN_JWT_SECRET = getAdminSecret();
 
 // 管理者ログイン → JWT返却
 router.post('/login', (req: Request, res: Response) => {

@@ -106,9 +106,11 @@ export async function searchUsers(query: string) {
 // ─── ユーザー情報取得（userId指定） ───
 
 export async function getUserById(userId: string) {
+  // UUIDフォーマットのみ許可（インジェクション防止）
+  if (!/^[a-f0-9-]+$/i.test(userId)) return null;
   const command = new ListUsersCommand({
     UserPoolId: getUserPoolId(),
-    Filter: `sub = "${userId.replace(/"/g, '')}"`,
+    Filter: `sub = "${userId}"`,
     Limit: 1,
   });
   const result = await client.send(command);

@@ -66,7 +66,7 @@ const extractDaily = rateLimit({
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+    if (origin && allowedOrigins.includes(origin)) cb(null, true);
     else cb(null, false);
   },
   credentials: true,

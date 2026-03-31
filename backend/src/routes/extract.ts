@@ -1,11 +1,12 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
+import { requireAuth, AuthRequest } from '../middleware/auth';
 import { fetchOEmbed } from '../services/oEmbed';
 import { extractRestaurantFromText } from '../services/claude';
 import { geocode } from '../services/geocode';
 
 const router = Router();
 
-router.post('/extract-url', async (req: Request, res: Response) => {
+router.post('/extract-url', requireAuth, async (req: AuthRequest, res: Response) => {
   const { url, caption } = req.body as { url?: string; caption?: string };
   if (!url || !/^https?:\/\//i.test(url)) {
     res.status(400).json({ error: '有効なURLを入力してください' });
@@ -51,13 +52,11 @@ router.post('/extract-url', async (req: Request, res: Response) => {
       influencerHandle,
     });
   } catch (err: unknown) {
-    console.error(err);
-    const msg = err instanceof Error ? err.message : '';
-    if (msg.includes('credit balance is too low')) {
-      res.status(402).json({ error: 'Anthropic APIのクレジットが不足しています。console.anthropic.com でチャージしてください。' });
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    console.error('[extract-url] Error:', err instanceof Error ? err.message : err);
+    const isCredit = err instanceof Error && err.message.includes('credit');
+    res.status(isCredit ? 402 : 500).json({
+      error: isCredit ? 'APIクレジットが不足しています' : 'URL解析に失敗しました',
+    });
   }
 });
 
