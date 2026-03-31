@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { signUp, confirmSignUp, signIn, deleteUser } from '../services/cognito';
+import { signUp, confirmSignUp, signIn, deleteUser, changePassword } from '../services/cognito';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
 
@@ -52,6 +52,30 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   res.json(req.user);
+});
+
+router.post('/change-password', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    res.status(400).json({ error: '現在のパスワードと新しいパスワードは必須です' });
+    return;
+  }
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: 'パスワードは8文字以上にしてください' });
+    return;
+  }
+  try {
+    const accessToken = req.headers.authorization!.split(' ')[1];
+    await changePassword(accessToken, oldPassword, newPassword);
+    res.json({ message: 'パスワードを変更しました' });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'パスワード変更に失敗しました';
+    if (msg.includes('Incorrect') || msg.includes('NotAuthorized')) {
+      res.status(400).json({ error: '現在のパスワードが正しくありません' });
+    } else {
+      res.status(500).json({ error: 'パスワード変更に失敗しました' });
+    }
+  }
 });
 
 router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) => {

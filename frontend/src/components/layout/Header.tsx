@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Map, Bookmark, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle } from 'lucide-react';
+import { Map, Bookmark, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle, KeyRound } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import * as api from '../../utils/api';
 
 type Tab = 'map' | 'list' | 'keep';
-type SettingsPage = 'main' | 'account' | 'privacy' | 'following' | 'stat-all' | 'stat-reviewed' | 'stat-wishlist';
+type SettingsPage = 'main' | 'account' | 'password' | 'privacy' | 'following' | 'stat-all' | 'stat-reviewed' | 'stat-wishlist';
 
 function timeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -32,6 +32,63 @@ interface Props {
   onJumpToMap?: (lat: number, lng: number) => void;
   onOpenMessage?: () => void;
   messageCount?: number;
+}
+
+function PasswordChangePage({ onBack }: { onBack: () => void }) {
+  const [oldPw, setOldPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (newPw.length < 8) { setError('新しいパスワードは8文字以上にしてください'); return; }
+    if (newPw !== confirmPw) { setError('新しいパスワードが一致しません'); return; }
+    setSaving(true);
+    try {
+      await api.changePassword(oldPw, newPw);
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'パスワード変更に失敗しました');
+    } finally { setSaving(false); }
+  }
+
+  if (done) {
+    return (
+      <div className="text-center py-8 space-y-3">
+        <p className="text-green-600 font-medium">パスワードを変更しました</p>
+        <button onClick={onBack} className="text-sm text-blue-500 hover:text-blue-600">戻る</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">現在のパスワード</label>
+        <input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)}
+          className="w-full text-sm bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 outline-none focus:ring-2 focus:ring-orange-300" />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">新しいパスワード（8文字以上）</label>
+        <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)}
+          className="w-full text-sm bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 outline-none focus:ring-2 focus:ring-orange-300" />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">新しいパスワード（確認）</label>
+        <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)}
+          className="w-full text-sm bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 outline-none focus:ring-2 focus:ring-orange-300" />
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <button type="submit" disabled={saving || !oldPw || !newPw || !confirmPw}
+        className="w-full bg-orange-500 text-white text-sm py-2.5 rounded-xl font-medium hover:bg-orange-600 disabled:opacity-50">
+        {saving ? '変更中...' : 'パスワードを変更'}
+      </button>
+    </form>
+  );
 }
 
 export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onOpenMessage, messageCount: externalMsgCount }: Props) {
@@ -178,6 +235,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
   const pageTitle: Record<SettingsPage, string> = {
     main: '設定',
     account: 'アカウント',
+    password: 'パスワード変更',
     privacy: 'プライバシー',
     following: `フォロー中 (${followedUsers.length})`,
     'stat-all': 'すべてのストック',
@@ -332,7 +390,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
         {/* 戻るボタン（メインページ以外） */}
         {page !== 'main' && (
           <button
-            onClick={() => setPage('main')}
+            onClick={() => setPage(page === 'password' ? 'account' : 'main')}
             className="text-sm text-blue-500 hover:text-blue-600 mb-3 -mt-1"
           >
             ← 戻る
@@ -457,6 +515,14 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
               <p className="text-xs text-gray-400 mb-1">ニックネーム</p>
               <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2">{user?.nickname}</p>
             </div>
+            <button
+              onClick={() => setPage('password')}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              <KeyRound size={18} className="text-gray-400" />
+              <span className="text-sm text-gray-700 flex-1 text-left">パスワード変更</span>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
             <hr className="border-gray-100" />
             <button
               onClick={logout}
@@ -473,6 +539,11 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
               <Trash2 size={16} /> {deleting ? '削除中...' : 'アカウントを削除'}
             </button>
           </div>
+        )}
+
+        {/* ─── パスワード変更ページ ─── */}
+        {page === 'password' && (
+          <PasswordChangePage onBack={() => setPage('account')} />
         )}
 
         {/* ─── 統計一覧ページ ─── */}

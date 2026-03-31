@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin, Activity } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, Bot, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2 } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -136,6 +136,31 @@ export function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<{ userId: string; nickname: string; lastSeen: number; lastSeenAgo: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const adminAction = useCallback(async (userId: string, action: string, method = 'POST') => {
+    if (!token) return;
+    setActionLoading(`${userId}-${action}`);
+    try {
+      const url = action === 'delete'
+        ? `${API}/users/${userId}`
+        : `${API}/users/${userId}/${action}`;
+      const res = await fetch(url, {
+        method: method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error); return; }
+      alert(data.message);
+      // Reload users
+      const usersRes = await fetch(`${API}/users`, { headers: { Authorization: `Bearer ${token}` } });
+      if (usersRes.ok) {
+        const d = await usersRes.json();
+        setUsers(d.users);
+      }
+    } catch { alert('操作に失敗しました'); }
+    finally { setActionLoading(null); }
+  }, [token]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -266,19 +291,61 @@ export function AdminPage() {
         ) : (
           <div className="space-y-2">
             {users.map((u) => (
-              <div key={u.userId} className="bg-gray-800 rounded-xl p-4 space-y-1">
+              <div key={u.userId} className="bg-gray-800 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{u.nickname}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    u.status === 'CONFIRMED' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
-                  }`}>
-                    {u.status === 'CONFIRMED' ? '確認済み' : '未確認'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {!u.enabled && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-900 text-red-300">無効</span>
+                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      u.status === 'CONFIRMED' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+                    }`}>
+                      {u.status === 'CONFIRMED' ? '確認済み' : '未確認'}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-400">{u.email}</p>
                 <p className="text-xs text-gray-500">
                   登録日: {u.createdAt ? new Date(u.createdAt).toLocaleString('ja-JP') : '-'}
                 </p>
+                <div className="flex gap-2 pt-1">
+                  {u.enabled ? (
+                    <button
+                      onClick={() => adminAction(u.userId, 'disable')}
+                      disabled={actionLoading === `${u.userId}-disable`}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-yellow-900/50 text-yellow-300 hover:bg-yellow-900 disabled:opacity-50"
+                    >
+                      <Ban size={12} /> 無効化
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => adminAction(u.userId, 'enable')}
+                      disabled={actionLoading === `${u.userId}-enable`}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-green-900/50 text-green-300 hover:bg-green-900 disabled:opacity-50"
+                    >
+                      <CheckCircle size={12} /> 有効化
+                    </button>
+                  )}
+                  <button
+                    onClick={() => adminAction(u.userId, 'reset-password')}
+                    disabled={actionLoading === `${u.userId}-reset-password`}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/50 text-blue-300 hover:bg-blue-900 disabled:opacity-50"
+                  >
+                    <KeyRound size={12} /> PW リセット
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`${u.nickname} を削除しますか？この操作は取り消せません。`)) {
+                        adminAction(u.userId, 'delete', 'DELETE');
+                      }
+                    }}
+                    disabled={actionLoading === `${u.userId}-delete`}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-red-900/50 text-red-300 hover:bg-red-900 disabled:opacity-50"
+                  >
+                    <Trash2 size={12} /> 削除
+                  </button>
+                </div>
               </div>
             ))}
             {users.length === 0 && (

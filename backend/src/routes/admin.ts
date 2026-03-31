@@ -4,7 +4,8 @@ import {
   CognitoIdentityProviderClient,
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { getUserPoolId } from '../services/cognito';
+import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
+import { deleteAllUserData } from '../services/dynamo';
 
 const router = Router();
 const cognito = new CognitoIdentityProviderClient({ region: 'ap-northeast-1' });
@@ -106,6 +107,65 @@ router.get('/activity', requireAdmin, (_req: Request, res: Response) => {
     }))
     .sort((a, b) => b.lastSeen - a.lastSeen);
   res.json(list);
+});
+
+// ─── ユーザー管理操作 ───
+
+// ユーザー無効化
+router.post('/users/:userId/disable', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const uid = req.params.userId as string;
+    const user = await getUserById(uid);
+    if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
+    await adminDisableUser(user.username);
+    res.json({ message: 'ユーザーを無効化しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'ユーザーの無効化に失敗しました' });
+  }
+});
+
+// ユーザー有効化
+router.post('/users/:userId/enable', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const uid = req.params.userId as string;
+    const user = await getUserById(uid);
+    if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
+    await adminEnableUser(user.username);
+    res.json({ message: 'ユーザーを有効化しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'ユーザーの有効化に失敗しました' });
+  }
+});
+
+// パスワードリセット（確認コードをメール送信）
+router.post('/users/:userId/reset-password', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const uid = req.params.userId as string;
+    const user = await getUserById(uid);
+    if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
+    await adminResetPassword(user.username);
+    res.json({ message: 'パスワードリセットメールを送信しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'パスワードリセットに失敗しました' });
+  }
+});
+
+// ユーザー削除
+router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const uid = req.params.userId as string;
+    const user = await getUserById(uid);
+    if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
+    await deleteAllUserData(uid);
+    await adminDeleteUser(user.username);
+    res.json({ message: 'ユーザーを削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'ユーザーの削除に失敗しました' });
+  }
 });
 
 function formatAgo(ts: number): string {

@@ -7,6 +7,11 @@ import {
   GetUserCommand,
   DeleteUserCommand,
   ListUsersCommand,
+  ChangePasswordCommand,
+  AdminDisableUserCommand,
+  AdminEnableUserCommand,
+  AdminResetUserPasswordCommand,
+  AdminDeleteUserCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const client = new CognitoIdentityProviderClient({ region: 'ap-northeast-1' });
@@ -124,5 +129,46 @@ export async function getUserById(userId: string) {
     userId: attrs['sub'],
     nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0],
     createdAt: u.UserCreateDate?.toISOString(),
+    username: u.Username,
   };
+}
+
+// ─── パスワード変更（ユーザー自身） ───
+
+export async function changePassword(accessToken: string, oldPassword: string, newPassword: string) {
+  await client.send(new ChangePasswordCommand({
+    AccessToken: accessToken,
+    PreviousPassword: oldPassword,
+    ProposedPassword: newPassword,
+  }));
+}
+
+// ─── 管理者用ユーザー操作 ───
+
+export async function adminDisableUser(username: string) {
+  await client.send(new AdminDisableUserCommand({
+    UserPoolId: getUserPoolId(),
+    Username: username,
+  }));
+}
+
+export async function adminEnableUser(username: string) {
+  await client.send(new AdminEnableUserCommand({
+    UserPoolId: getUserPoolId(),
+    Username: username,
+  }));
+}
+
+export async function adminResetPassword(username: string) {
+  await client.send(new AdminResetUserPasswordCommand({
+    UserPoolId: getUserPoolId(),
+    Username: username,
+  }));
+}
+
+export async function adminDeleteUser(username: string) {
+  await client.send(new AdminDeleteUserCommand({
+    UserPoolId: getUserPoolId(),
+    Username: username,
+  }));
 }

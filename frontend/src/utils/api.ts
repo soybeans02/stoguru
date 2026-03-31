@@ -58,6 +58,18 @@ export async function getUserProfile(userId: string) {
   return res.json();
 }
 
+// ─── パスワード変更 ───
+
+export async function changePassword(oldPassword: string, newPassword: string) {
+  const res = await fetch(`${BASE}/auth/change-password`, {
+    method: 'POST', headers: headers(),
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'パスワード変更に失敗しました');
+  return data;
+}
+
 // ─── アカウント削除 ───
 
 export async function deleteAccount() {
