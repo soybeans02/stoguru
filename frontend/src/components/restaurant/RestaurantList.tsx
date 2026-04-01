@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { filterRestaurants, type FilterOptions } from '../../utils/filters';
+import { GENRE_TAGS } from '../../constants/genre';
 import { RestaurantCard } from './RestaurantCard';
 import type { Restaurant } from '../../types/restaurant';
 
@@ -16,9 +17,11 @@ export function RestaurantList({ onEdit, onDetail, onReview, onJumpToMap }: Prop
   const { state } = useRestaurantContext();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<FilterOptions['status']>('all');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [genreOpen, setGenreOpen] = useState(false);
 
-  const filters: FilterOptions = { query, categoryIds: [], influencerIds: [], status };
-  const filtered = useMemo(() => filterRestaurants(state.restaurants, filters), [state.restaurants, query, status]);
+  const filters: FilterOptions = { query, categoryIds: [], influencerIds: [], genreTags: selectedGenres, status };
+  const filtered = useMemo(() => filterRestaurants(state.restaurants, filters), [state.restaurants, query, status, selectedGenres]);
 
   return (
     <div className="flex flex-col h-full">
@@ -44,6 +47,37 @@ export function RestaurantList({ onEdit, onDetail, onReview, onJumpToMap }: Prop
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setGenreOpen((v) => !v)}
+          className={`flex items-center gap-1 text-xs font-medium transition-colors ${
+            selectedGenres.length > 0 ? 'text-orange-500' : 'text-gray-500'
+          }`}
+        >
+          ジャンル{selectedGenres.length > 0 && ` (${selectedGenres.length})`}
+          {genreOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+        {genreOpen && (
+          <div className="flex flex-wrap gap-1">
+            {selectedGenres.length > 0 && (
+              <button onClick={() => setSelectedGenres([])} className="px-2 py-0.5 rounded-full text-[10px] bg-gray-200 text-gray-600">
+                クリア
+              </button>
+            )}
+            {GENRE_TAGS.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setSelectedGenres((prev) =>
+                  prev.includes(tag) ? prev.filter((g) => g !== tag) : [...prev, tag]
+                )}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                  selectedGenres.includes(tag) ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">

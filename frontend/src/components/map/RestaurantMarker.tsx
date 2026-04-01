@@ -31,6 +31,7 @@ export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, on
   }
 
   const position = { lat: r.lat, lng: r.lng };
+  const genres = r.genreTags ?? [];
 
   return (
     <Marker
@@ -48,6 +49,11 @@ export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, on
           <div className="min-w-[100px] pr-4">
             <p className="text-[13px] font-bold text-gray-900 leading-tight">{r.name}</p>
             {r.address && <p className="text-[10px] text-gray-400 leading-tight">{r.address}</p>}
+            {genres.length > 0 && (
+              <p className="text-[10px] text-orange-600 leading-tight mt-0.5">
+                {genres.length <= 2 ? genres.join('・') : `${genres.slice(0, 2).join('・')} +${genres.length - 2}`}
+              </p>
+            )}
             {r.landmarkMemo && (
               <p className="text-[10px] leading-tight mt-0.5" style={{ color: '#ea580c' }}>
                 📍 {r.landmarkMemo}

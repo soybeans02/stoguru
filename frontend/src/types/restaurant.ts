@@ -36,6 +36,7 @@ export interface Restaurant {
   categoryIds: string[];
   influencerIds: string[];
   sourceVideos: SourceVideo[];
+  genreTags: string[];
   notes: string;
   landmarkMemo?: string;
   review: PrivateReview | null;

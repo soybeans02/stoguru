@@ -41,6 +41,7 @@ export const restaurantSchema = z.object({
     url: z.string().url().max(500),
     platform: z.enum(['tiktok', 'instagram', 'youtube', 'other']).default('other'),
   })).max(10).default([]),
+  genreTags: z.array(z.string().max(30)).max(20).default([]),
   notes: z.string().max(1000).default(''),
   landmarkMemo: z.string().max(200).optional(),
   review: z.any().nullable().optional(),

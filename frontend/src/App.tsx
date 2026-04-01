@@ -77,7 +77,7 @@ function MainApp() {
     const now = new Date().toISOString();
     setEditRestaurant({
       id: '', name, address: '', lat, lng,
-      categoryIds: [], influencerIds: [], sourceVideos: [],
+      categoryIds: [], influencerIds: [], genreTags: [], sourceVideos: [],
       notes: '', landmarkMemo: '', review: null, status: 'wishlist',
       visitedAt: null, createdAt: now, updatedAt: now,
     });

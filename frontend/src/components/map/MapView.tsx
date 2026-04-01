@@ -8,6 +8,7 @@ import { InfluencerFilter } from './InfluencerFilter';
 import { GpsCheckinBanner } from './GpsCheckinBanner';
 import { UserLocationMarker } from './UserLocationMarker';
 import { MapSearch } from './MapSearch';
+import { MapFilterPanel } from './MapFilterPanel';
 import { useGPS } from '../../hooks/useGPS';
 import * as api from '../../utils/api';
 
@@ -50,6 +51,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
     libraries: LIBRARIES,
   });
   const [activeInfluencer, setActiveInfluencer] = useState<Influencer | null>(null);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
   const gps = useGPS();
 
@@ -136,9 +138,18 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
   }
 
   const pinned = useMemo(() => state.restaurants.filter((r) => r.lat !== null && r.lng !== null), [state.restaurants]);
-  const visible = useMemo(() => activeInfluencer
-    ? pinned.filter((r) => r.influencerIds.includes(activeInfluencer.id))
-    : pinned, [pinned, activeInfluencer]);
+  const visible = useMemo(() => {
+    let result = pinned;
+    if (activeInfluencer) {
+      result = result.filter((r) => r.influencerIds.includes(activeInfluencer.id));
+    }
+    if (selectedGenres.length > 0) {
+      result = result.filter((r) =>
+        (r.genreTags ?? []).some((g) => selectedGenres.includes(g))
+      );
+    }
+    return result;
+  }, [pinned, activeInfluencer, selectedGenres]);
 
   // 初回のみ：保存位置がなければピンの中心に移動
   const hasFitted = useRef(false);
@@ -268,6 +279,10 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
           <div className="flex-1">
             <MapSearch mapRef={mapRef} onSelect={onDetail} onQuickAdd={onQuickAdd} />
           </div>
+          <MapFilterPanel
+            selectedGenres={selectedGenres}
+            onGenresChange={setSelectedGenres}
+          />
           <button
             onClick={() => { setPeopleOpen((v) => !v); }}
             className={`shrink-0 bg-white rounded-xl shadow-md border border-gray-100 p-2.5 transition-colors ${

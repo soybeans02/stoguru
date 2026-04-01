@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Restaurant, SourceVideo } from '../../types/restaurant';
 import { useRestaurantContext } from '../../context/RestaurantContext';
+import { GENRE_TAGS } from '../../constants/genre';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
@@ -21,6 +22,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   const [selectedInfs, setSelectedInfs] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [landmarkMemo, setLandmarkMemo] = useState('');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     if (r) {
@@ -28,9 +30,11 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
       setLandmarkMemo(r.landmarkMemo ?? '');
       setSelectedCats(r.categoryIds); setSelectedInfs(r.influencerIds);
       setVideoUrl(r.sourceVideos[0]?.url ?? '');
+      setSelectedGenres(r.genreTags ?? []);
     } else {
       setName(''); setAddress(''); setNotes(''); setLandmarkMemo('');
       setSelectedCats([]); setSelectedInfs([]); setVideoUrl('');
+      setSelectedGenres([]);
     }
     setErrors({});
   }, [r]);
@@ -40,6 +44,9 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   }
   function toggleInf(id: string) {
     setSelectedInfs((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  }
+  function toggleGenre(tag: string) {
+    setSelectedGenres((prev) => prev.includes(tag) ? prev.filter((g) => g !== tag) : [...prev, tag]);
   }
 
   function validate(): boolean {
@@ -64,14 +71,14 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
     if (r && r.id) {
       dispatch({
         type: 'UPDATE_RESTAURANT',
-        payload: { ...r, name: name.trim(), address: address.trim(), notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined, categoryIds: selectedCats, influencerIds: selectedInfs, sourceVideos, updatedAt: now },
+        payload: { ...r, name: name.trim(), address: address.trim(), notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined, categoryIds: selectedCats, influencerIds: selectedInfs, genreTags: selectedGenres, sourceVideos, updatedAt: now },
       });
     } else {
       const restaurant: Restaurant = {
         id: crypto.randomUUID(), name: name.trim(), address: address.trim(),
         lat: r?.lat ?? null, lng: r?.lng ?? null, categoryIds: selectedCats, influencerIds: selectedInfs,
-        sourceVideos, notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined, review: null, status: 'wishlist',
-        visitedAt: null, createdAt: now, updatedAt: now,
+        genreTags: selectedGenres, sourceVideos, notes: notes.trim(), landmarkMemo: landmarkMemo.trim() || undefined,
+        review: null, status: 'wishlist', visitedAt: null, createdAt: now, updatedAt: now,
       };
       dispatch({ type: 'ADD_RESTAURANT', payload: restaurant });
     }
@@ -100,6 +107,23 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
         <div>
           <Input label="目印" value={landmarkMemo} onChange={(e) => setLandmarkMemo(e.target.value)} placeholder="例: 3番出口直進、ビル6階" />
           {errors.landmarkMemo && <p className="text-xs text-red-500 mt-0.5">{errors.landmarkMemo}</p>}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">ジャンル</p>
+          <div className="flex flex-wrap gap-1">
+            {GENRE_TAGS.map((tag) => (
+              <button key={tag} type="button" onClick={() => toggleGenre(tag)}
+                className={`px-2 py-1 rounded-full text-xs border-2 transition-colors ${
+                  selectedGenres.includes(tag)
+                    ? 'bg-orange-500 border-orange-500 text-white'
+                    : 'bg-white border-gray-200 text-gray-600'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
 
         {state.influencers.length > 0 && (
