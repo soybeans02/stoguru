@@ -12,6 +12,7 @@ import {
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
+import { validate, restaurantSchema, messageSchema, shareSchema } from '../validators';
 
 const router = Router();
 
@@ -24,6 +25,8 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
 
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const id = req.params.id as string;
+  const v = validate(restaurantSchema, { id, ...req.body });
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
   await putRestaurant(req.user!.userId, { id, ...req.body });
   res.json({ ok: true });
 });
@@ -227,11 +230,9 @@ router.get('/conversations', requireAuth, async (req: AuthRequest, res: Response
 router.post('/messages/:targetId', requireAuth, async (req: AuthRequest, res: Response) => {
   const myId = req.user!.userId;
   const targetId = req.params.targetId as string;
-  const { content } = req.body;
-  if (!content || typeof content !== 'string' || content.trim().length === 0 || content.length > 2000) {
-    res.status(400).json({ error: 'メッセージを入力してください（上限2000文字）' });
-    return;
-  }
+  const mv = validate(messageSchema, req.body);
+  if (!mv.success) { res.status(400).json({ error: mv.error }); return; }
+  const { content } = mv.data;
 
   const conv = await getOrCreateConversation(myId, targetId);
   const convId = conv.pk as string;
@@ -318,8 +319,9 @@ router.post('/messages/:targetId/reject', requireAuth, async (req: AuthRequest, 
 // ─── シェア ───
 
 router.post('/shares', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { restaurantName, restaurantAddress, lat, lng, comment } = req.body;
-  if (!restaurantName) { res.status(400).json({ error: 'レストラン名が必要です' }); return; }
+  const sv = validate(shareSchema, req.body);
+  if (!sv.success) { res.status(400).json({ error: sv.error }); return; }
+  const { restaurantName, restaurantAddress, lat, lng, comment } = sv.data;
   const userInfo = await getUserById(req.user!.userId);
   const share = await createShare({
     userId: req.user!.userId,

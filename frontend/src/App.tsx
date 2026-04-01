@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from './context/AuthContext';
 import { RestaurantProvider } from './context/RestaurantContext';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import * as api from './utils/api';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { Header } from './components/layout/Header';
 import { MapView } from './components/map/MapView';
 import { RestaurantList } from './components/restaurant/RestaurantList';
 import { KeepView } from './components/keep/KeepView';
-import { RestaurantModal } from './components/restaurant/RestaurantModal';
 import { RestaurantForm } from './components/restaurant/RestaurantForm';
-import { ReviewModal } from './components/restaurant/ReviewModal';
-import { UserProfileModal } from './components/user/UserProfileModal';
-import { MessageView } from './components/message/MessageView';
 import type { Restaurant } from './types/restaurant';
+
+const RestaurantModal = lazy(() => import('./components/restaurant/RestaurantModal').then(m => ({ default: m.RestaurantModal })));
+const ReviewModal = lazy(() => import('./components/restaurant/ReviewModal').then(m => ({ default: m.ReviewModal })));
+const UserProfileModal = lazy(() => import('./components/user/UserProfileModal').then(m => ({ default: m.UserProfileModal })));
+const MessageView = lazy(() => import('./components/message/MessageView').then(m => ({ default: m.MessageView })));
 
 type Tab = 'map' | 'list' | 'keep';
 
@@ -45,17 +47,25 @@ function MainApp() {
           nicknamesFetchedRef.current.add(otherId);
           api.getUserProfile(otherId).then((p) => {
             setCachedNicknames((prev) => ({ ...prev, [otherId]: p.nickname }));
-          }).catch(() => {});
+          }).catch((err) => console.warn('[App] profile fetch failed:', err));
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[App] conversations fetch failed:', err); }
   }, [user?.userId]);
 
-  // 初回 + 10秒ごとにバックグラウンド更新
+  // 初回 + 30秒ごとにバックグラウンド更新（タブ非表示時は停止）
   useEffect(() => {
     refreshConversations();
-    const interval = setInterval(refreshConversations, 10000);
-    return () => clearInterval(interval);
+    let interval = setInterval(refreshConversations, 30000);
+    const onVisibility = () => {
+      clearInterval(interval);
+      if (!document.hidden) {
+        refreshConversations();
+        interval = setInterval(refreshConversations, 30000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVisibility); };
   }, [refreshConversations]);
 
   function handleJumpToMap(lat: number, lng: number) {
@@ -114,38 +124,46 @@ function MainApp() {
           </div>
         </main>
 
-        <RestaurantModal
-          restaurant={detailRestaurant}
-          onClose={() => setDetailRestaurant(null)}
-          onEdit={openEdit}
-          onReview={openReview}
-        />
+        <Suspense fallback={null}>
+          <RestaurantModal
+            restaurant={detailRestaurant}
+            onClose={() => setDetailRestaurant(null)}
+            onEdit={openEdit}
+            onReview={openReview}
+          />
+        </Suspense>
         <RestaurantForm
           restaurant={editRestaurant}
           isOpen={editOpen}
           onClose={() => { setEditOpen(false); setEditRestaurant(null); }}
         />
-        <ReviewModal
-          restaurant={reviewRestaurant}
-          onClose={() => setReviewRestaurant(null)}
-        />
-        <UserProfileModal
-          userId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenMessage={(targetId) => {
-            setProfileUserId(null);
-            setMessageTargetId(targetId);
-            setMessageOpen(true);
-          }}
-        />
-        {messageOpen && (
-          <MessageView
-            onClose={() => { setMessageOpen(false); setMessageTargetId(null); }}
-            initialTargetId={messageTargetId}
-            cachedConversations={cachedConversations}
-            cachedNicknames={cachedNicknames}
-            onConversationsChanged={refreshConversations}
+        <Suspense fallback={null}>
+          <ReviewModal
+            restaurant={reviewRestaurant}
+            onClose={() => setReviewRestaurant(null)}
           />
+        </Suspense>
+        <Suspense fallback={null}>
+          <UserProfileModal
+            userId={profileUserId}
+            onClose={() => setProfileUserId(null)}
+            onOpenMessage={(targetId) => {
+              setProfileUserId(null);
+              setMessageTargetId(targetId);
+              setMessageOpen(true);
+            }}
+          />
+        </Suspense>
+        {messageOpen && (
+          <Suspense fallback={null}>
+            <MessageView
+              onClose={() => { setMessageOpen(false); setMessageTargetId(null); }}
+              initialTargetId={messageTargetId}
+              cachedConversations={cachedConversations}
+              cachedNicknames={cachedNicknames}
+              onConversationsChanged={refreshConversations}
+            />
+          </Suspense>
         )}
       </div>
     </RestaurantProvider>
@@ -165,5 +183,5 @@ export default function App() {
 
   if (!user) return <AuthScreen />;
 
-  return <MainApp />;
+  return <ErrorBoundary><MainApp /></ErrorBoundary>;
 }

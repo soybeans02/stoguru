@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { setRefreshTokenFn } from '../utils/api';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/auth';
 
@@ -16,6 +17,7 @@ interface AuthContextValue {
   confirm: (email: string, code: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -72,17 +74,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await res.json();
     localStorage.setItem('accessToken', data.accessToken);
+    if (data.refreshToken) {
+      localStorage.setItem('refreshToken', data.refreshToken);
+    }
     setToken(data.accessToken);
   }
 
   function logout() {
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setToken(null);
     setUser(null);
   }
 
+  // api.tsにrefreshToken関数を登録
+  useEffect(() => {
+    setRefreshTokenFn(refreshTokenFn);
+  }, []);
+
+  const refreshTokenFn = useCallback(async (): Promise<string | null> => {
+    const rt = localStorage.getItem('refreshToken');
+    if (!rt) return null;
+    try {
+      const res = await fetch(`${API}/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) {
+        logout();
+        return null;
+      }
+      const data = await res.json();
+      localStorage.setItem('accessToken', data.accessToken);
+      setToken(data.accessToken);
+      return data.accessToken;
+    } catch {
+      return null;
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn }}>
       {children}
     </AuthContext.Provider>
   );

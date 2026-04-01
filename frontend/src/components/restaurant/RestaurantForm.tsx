@@ -21,6 +21,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   const [selectedInfs, setSelectedInfs] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [landmarkMemo, setLandmarkMemo] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     if (r) {
       setName(r.name); setAddress(r.address); setNotes(r.notes);
@@ -31,6 +32,7 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
       setName(''); setAddress(''); setNotes(''); setLandmarkMemo('');
       setSelectedCats([]); setSelectedInfs([]); setVideoUrl('');
     }
+    setErrors({});
   }, [r]);
 
   function toggleCat(id: string) {
@@ -40,8 +42,20 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
     setSelectedInfs((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
   }
 
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = '店名は必須です';
+    else if (name.trim().length > 100) e.name = '店名は100文字以内にしてください';
+    if (address.trim().length > 200) e.address = '住所は200文字以内にしてください';
+    if (videoUrl.trim() && !/^https?:\/\/.+/.test(videoUrl.trim())) e.videoUrl = '有効なURLを入力してください';
+    if (notes.trim().length > 1000) e.notes = 'メモは1000文字以内にしてください';
+    if (landmarkMemo.trim().length > 200) e.landmarkMemo = '目印は200文字以内にしてください';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
   function save() {
-    if (!name.trim()) return;
+    if (!validate()) return;
     const now = new Date().toISOString();
     const sourceVideos: SourceVideo[] = videoUrl.trim()
       ? [{ url: videoUrl.trim(), platform: videoUrl.includes('tiktok') ? 'tiktok' : videoUrl.includes('instagram') ? 'instagram' : 'other' }]
@@ -67,11 +81,26 @@ export function RestaurantForm({ restaurant: r, isOpen, onClose }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={r ? 'お店を編集' : 'お店を追加'}>
       <div className="space-y-3">
-        <Input label="店名 *" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input label="住所" value={address} onChange={(e) => setAddress(e.target.value)} />
-        <Input label="動画URL（任意）" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
-        <Textarea label="メモ" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-        <Input label="目印" value={landmarkMemo} onChange={(e) => setLandmarkMemo(e.target.value)} placeholder="例: 3番出口直進、ビル6階" />
+        <div>
+          <Input label="店名 *" value={name} onChange={(e) => setName(e.target.value)} />
+          {errors.name && <p className="text-xs text-red-500 mt-0.5">{errors.name}</p>}
+        </div>
+        <div>
+          <Input label="住所" value={address} onChange={(e) => setAddress(e.target.value)} />
+          {errors.address && <p className="text-xs text-red-500 mt-0.5">{errors.address}</p>}
+        </div>
+        <div>
+          <Input label="動画URL（任意）" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+          {errors.videoUrl && <p className="text-xs text-red-500 mt-0.5">{errors.videoUrl}</p>}
+        </div>
+        <div>
+          <Textarea label="メモ" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          {errors.notes && <p className="text-xs text-red-500 mt-0.5">{errors.notes}</p>}
+        </div>
+        <div>
+          <Input label="目印" value={landmarkMemo} onChange={(e) => setLandmarkMemo(e.target.value)} placeholder="例: 3番出口直進、ビル6階" />
+          {errors.landmarkMemo && <p className="text-xs text-red-500 mt-0.5">{errors.landmarkMemo}</p>}
+        </div>
 
         {state.influencers.length > 0 && (
           <div>

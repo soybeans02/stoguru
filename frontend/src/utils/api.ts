@@ -1,5 +1,11 @@
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
+// Token refresh callback — AuthContextから設定される
+let _refreshTokenFn: (() => Promise<string | null>) | null = null;
+export function setRefreshTokenFn(fn: () => Promise<string | null>) {
+  _refreshTokenFn = fn;
+}
+
 function getToken() {
   return localStorage.getItem('accessToken');
 }
@@ -11,34 +17,47 @@ function headers(): HeadersInit {
   return h;
 }
 
+// 401時に自動でトークンリフレッシュしてリトライ
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(url, init);
+  if (res.status === 401 && _refreshTokenFn) {
+    const newToken = await _refreshTokenFn();
+    if (newToken) {
+      const newInit = { ...init, headers: { ...Object.fromEntries(new Headers(init?.headers).entries()), Authorization: `Bearer ${newToken}` } };
+      return fetch(url, newInit);
+    }
+  }
+  return res;
+}
+
 export async function fetchRestaurants() {
-  const res = await fetch(`${BASE}/restaurants`, { headers: headers() });
+  const res = await fetchWithRetry(`${BASE}/restaurants`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch restaurants');
   return res.json();
 }
 
 export async function putRestaurant(restaurant: Record<string, unknown>) {
-  const res = await fetch(`${BASE}/restaurants/${restaurant.id}`, {
+  const res = await fetchWithRetry(`${BASE}/restaurants/${restaurant.id}`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(restaurant),
   });
   if (!res.ok) throw new Error('Failed to save restaurant');
 }
 
 export async function deleteRestaurant(id: string) {
-  const res = await fetch(`${BASE}/restaurants/${id}`, {
+  const res = await fetchWithRetry(`${BASE}/restaurants/${id}`, {
     method: 'DELETE', headers: headers(),
   });
   if (!res.ok) throw new Error('Failed to delete restaurant');
 }
 
 export async function fetchSettings() {
-  const res = await fetch(`${BASE}/settings`, { headers: headers() });
+  const res = await fetchWithRetry(`${BASE}/settings`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch settings');
   return res.json();
 }
 
 export async function putSettings(settings: Record<string, unknown>) {
-  const res = await fetch(`${BASE}/settings`, {
+  const res = await fetchWithRetry(`${BASE}/settings`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(settings),
   });
   if (!res.ok) throw new Error('Failed to save settings');

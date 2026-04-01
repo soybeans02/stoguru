@@ -11,11 +11,12 @@ interface Props {
   onConversationsChanged?: () => void;
 }
 
-// メッセージキャッシュ（コンポーネント外に保持して再マウントでも維持）
-const msgCache: Record<string, { messages: api.Message[]; status: string | null; requestedBy?: string }> = {};
+// メッセージキャッシュ型
+type MsgCacheEntry = { messages: api.Message[]; status: string | null; requestedBy?: string };
 
 export function MessageView({ onClose, initialTargetId, cachedConversations, cachedNicknames, onConversationsChanged }: Props) {
   const { user } = useAuth();
+  const msgCacheRef = useRef<Record<string, MsgCacheEntry>>({});
   const [conversations, setConversations] = useState<api.Conversation[]>(cachedConversations ?? []);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(initialTargetId ?? null);
   const [messages, setMessages] = useState<api.Message[]>([]);
@@ -53,9 +54,9 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
           setConversations(data);
           onConversationsChanged?.();
         }
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('[MessageView] conversations poll failed:', err); }
     }
-    const interval = setInterval(fetchConvs, 5000);
+    const interval = setInterval(fetchConvs, 15000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [cachedConversations, onConversationsChanged]);
 
@@ -67,7 +68,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
         nicknamesFetchedRef.current.add(otherId);
         api.getUserProfile(otherId).then((p) => {
           setNicknames((prev) => ({ ...prev, [otherId]: p.nickname }));
-        }).catch(() => {});
+        }).catch((err) => console.warn('[MessageView] nickname fetch failed:', err));
       }
     });
   }, [conversations, myId, nicknames]);
@@ -83,7 +84,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
 
     const target: string = selectedTarget;
     // キャッシュがあれば即座にセット
-    const cached = msgCache[target];
+    const cached = msgCacheRef.current[target];
     if (cached) {
       setMessages(cached.messages);
       setConvStatus(cached.status);
@@ -119,20 +120,20 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
           setConvStatus(data.status);
           setRequestedBy(data.requestedBy);
           // キャッシュ更新
-          msgCache[target] = { messages: msgs, status: data.status, requestedBy: data.requestedBy };
+          msgCacheRef.current[target] = { messages: msgs, status: data.status, requestedBy: data.requestedBy };
         }
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('[MessageView] messages fetch failed:', err); }
     }
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
+    const interval = setInterval(fetchMessages, 5000);
 
     // ニックネーム取得
     if (!nicknamesFetchedRef.current.has(target) && !nicknames[target]) {
       nicknamesFetchedRef.current.add(target);
       api.getUserProfile(target).then((p) => {
         if (!cancelled) setNicknames((prev) => ({ ...prev, [target]: p.nickname }));
-      }).catch(() => {});
+      }).catch((err) => console.warn('[MessageView] nickname fetch failed:', err));
     }
 
     return () => { cancelled = true; clearInterval(interval); };
@@ -160,9 +161,9 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
       const data = await api.getMessagesWithUser(selectedTarget);
       setMessages(data.messages);
       setConvStatus(data.status);
-      msgCache[selectedTarget] = { messages: data.messages, status: data.status, requestedBy: data.requestedBy };
+      msgCacheRef.current[selectedTarget] = { messages: data.messages, status: data.status, requestedBy: data.requestedBy };
       onConversationsChanged?.();
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[MessageView] send failed:', err); }
   }, [input, selectedTarget, myId, onConversationsChanged]);
 
   async function handleAccept() {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
 import { filterRestaurants, type FilterOptions } from '../../utils/filters';
@@ -18,7 +18,7 @@ export function RestaurantList({ onEdit, onDetail, onReview, onJumpToMap }: Prop
   const [status, setStatus] = useState<FilterOptions['status']>('all');
 
   const filters: FilterOptions = { query, categoryIds: [], influencerIds: [], status };
-  const filtered = filterRestaurants(state.restaurants, filters);
+  const filtered = useMemo(() => filterRestaurants(state.restaurants, filters), [state.restaurants, query, status]);
 
   return (
     <div className="flex flex-col h-full">

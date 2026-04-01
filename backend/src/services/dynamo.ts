@@ -6,6 +6,7 @@ import {
   QueryCommand,
   DeleteCommand,
   UpdateCommand,
+  BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type {
   Restaurant,
@@ -149,16 +150,22 @@ export async function getNotifications(userId: string, limit = 20): Promise<Noti
 
 export async function markNotificationsRead(userId: string) {
   const items = await getNotifications(userId);
-  for (const item of items) {
-    if (!item.read) {
-      await db.send(new UpdateCommand({
+  const unread = items.filter((item) => !item.read);
+  if (unread.length === 0) return;
+
+  // BatchWriteはUpdateをサポートしないため、個別Updateだが並列化
+  const batchSize = 10;
+  for (let i = 0; i < unread.length; i += batchSize) {
+    const batch = unread.slice(i, i + batchSize);
+    await Promise.all(batch.map((item) =>
+      db.send(new UpdateCommand({
         TableName: TABLE.notifications,
         Key: { userId, createdAt: item.createdAt },
         UpdateExpression: 'SET #r = :true',
         ExpressionAttributeNames: { '#r': 'read' },
         ExpressionAttributeValues: { ':true': true },
-      }));
-    }
+      }))
+    ));
   }
 }
 
@@ -327,12 +334,16 @@ export async function getMessages(conversationId: string, limit = 200) {
 }
 
 export async function deleteAllUserData(userId: string) {
-  // レストラン全削除
+  // レストラン全削除（BatchWrite使用）
   const restaurants = await getRestaurants(userId);
-  for (const r of restaurants) {
-    await db.send(new DeleteCommand({
-      TableName: TABLE.restaurants,
-      Key: { userId, restaurantId: r.restaurantId },
+  const restChunks = chunkArray(restaurants, 25);
+  for (const chunk of restChunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.restaurants]: chunk.map((r) => ({
+          DeleteRequest: { Key: { userId, restaurantId: r.restaurantId } },
+        })),
+      },
     }));
   }
 
@@ -342,14 +353,26 @@ export async function deleteAllUserData(userId: string) {
     Key: { userId },
   }));
 
-  // フォロー関係削除
+  // フォロー関係削除（BatchWrite使用）
   const following = await getFollowing(userId);
-  for (const f of following) {
-    await db.send(new DeleteCommand({
-      TableName: TABLE.follows,
-      Key: { followerId: userId, followeeId: f.followeeId },
+  const followChunks = chunkArray(following, 25);
+  for (const chunk of followChunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.follows]: chunk.map((f) => ({
+          DeleteRequest: { Key: { followerId: userId, followeeId: f.followeeId } },
+        })),
+      },
     }));
   }
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // ─── シェア ───

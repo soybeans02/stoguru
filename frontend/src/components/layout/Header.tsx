@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Map, Bookmark, Settings, LogOut, Users, ChevronRight, Trash2, Lock, Shield, Bell, MessageCircle, KeyRound } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -106,7 +106,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
   const [messageCount, setMessageCount] = useState(0);
 
   const totalRestaurants = state.restaurants.length;
-  const reviewed = state.restaurants.filter((r) => r.review).length;
+  const reviewed = useMemo(() => state.restaurants.filter((r) => r.review).length, [state.restaurants]);
   const wishlist = totalRestaurants - reviewed;
 
   const unreadCount = notifications.filter((n) => !n.read).length + followRequests.length;
@@ -130,11 +130,12 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
           try {
             const profile = await api.getUserProfile(r.requesterId);
             items.push({ requesterId: r.requesterId, nickname: profile.nickname });
-          } catch { /* skip */ }
+          } catch (err) { console.warn('[Header] フォローリクエストプロフィール取得失敗:', err); }
         }
         setFollowRequests(items);
         failCount = 0; // 成功したらリセット
-      } catch {
+      } catch (err) {
+        console.warn('[Header] 通知ロード失敗:', err);
         failCount = Math.min(failCount + 1, 5);
       }
       if (!cancelled) {
@@ -161,7 +162,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
     if (!notifOpen && notifications.some((n) => !n.read)) {
       api.markNotificationsRead().then(() => {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      }).catch(() => {});
+      }).catch((err) => { console.warn('[Header] 既読マーク失敗:', err); });
     }
   }
 
@@ -169,14 +170,14 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
     try {
       await api.approveFollowRequest(requesterId);
       setFollowRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[Header] フォロー承認失敗:', err); }
   }
 
   async function handleReject(requesterId: string) {
     try {
       await api.rejectFollowRequest(requesterId);
       setFollowRequests((prev) => prev.filter((r) => r.requesterId !== requesterId));
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[Header] フォロー拒否失敗:', err); }
   }
 
   useEffect(() => {
@@ -187,12 +188,12 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
         try {
           const profile = await api.getUserProfile(f.followeeId);
           users.push({ userId: profile.userId, nickname: profile.nickname });
-        } catch { /* skip */ }
+        } catch (err) { console.warn('[Header] フォローユーザープロフィール取得失敗:', err); }
       }
       setFollowedUsers(users);
-    }).catch(() => {});
+    }).catch((err) => { console.warn('[Header] フォロー一覧取得失敗:', err); });
 
-    api.getPrivacySettings().then((s) => setIsPrivate(s.isPrivate)).catch(() => {});
+    api.getPrivacySettings().then((s) => setIsPrivate(s.isPrivate)).catch((err) => { console.warn('[Header] プライバシー設定取得失敗:', err); });
   }, [settingsOpen]);
 
   function closeSettings() {
@@ -206,7 +207,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
       const newVal = !isPrivate;
       await api.setPrivateAccount(newVal);
       setIsPrivate(newVal);
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[Header] プライバシー切替失敗:', err); }
     setPrivacyLoading(false);
   }
 

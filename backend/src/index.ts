@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import dataRouter from './routes/data';
 import adminRouter from './routes/admin';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
+// rate limiter uses `any` for keyGenerator to avoid Express type conflicts
 
 dotenv.config({ override: true });
 
@@ -15,12 +16,18 @@ const PORT = process.env.PORT ?? 3001;
 
 // ─── レート制限 ───
 
+// ユーザー単位のキー生成（認証済みならuserId、未認証ならIP）
+const userKeyGenerator = (req: any): string => {
+  return req.user?.userId ?? req.ip ?? 'unknown';
+};
+
 // 全API共通: 1分間に120リクエストまで（連打・無限ループ防止）
 const globalLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: userKeyGenerator,
   message: { error: 'リクエストが多すぎます。少し待ってから試してください。' },
 });
 
@@ -30,6 +37,7 @@ const hourlyLimit = rateLimit({
   max: 3000,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: userKeyGenerator,
   message: { error: '1時間のリクエスト上限に達しました。しばらく待ってください。' },
 });
 
@@ -39,6 +47,7 @@ const writeLimit = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: userKeyGenerator,
   message: { error: '書き込みリクエストが多すぎます。少し待ってください。' },
 });
 
@@ -109,6 +118,11 @@ app.use('/api', (req, _res, next) => {
 app.use('/api', dataRouter);
 app.use('/api/admin', adminRouter);
 
+// ─── ヘルスチェック ───
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // 起動時にDBから統計を復元
 loadStats().then((saved) => {
   if (saved) {
@@ -138,6 +152,36 @@ setInterval(() => {
   saveActivity(userActivity).catch((err) => console.warn('Activity save failed:', err));
 }, 5 * 60 * 1000);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
+
+// ─── グレースフルシャットダウン ───
+async function shutdown(signal: string) {
+  console.log(`\n${signal} received. Gracefully shutting down...`);
+
+  // 統計+アクティビティを保存
+  try {
+    await Promise.all([
+      saveStats({ total: stats.total, byEndpoint: stats.byEndpoint, byHour: stats.byHour, startedAt: stats.startedAt }),
+      saveActivity(userActivity),
+    ]);
+    console.log('Stats and activity saved.');
+  } catch (err) {
+    console.warn('Failed to save on shutdown:', err);
+  }
+
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
+  });
+
+  // 10秒以内に閉じなければ強制終了
+  setTimeout(() => {
+    console.warn('Forcing shutdown after timeout.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

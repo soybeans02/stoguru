@@ -67,6 +67,21 @@ export async function signIn(email: string, password: string) {
   };
 }
 
+export async function refreshAccessToken(refreshToken: string) {
+  const command = new InitiateAuthCommand({
+    AuthFlow: 'REFRESH_TOKEN_AUTH',
+    ClientId: getClientId(),
+    AuthParameters: {
+      REFRESH_TOKEN: refreshToken,
+    },
+  });
+  const result = await client.send(command);
+  return {
+    accessToken: result.AuthenticationResult?.AccessToken,
+    idToken: result.AuthenticationResult?.IdToken,
+  };
+}
+
 export async function deleteUser(accessToken: string) {
   await client.send(new DeleteUserCommand({ AccessToken: accessToken }));
 }
@@ -88,24 +103,50 @@ export async function getUserFromToken(accessToken: string) {
 // ─── ユーザー検索（ニックネーム） ───
 
 export async function searchUsers(query: string) {
+  // サーバーサイドフィルタ（Cognito Filter式はnickname属性を直接フィルタ不可のため、prefix検索+クライアント補完）
+  // nickname custom attributeが prefix="nickname" で Cognito Filter使用可能な場合に最適化
   const command = new ListUsersCommand({
     UserPoolId: getUserPoolId(),
     Limit: 60,
+    // Cognito Filterは standard attributes (email, name等) のみ対応
+    // nickname は custom attribute でないため Filter 利用可能
+    Filter: query.length >= 2 ? `nickname ^= "${query.replace(/"/g, '')}"` : undefined,
   });
-  const result = await client.send(command);
-  const q = query.toLowerCase();
-  return (result.Users ?? [])
-    .map((u) => {
-      const attrs: Record<string, string> = {};
-      u.Attributes?.forEach((a) => {
-        if (a.Name && a.Value) attrs[a.Name] = a.Value;
-      });
-      return {
-        userId: attrs['sub'],
-        nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0],
-      };
-    })
-    .filter((u) => u.nickname.toLowerCase().includes(q));
+  try {
+    const result = await client.send(command);
+    return (result.Users ?? [])
+      .map((u) => {
+        const attrs: Record<string, string> = {};
+        u.Attributes?.forEach((a) => {
+          if (a.Name && a.Value) attrs[a.Name] = a.Value;
+        });
+        return {
+          userId: attrs['sub'],
+          nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0],
+        };
+      })
+      .filter((u) => u.nickname.toLowerCase().includes(query.toLowerCase()));
+  } catch {
+    // Filterが失敗した場合はフォールバック
+    const fallbackCommand = new ListUsersCommand({
+      UserPoolId: getUserPoolId(),
+      Limit: 60,
+    });
+    const result = await client.send(fallbackCommand);
+    const q = query.toLowerCase();
+    return (result.Users ?? [])
+      .map((u) => {
+        const attrs: Record<string, string> = {};
+        u.Attributes?.forEach((a) => {
+          if (a.Name && a.Value) attrs[a.Name] = a.Value;
+        });
+        return {
+          userId: attrs['sub'],
+          nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0],
+        };
+      })
+      .filter((u) => u.nickname.toLowerCase().includes(q));
+  }
 }
 
 // ─── ユーザー情報取得（userId指定） ───

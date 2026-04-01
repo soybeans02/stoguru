@@ -167,7 +167,7 @@ export function KeepView({ onDetail, onOpenProfile, onOpenMessage }: Props) {
             .filter((p): p is NonNullable<typeof p> => p !== null)
             .map((p) => ({ userId: p.userId, nickname: p.nickname, restaurantCount: p.restaurantCount }))
         );
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('[KeepView] フォローユーザー取得失敗:', err); }
     }
     load();
   }, []);
@@ -185,7 +185,8 @@ export function KeepView({ onDetail, onOpenProfile, onOpenMessage }: Props) {
       try {
         const users = await api.searchUsers(q);
         setSearchedUsers(users);
-      } catch {
+      } catch (err) {
+        console.warn('[KeepView] ユーザー検索失敗:', err);
         setSearchedUsers([]);
       } finally {
         setSearchingUsers(false);

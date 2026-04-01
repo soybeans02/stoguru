@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { Users, X, Crosshair } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
@@ -65,7 +65,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
     try {
       const s = localStorage.getItem('gourmet-map-view');
       if (s) return JSON.parse(s) as { lat: number; lng: number; zoom: number };
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[MapView] localStorage parse failed:', err); }
     return null;
   });
 
@@ -112,7 +112,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
               restaurants: p.restaurants ?? [],
             }))
         );
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('[MapView] followed users load failed:', err); }
       setLoadingUsers(false);
     }
     load();
@@ -135,10 +135,10 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
     setSelectedMarkerIdx(null);
   }
 
-  const pinned = state.restaurants.filter((r) => r.lat !== null && r.lng !== null);
-  const visible = activeInfluencer
+  const pinned = useMemo(() => state.restaurants.filter((r) => r.lat !== null && r.lng !== null), [state.restaurants]);
+  const visible = useMemo(() => activeInfluencer
     ? pinned.filter((r) => r.influencerIds.includes(activeInfluencer.id))
-    : pinned;
+    : pinned, [pinned, activeInfluencer]);
 
   // 初回のみ：保存位置がなければピンの中心に移動
   const hasFitted = useRef(false);

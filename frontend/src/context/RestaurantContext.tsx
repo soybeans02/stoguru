@@ -43,6 +43,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || !token || synced.current) return;
     synced.current = true;
+    let cancelled = false;
 
     (async () => {
       try {
@@ -50,6 +51,8 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
           syncWithRetry(() => api.fetchRestaurants()),
           syncWithRetry(() => api.fetchSettings()),
         ]);
+
+        if (cancelled) return;
 
         // 常にDBのデータをメインとして使用（localStorageは別ユーザーのデータの可能性あり）
         dispatch({
@@ -61,10 +64,14 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
           },
         });
         setSyncError(null);
-      } catch {
+      } catch (err) {
+        if (cancelled) return;
+        console.warn('[RestaurantContext] 初期同期失敗:', err);
         setSyncError('データの同期に失敗しました。ローカルデータを表示中です。');
       }
     })();
+
+    return () => { cancelled = true; };
   }, [user, token]);
 
   // state変更時にlocalStorage保存
@@ -83,13 +90,15 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
       case 'ADD_RESTAURANT':
       case 'UPDATE_RESTAURANT':
         syncWithRetry(() => api.putRestaurant(action.payload as unknown as Record<string, unknown>))
-          .catch(() => {
+          .catch((err) => {
+            console.warn('[RestaurantContext] 保存同期失敗:', err);
             setSyncError('保存の同期に失敗しました。次回起動時に再同期します。');
           });
         break;
       case 'DELETE_RESTAURANT':
         syncWithRetry(() => api.deleteRestaurant(action.payload.id))
-          .catch(() => {
+          .catch((err) => {
+            console.warn('[RestaurantContext] 削除同期失敗:', err);
             setSyncError('削除の同期に失敗しました。次回起動時に再同期します。');
           });
         break;

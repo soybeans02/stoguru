@@ -48,13 +48,27 @@ export function useGPS() {
     positionRef.current = null;
   }, []);
 
-  // 初回マウント時に自動でGPS取得開始
+  // 初回マウント時に自動でGPS取得開始 + ページ非表示時は停止
   useEffect(() => {
     startWatch();
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (watchIdRef.current != null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
+      } else {
+        startWatch();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       if (watchIdRef.current != null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [startWatch]);
 
