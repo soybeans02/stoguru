@@ -33,7 +33,7 @@ function makeIconUrl(color: string): string {
 interface FollowedUserForMap {
   userId: string;
   nickname: string;
-  restaurants: { name: string; address: string; lat: number | null; lng: number | null; hasReview: boolean; landmarkMemo?: string }[];
+  restaurants: { name: string; address: string; lat: number | null; lng: number | null; hasReview: boolean; landmarkMemo?: string; genreTags?: string[] }[];
 }
 
 interface Props {
@@ -199,6 +199,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
         {/* フォローユーザーのお店のピン */}
         {selectedUser && selectedUser.restaurants
           .filter((r) => r.lat != null && r.lng != null)
+          .filter((r) => selectedGenres.length === 0 || (r.genreTags ?? []).some((g) => selectedGenres.includes(g)))
           .map((r, i) => (
             <Marker
               key={`user-${i}`}

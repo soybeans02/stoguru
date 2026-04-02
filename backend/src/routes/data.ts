@@ -201,6 +201,7 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
       status: r.status,
       hasReview: !!r.review,
       landmarkMemo: r.landmarkMemo,
+      genreTags: r.genreTags ?? [],
     }));
     res.json({
       userId: userInfo.userId,
