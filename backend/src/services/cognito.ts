@@ -8,6 +8,8 @@ import {
   DeleteUserCommand,
   ListUsersCommand,
   ChangePasswordCommand,
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand,
   AdminDisableUserCommand,
   AdminEnableUserCommand,
   AdminResetUserPasswordCommand,
@@ -172,6 +174,24 @@ export async function getUserById(userId: string) {
     createdAt: u.UserCreateDate?.toISOString(),
     username: u.Username,
   };
+}
+
+// ─── パスワードリセット ───
+
+export async function forgotPassword(email: string) {
+  await client.send(new ForgotPasswordCommand({
+    ClientId: getClientId(),
+    Username: email,
+  }));
+}
+
+export async function confirmForgotPassword(email: string, code: string, newPassword: string) {
+  await client.send(new ConfirmForgotPasswordCommand({
+    ClientId: getClientId(),
+    Username: email,
+    ConfirmationCode: code,
+    Password: newPassword,
+  }));
 }
 
 // ─── パスワード変更（ユーザー自身） ───

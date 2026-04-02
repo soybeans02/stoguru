@@ -18,6 +18,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<string | null>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -80,6 +82,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.accessToken);
   }
 
+  async function forgotPassword(email: string) {
+    const res = await fetch(`${API}/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error);
+    }
+  }
+
+  async function resetPassword(email: string, code: string, newPassword: string) {
+    const res = await fetch(`${API}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error);
+    }
+  }
+
   function logout() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -115,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn }}>
+    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn, forgotPassword, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

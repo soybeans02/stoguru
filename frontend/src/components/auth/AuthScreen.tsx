@@ -3,15 +3,16 @@ import { useAuth } from '../../context/AuthContext';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 
-type Mode = 'login' | 'signup' | 'confirm';
+type Mode = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
 
 export function AuthScreen() {
-  const { signUp, confirm, login } = useAuth();
+  const { signUp, confirm, login, forgotPassword, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +27,15 @@ export function AuthScreen() {
       } else if (mode === 'confirm') {
         await confirm(email, code);
         await login(email, password);
+      } else if (mode === 'forgot') {
+        await forgotPassword(email);
+        setMode('reset');
+      } else if (mode === 'reset') {
+        await resetPassword(email, code, newPassword);
+        setPassword(newPassword);
+        setCode('');
+        setNewPassword('');
+        setMode('login');
       } else {
         await login(email, password);
       }
@@ -35,6 +45,14 @@ export function AuthScreen() {
       setLoading(false);
     }
   }
+
+  const modeLabel: Record<Mode, string> = {
+    login: 'ログイン',
+    signup: 'アカウント作成',
+    confirm: '確認コード入力',
+    forgot: 'パスワード再設定',
+    reset: '新しいパスワード設定',
+  };
 
   return (
     <div className="min-h-svh flex items-center justify-center bg-gray-50 px-4">
@@ -62,7 +80,7 @@ export function AuthScreen() {
           ストグル
         </h1>
         <p className="text-center text-gray-500 text-sm mb-8">
-          {mode === 'login' ? 'ログイン' : mode === 'signup' ? 'アカウント作成' : '確認コード入力'}
+          {modeLabel[mode]}
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -77,6 +95,40 @@ export function AuthScreen() {
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="6桁のコード"
                 autoFocus
+              />
+            </>
+          ) : mode === 'forgot' ? (
+            <>
+              <p className="text-sm text-gray-600 text-center">
+                登録済みのメールアドレスを入力してください
+              </p>
+              <Input
+                label="メールアドレス"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="mail@example.com"
+                autoFocus
+              />
+            </>
+          ) : mode === 'reset' ? (
+            <>
+              <p className="text-sm text-gray-600 text-center">
+                <span className="font-medium">{email}</span> に確認コードを送信しました
+              </p>
+              <Input
+                label="確認コード"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="6桁のコード"
+                autoFocus
+              />
+              <Input
+                label="新しいパスワード"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="8文字以上（英小文字+数字）"
               />
             </>
           ) : (
@@ -111,25 +163,42 @@ export function AuthScreen() {
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? '...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? '登録' : '確認'}
+            {loading ? '...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? '登録' : mode === 'forgot' ? '送信' : mode === 'reset' ? '再設定' : '確認'}
           </Button>
         </form>
 
-        {mode === 'login' ? (
-          <p className="text-center text-sm text-gray-500 mt-6">
-            アカウントがない？{' '}
-            <button onClick={() => { setMode('signup'); setError(''); }} className="text-red-500 font-medium">
-              新規登録
-            </button>
-          </p>
-        ) : mode === 'signup' ? (
-          <p className="text-center text-sm text-gray-500 mt-6">
-            アカウントがある？{' '}
-            <button onClick={() => { setMode('login'); setError(''); }} className="text-red-500 font-medium">
-              ログイン
-            </button>
-          </p>
-        ) : null}
+        <div className="text-center text-sm text-gray-500 mt-6 space-y-2">
+          {mode === 'login' && (
+            <>
+              <p>
+                <button onClick={() => { setMode('forgot'); setError(''); }} className="text-gray-400 hover:text-gray-600">
+                  パスワードを忘れた？
+                </button>
+              </p>
+              <p>
+                アカウントがない？{' '}
+                <button onClick={() => { setMode('signup'); setError(''); }} className="text-red-500 font-medium">
+                  新規登録
+                </button>
+              </p>
+            </>
+          )}
+          {mode === 'signup' && (
+            <p>
+              アカウントがある？{' '}
+              <button onClick={() => { setMode('login'); setError(''); }} className="text-red-500 font-medium">
+                ログイン
+              </button>
+            </p>
+          )}
+          {(mode === 'forgot' || mode === 'reset') && (
+            <p>
+              <button onClick={() => { setMode('login'); setError(''); setCode(''); setNewPassword(''); }} className="text-red-500 font-medium">
+                ログインに戻る
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

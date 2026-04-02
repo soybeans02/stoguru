@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken } from '../services/cognito';
+import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword } from '../services/cognito';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
-import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema } from '../validators';
+import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators';
 
 const router = Router();
 
@@ -51,6 +51,36 @@ router.post('/refresh', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'トークン更新に失敗しました';
     res.status(401).json({ error: msg });
+  }
+});
+
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const v = validate(forgotPasswordSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  try {
+    await forgotPassword(v.data.email);
+    res.json({ message: '確認コードをメールに送信しました' });
+  } catch (err: unknown) {
+    // ユーザーが存在しない場合もセキュリティ上同じレスポンスを返す
+    res.json({ message: '確認コードをメールに送信しました' });
+  }
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const v = validate(resetPasswordSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  try {
+    await confirmForgotPassword(v.data.email, v.data.code, v.data.newPassword);
+    res.json({ message: 'パスワードを再設定しました。ログインしてください' });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'パスワード再設定に失敗しました';
+    if (msg.includes('CodeMismatch') || msg.includes('ExpiredCode')) {
+      res.status(400).json({ error: '確認コードが正しくないか、期限切れです' });
+    } else if (msg.includes('InvalidPassword') || msg.includes('Password')) {
+      res.status(400).json({ error: 'パスワードの要件を満たしていません（8文字以上、英小文字+数字）' });
+    } else {
+      res.status(400).json({ error: 'パスワード再設定に失敗しました' });
+    }
   }
 });
 

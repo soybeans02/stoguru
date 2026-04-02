@@ -27,6 +27,16 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('有効なメールアドレスを入力してください').max(254),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email().max(254),
+  code: z.string().min(1, '確認コードは必須です').max(10),
+  newPassword: z.string().min(8, 'パスワードは8文字以上にしてください').max(128),
+});
+
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({
