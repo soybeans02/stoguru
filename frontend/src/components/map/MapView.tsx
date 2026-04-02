@@ -138,7 +138,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
   }
 
   const pinned = useMemo(() => state.restaurants.filter((r) => r.lat !== null && r.lng !== null), [state.restaurants]);
-  const visible = useMemo(() => {
+  const visibleIds = useMemo(() => {
     let result = pinned;
     if (activeInfluencer) {
       result = result.filter((r) => r.influencerIds.includes(activeInfluencer.id));
@@ -148,7 +148,7 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
         (r.genreTags ?? []).some((g) => selectedGenres.includes(g))
       );
     }
-    return result;
+    return new Set(result.map((r) => r.id));
   }, [pinned, activeInfluencer, selectedGenres]);
 
   // 初回のみ：保存位置がなければピンの中心に移動
@@ -186,11 +186,12 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
         options={MAP_OPTIONS}
       >
         {/* 自分のお店のピン */}
-        {!selectedUser && visible.map((r) => (
+        {!selectedUser && pinned.map((r) => (
           <RestaurantMarker
             key={r.id}
             restaurant={r}
             activeInfluencer={activeInfluencer}
+            visible={visibleIds.has(r.id)}
             onDetail={onDetail}
             onReview={onReview}
           />
@@ -199,11 +200,11 @@ export function MapView({ onDetail, onReview, onQuickAdd, panTo, onPanComplete }
         {/* フォローユーザーのお店のピン */}
         {selectedUser && selectedUser.restaurants
           .filter((r) => r.lat != null && r.lng != null)
-          .filter((r) => selectedGenres.length === 0 || (r.genreTags ?? []).some((g) => selectedGenres.includes(g)))
           .map((r, i) => (
             <Marker
               key={`user-${i}`}
               position={{ lat: r.lat!, lng: r.lng! }}
+              visible={selectedGenres.length === 0 || (r.genreTags ?? []).some((g) => selectedGenres.includes(g))}
               icon={{
                 url: makeIconUrl(r.hasReview ? '#86efac' : '#ef4444'),
                 scaledSize: new window.google.maps.Size(20, 30),

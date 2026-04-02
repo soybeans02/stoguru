@@ -13,11 +13,12 @@ function makeIconUrl(color: string, opacity: number): string {
 interface Props {
   restaurant: Restaurant;
   activeInfluencer: Influencer | null;
+  visible?: boolean;
   onDetail: (r: Restaurant) => void;
   onReview: (r: Restaurant) => void;
 }
 
-export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, onReview }: Props) {
+export function RestaurantMarker({ restaurant: r, activeInfluencer, visible = true, onDetail, onReview }: Props) {
   const [open, setOpen] = useState(false);
 
   if (r.lat === null || r.lng === null) return null;
@@ -36,6 +37,7 @@ export function RestaurantMarker({ restaurant: r, activeInfluencer, onDetail, on
   return (
     <Marker
       position={position}
+      visible={visible}
       icon={{
         url: makeIconUrl(color, opacity),
         scaledSize: new window.google.maps.Size(24, 36),
