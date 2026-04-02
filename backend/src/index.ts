@@ -18,36 +18,44 @@ const PORT = process.env.PORT ?? 3001;
 
 // ユーザー単位のキー生成（認証済みならuserId、未認証ならIP）
 const userKeyGenerator = (req: any): string => {
-  return req.user?.userId ?? req.ip ?? 'unknown';
+  if (req.user?.userId) return req.user.userId;
+  // IPv6プレフィックスを正規化（/64単位でグルーピング）
+  const ip = req.ip ?? 'unknown';
+  if (ip.includes(':')) {
+    const parts = ip.split(':').slice(0, 4);
+    return parts.join(':') + '::/64';
+  }
+  return ip;
 };
 
 // 全API共通: 1分間に120リクエストまで（連打・無限ループ防止）
+const rateLimitBase = {
+  standardHeaders: true as const,
+  legacyHeaders: false as const,
+  keyGenerator: userKeyGenerator,
+  validate: { default: true, keyGeneratorIpFallback: false } satisfies Record<string, boolean>,
+};
+
 const globalLimit = rateLimit({
+  ...rateLimitBase,
   windowMs: 60 * 1000,
   max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: userKeyGenerator,
   message: { error: 'リクエストが多すぎます。少し待ってから試してください。' },
 });
 
 // 全API共通: 1時間に3000リクエストまで（バグによる暴走防止）
 const hourlyLimit = rateLimit({
+  ...rateLimitBase,
   windowMs: 60 * 60 * 1000,
   max: 3000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: userKeyGenerator,
   message: { error: '1時間のリクエスト上限に達しました。しばらく待ってください。' },
 });
 
 // 書き込み系API: 1分間に20リクエストまで（DynamoDB書き込みコスト抑制）
 const writeLimit = rateLimit({
+  ...rateLimitBase,
   windowMs: 60 * 1000,
   max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: userKeyGenerator,
   message: { error: '書き込みリクエストが多すぎます。少し待ってください。' },
 });
 

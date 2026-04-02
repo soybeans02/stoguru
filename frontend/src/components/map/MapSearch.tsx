@@ -115,6 +115,7 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
           <Autocomplete
             onLoad={(ac) => {
               autocompleteRef.current = ac;
+              ac.setFields(['name', 'geometry', 'types', 'formatted_address']);
               if (countryFilter) {
                 ac.setComponentRestrictions({ country: countryFilter });
               }
@@ -201,7 +202,11 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
         <div className="bg-white rounded-xl shadow-md border border-red-100 px-4 py-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-800 truncate">{pendingPlace.name}</p>
-            <p className="text-xs text-gray-400">リストに未登録です</p>
+            {pendingPlace.genreTags.length > 0 ? (
+              <p className="text-xs text-orange-500 truncate">{pendingPlace.genreTags.join('・')}</p>
+            ) : (
+              <p className="text-xs text-gray-400">リストに未登録です</p>
+            )}
           </div>
           <button
             onClick={handleAdd}
