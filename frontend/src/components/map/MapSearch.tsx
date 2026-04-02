@@ -2,12 +2,13 @@ import { useRef, useState, useEffect, type MutableRefObject } from 'react';
 import { Autocomplete } from '@react-google-maps/api';
 import { Search, X, Plus, PenLine } from 'lucide-react';
 import { useRestaurantContext } from '../../context/RestaurantContext';
+import { detectGenres } from '../../utils/genreDetect';
 import type { Restaurant } from '../../types/restaurant';
 
 interface Props {
   mapRef: MutableRefObject<google.maps.Map | null>;
   onSelect: (r: Restaurant) => void;
-  onQuickAdd: (name: string, lat: number, lng: number) => void;
+  onQuickAdd: (name: string, lat: number, lng: number, genreTags?: string[]) => void;
 }
 
 const COUNTRY_OPTIONS = [
@@ -29,7 +30,7 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [query, setQuery] = useState('');
   const [pendingPlace, setPendingPlace] = useState<{
-    name: string; lat: number; lng: number;
+    name: string; lat: number; lng: number; genreTags: string[];
   } | null>(null);
   const [countryFilter, setCountryFilter] = useState<string | null>('jp');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -54,6 +55,7 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
     const lat = place.geometry.location.lat();
     const lng = place.geometry.location.lng();
     const name = place.name ?? '';
+    const genreTags = detectGenres(name, place.types ?? []);
 
     setQuery(name);
     setPendingPlace(null);
@@ -69,13 +71,13 @@ export function MapSearch({ mapRef, onSelect, onQuickAdd }: Props) {
     if (saved) {
       onSelect(saved);
     } else {
-      setPendingPlace({ name, lat, lng });
+      setPendingPlace({ name, lat, lng, genreTags });
     }
   }
 
   function handleAdd() {
     if (!pendingPlace) return;
-    onQuickAdd(pendingPlace.name, pendingPlace.lat, pendingPlace.lng);
+    onQuickAdd(pendingPlace.name, pendingPlace.lat, pendingPlace.lng, pendingPlace.genreTags);
     setPendingPlace(null);
     setQuery('');
   }

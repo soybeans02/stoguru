@@ -72,12 +72,12 @@ function MainApp() {
     setPanToLocation({ lat, lng });
     setTab('map');
   }
-  function handleQuickAdd(name: string, lat: number, lng: number) {
+  function handleQuickAdd(name: string, lat: number, lng: number, genreTags?: string[]) {
     // マップ検索から直接編集フォームで追加
     const now = new Date().toISOString();
     setEditRestaurant({
       id: '', name, address: '', lat, lng,
-      categoryIds: [], influencerIds: [], genreTags: [], sourceVideos: [],
+      categoryIds: [], influencerIds: [], genreTags: genreTags ?? [], sourceVideos: [],
       notes: '', landmarkMemo: '', review: null, status: 'wishlist',
       visitedAt: null, createdAt: now, updatedAt: now,
     });
