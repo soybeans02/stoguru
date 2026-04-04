@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useGPS } from './hooks/useGPS';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { SwipeScreen } from './components/swipe/SwipeScreen';
@@ -14,7 +15,7 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-colors ${active ? 'text-orange-500' : 'text-gray-400'}`}
+      className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-colors ${active ? 'text-gray-900' : 'text-gray-300'}`}
     >
       {children}
       <span className="text-[10px] font-medium">{label}</span>
@@ -27,6 +28,7 @@ function MainApp() {
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
   const [swipeStats, setSwipeStats] = useState({ total: 0, likes: 0 });
   const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null);
+  const { position } = useGPS();
 
   const handleStock = useCallback((r: SwipeRestaurant) => {
     setStocks((prev) => {
@@ -57,15 +59,16 @@ function MainApp() {
   const likeRate = swipeStats.total > 0 ? Math.round((swipeStats.likes / swipeStats.total) * 100) : 0;
 
   return (
-    <div className="flex flex-col h-svh bg-gray-50 max-w-xl mx-auto overflow-hidden">
+    <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} userPosition={position} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}
             onMarkVisited={handleMarkVisited}
             onShowOnMap={handleShowOnMap}
+            userPosition={position}
           />
         )}
         {tab === 'map' && (
@@ -73,6 +76,7 @@ function MainApp() {
             stocks={stocks}
             panTo={panTo}
             onPanComplete={() => setPanTo(null)}
+            userPosition={position}
           />
         )}
         {tab === 'account' && (
@@ -85,7 +89,7 @@ function MainApp() {
       </main>
 
       {/* Bottom navigation */}
-      <nav className="flex items-center justify-around bg-white border-t border-gray-200 h-16 flex-shrink-0 safe-area-bottom">
+      <nav className="flex items-center justify-around bg-white border-t border-gray-100 h-14 flex-shrink-0 safe-area-bottom">
         <TabButton active={tab === 'home'} onClick={() => setTab('home')} label="ホーム">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'home' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
         </TabButton>

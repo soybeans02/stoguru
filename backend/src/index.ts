@@ -72,10 +72,11 @@ const authLimit = rateLimit({
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    if (origin && allowedOrigins.includes(origin)) cb(null, true);
+    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
     else cb(null, false);
   },
   credentials: true,
+  maxAge: 600,
 }));
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
@@ -124,6 +125,7 @@ app.use('/api', (req, _res, next) => {
   writeLimit(req, _res, next);
 });
 app.use('/api', dataRouter);
+app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 
 // ─── ヘルスチェック ───
