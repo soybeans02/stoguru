@@ -18,6 +18,11 @@ html, body {
   overflow: hidden;
 }
 
+/* Safe area for bottom nav on notched devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Google Maps InfoWindow のパディング縮小 */
 .gm-style-iw-d {
   padding: 0px 2px !important;
