@@ -9,8 +9,8 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 // トランプシャッフル音（Web Audio API）
 function createShuffleSound() {
   const ctx = new AudioContext();
-  const totalDur = 1.1;
-  const flicks = 10;
+  const totalDur = 1.4;
+  const flicks = 8;
 
   for (let i = 0; i < flicks; i++) {
     const t = ctx.currentTime + (i / flicks) * totalDur;
@@ -117,8 +117,9 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     setFilterOpen(false);
   }, []);
 
-  // カードフィルタリング（stockedIds/nopedIds変更時はアニメなし）
+  // フィルター確定時のみカードリセット+シャッフル
   useEffect(() => {
+    if (filterVersion === 0) return;
     let filtered = [...MOCK_RESTAURANTS];
     const excludeIds = new Set([...stockedIds, ...nopedIds]);
     filtered = filtered.filter((r) => !excludeIds.has(r.id));
@@ -132,14 +133,12 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     }
     setCards(filtered);
     setCurrentIndex(0);
-  }, [stockedIds, nopedIds, selectedScenes, selectedGenres]);
-
-  // フィルター確定時のみシャッフルアニメーション+音
-  useEffect(() => {
-    if (filterVersion === 0) return;
-    setShuffling(true);
-    createShuffleSound();
-    setTimeout(() => setShuffling(false), 1200);
+    if (filtered.length > 0) {
+      setShuffling(true);
+      createShuffleSound();
+      setTimeout(() => setShuffling(false), 1500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterVersion]);
 
   const handleSwipeComplete = useCallback(
