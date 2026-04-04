@@ -101,6 +101,20 @@ function MainApp() {
     }).catch(() => {});
   }, []);
 
+  const handleUnmarkVisited = useCallback((id: string) => {
+    setStocks((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, visited: false, visitedAt: undefined } : s
+      ),
+    );
+    api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
+      const existing = data.find((r) => String(r.restaurantId ?? r.id) === id);
+      if (existing) {
+        api.putRestaurant({ ...existing, id, status: 'wishlist', visitedAt: undefined }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
+
   const handleRemoveStock = useCallback((id: string) => {
     setStocks((prev) => prev.filter((s) => s.id !== id));
     api.deleteRestaurant(id).catch(() => {});
@@ -140,6 +154,7 @@ function MainApp() {
           <StockScreen
             stocks={stocks}
             onMarkVisited={handleMarkVisited}
+            onUnmarkVisited={handleUnmarkVisited}
             onRemoveStock={handleRemoveStock}
             onTogglePin={handleTogglePin}
             onShowOnMap={handleShowOnMap}

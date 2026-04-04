@@ -22,13 +22,14 @@ type SortMode = 'added' | 'distance';
 interface Props {
   stocks: StockedRestaurant[];
   onMarkVisited: (id: string) => void;
+  onUnmarkVisited: (id: string) => void;
   onRemoveStock: (id: string) => void;
   onTogglePin: (id: string) => void;
   onShowOnMap: (lat: number, lng: number) => void;
   userPosition: GPSPosition | null;
 }
 
-export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin, onShowOnMap, userPosition }: Props) {
+export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveStock, onTogglePin, onShowOnMap, userPosition }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -175,9 +176,13 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
               {s.visited && (
-                <div className="absolute top-9 right-2.5 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded font-medium">
-                  visited
-                </div>
+                <button
+                  onClick={() => onUnmarkVisited(s.id)}
+                  className="absolute top-9 right-2.5 bg-green-500 hover:bg-green-600 text-white text-[10px] px-2 py-0.5 rounded font-medium active:scale-95 transition-all"
+                  title="タップで未訪問に戻す"
+                >
+                  visited ✕
+                </button>
               )}
               <div
                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${

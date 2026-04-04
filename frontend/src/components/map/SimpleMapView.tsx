@@ -89,7 +89,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
           zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
         }}
       >
-        {/* Current location: heading cone (Google Maps style fan) */}
+        {/* Current location: heading cone (DeviceOrientation) */}
         {userPosition && userPosition.heading != null && (
           <Marker
             position={userPosition}

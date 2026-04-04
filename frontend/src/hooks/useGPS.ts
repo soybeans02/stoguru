@@ -12,6 +12,46 @@ export function useGPS() {
   const [denied, setDenied] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const positionRef = useRef<GPSPosition | null>(null);
+  const headingRef = useRef<number | null>(null);
+
+  // DeviceOrientation でコンパス方向を取得（静止時も動作）
+  useEffect(() => {
+    const handler = (e: DeviceOrientationEvent) => {
+      // iOS: webkitCompassHeading (0-360, 北基準)
+      // Android: alpha (0-360, 反転)
+      let h: number | null = null;
+      if ('webkitCompassHeading' in e && typeof (e as any).webkitCompassHeading === 'number') {
+        h = (e as any).webkitCompassHeading;
+      } else if (e.alpha != null && e.absolute) {
+        h = (360 - e.alpha) % 360;
+      } else if (e.alpha != null) {
+        h = (360 - e.alpha) % 360;
+      }
+
+      if (h != null) {
+        headingRef.current = h;
+        // positionがあればheadingも更新
+        if (positionRef.current) {
+          const updated = { ...positionRef.current, heading: h };
+          positionRef.current = updated;
+          setPosition(updated);
+        }
+      }
+    };
+
+    // iOS 13+ はパーミッション必要
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      (DeviceOrientationEvent as any).requestPermission().then((state: string) => {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientation', handler, true);
+        }
+      }).catch(() => {});
+    } else {
+      window.addEventListener('deviceorientation', handler, true);
+    }
+
+    return () => window.removeEventListener('deviceorientation', handler, true);
+  }, []);
 
   const startWatch = useCallback(() => {
     if (!navigator.geolocation) {
@@ -25,7 +65,10 @@ export function useGPS() {
     setDenied(false);
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude, heading: pos.coords.heading };
+        // GPSのheadingよりDeviceOrientationを優先
+        const gpsHeading = pos.coords.heading;
+        const heading = headingRef.current ?? gpsHeading;
+        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude, heading };
         positionRef.current = p;
         setPosition(p);
         setError(null);
