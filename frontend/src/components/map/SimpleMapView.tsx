@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
@@ -72,6 +72,53 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
 
   const center = defaultCenter;
 
+  const mapOptions = useMemo(() => isLoaded ? {
+    mapId: MAP_ID,
+    disableDefaultUI: true,
+    zoomControl: true,
+    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
+  } : undefined, [isLoaded]);
+
+  const headingIcon = useMemo(() => (isLoaded && userPosition?.heading != null) ? {
+    path: 'M0,0 L-18,-45 A50,50 0 0,1 18,-45 Z',
+    fillColor: '#4285F4',
+    fillOpacity: 0.25,
+    strokeColor: '#4285F4',
+    strokeOpacity: 0.4,
+    strokeWeight: 1,
+    scale: 1,
+    rotation: userPosition.heading,
+    anchor: new google.maps.Point(0, 0),
+  } : undefined, [isLoaded, userPosition?.heading]);
+
+  const blueDotIcon = useMemo(() => isLoaded ? {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: '#3b82f6',
+    fillOpacity: 1,
+    strokeColor: '#fff',
+    strokeWeight: 3,
+    scale: 8,
+  } : undefined, [isLoaded]);
+
+  const stockPinIcon = useMemo(() => (visited: boolean) => isLoaded ? {
+    path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9zm0 12.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 5.25 12 5.25 15.75 6.93 15.75 9 14.07 12.75 12 12.75z',
+    fillColor: visited ? '#22c55e' : '#ef4444',
+    fillOpacity: 1,
+    strokeColor: '#fff',
+    strokeWeight: 1.5,
+    scale: 1.1,
+    anchor: new google.maps.Point(12, 24),
+  } : undefined, [isLoaded]);
+
+  const stockDotIcon = useMemo(() => (visited: boolean) => isLoaded ? {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: visited ? '#22c55e' : '#ef4444',
+    fillOpacity: 1,
+    strokeColor: '#fff',
+    strokeWeight: 1.5,
+    scale: 6,
+  } : undefined, [isLoaded]);
+
   if (!isLoaded) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
@@ -87,28 +134,13 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
         center={center}
         zoom={15}
         onLoad={onLoad}
-        options={{
-          mapId: MAP_ID,
-          disableDefaultUI: true,
-          zoomControl: true,
-          zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
-        }}
+        options={mapOptions}
       >
         {/* Current location: heading cone (DeviceOrientation) */}
         {userPosition && userPosition.heading != null && (
           <Marker
             position={userPosition}
-            icon={{
-              path: 'M0,0 L-18,-45 A50,50 0 0,1 18,-45 Z',
-              fillColor: '#4285F4',
-              fillOpacity: 0.25,
-              strokeColor: '#4285F4',
-              strokeOpacity: 0.4,
-              strokeWeight: 1,
-              scale: 1,
-              rotation: userPosition.heading,
-              anchor: new google.maps.Point(0, 0),
-            }}
+            icon={headingIcon}
             zIndex={99}
           />
         )}
@@ -116,14 +148,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
         {userPosition && (
           <Marker
             position={userPosition}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 3,
-              scale: 8,
-            }}
+            icon={blueDotIcon}
             zIndex={100}
           />
         )}
@@ -132,22 +157,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
           <Marker
             key={s.id}
             position={{ lat: s.lat, lng: s.lng }}
-            icon={zoom >= 14 ? {
-              path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9zm0 12.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 5.25 12 5.25 15.75 6.93 15.75 9 14.07 12.75 12 12.75z',
-              fillColor: s.visited ? '#22c55e' : '#ef4444',
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 1.5,
-              scale: 1.1,
-              anchor: new google.maps.Point(12, 24),
-            } : {
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: s.visited ? '#22c55e' : '#ef4444',
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 1.5,
-              scale: 6,
-            }}
+            icon={zoom >= 14 ? stockPinIcon(s.visited) : stockDotIcon(s.visited)}
             onClick={() => setSelectedPin(s)}
             onUnmount={(marker) => marker.setMap(null)}
           />

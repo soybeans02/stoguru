@@ -13,8 +13,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     await signUp(v.data.email, v.data.password, v.data.nickname);
     res.json({ message: '確認コードをメールに送信しました', email: v.data.email });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : '登録に失敗しました';
-    res.status(400).json({ error: msg });
+    res.status(400).json({ error: '登録に失敗しました' });
   }
 });
 
@@ -25,8 +24,12 @@ router.post('/confirm', async (req: Request, res: Response) => {
     await confirmSignUp(v.data.email, v.data.code);
     res.json({ message: 'アカウントが確認されました。ログインしてください' });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : '確認に失敗しました';
-    res.status(400).json({ error: msg });
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('CodeMismatch') || msg.includes('ExpiredCode')) {
+      res.status(400).json({ error: 'コードが無効または期限切れです' });
+    } else {
+      res.status(400).json({ error: '確認に失敗しました' });
+    }
   }
 });
 
@@ -37,8 +40,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const tokens = await signIn(v.data.email, v.data.password);
     res.json(tokens);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'ログインに失敗しました';
-    res.status(401).json({ error: msg });
+    res.status(401).json({ error: 'メールアドレスまたはパスワードが正しくありません' });
   }
 });
 
@@ -49,8 +51,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     const tokens = await refreshAccessToken(v.data.refreshToken);
     res.json(tokens);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'トークン更新に失敗しました';
-    res.status(401).json({ error: msg });
+    res.status(401).json({ error: 'トークン更新に失敗しました' });
   }
 });
 
@@ -100,8 +101,7 @@ router.put('/nickname', requireAuth, async (req: AuthRequest, res: Response) => 
     await updateNickname(req.user!.userId, v.data.nickname);
     res.json({ message: 'ニックネームを変更しました', nickname: v.data.nickname });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'ニックネーム変更に失敗しました';
-    res.status(500).json({ error: msg });
+    res.status(500).json({ error: 'ニックネーム変更に失敗しました' });
   }
 });
 
@@ -116,7 +116,7 @@ router.put('/email', requireAuth, async (req: AuthRequest, res: Response) => {
     if (msg.includes('already exists') || msg.includes('AliasExistsException')) {
       res.status(409).json({ error: 'このメールアドレスは既に使われています' });
     } else {
-      res.status(500).json({ error: msg });
+      res.status(500).json({ error: 'メールアドレス変更に失敗しました' });
     }
   }
 });
@@ -147,8 +147,7 @@ router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) =
     await deleteUser(req.headers.authorization!.split(' ')[1]);
     res.json({ message: 'アカウントを削除しました' });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'アカウント削除に失敗しました';
-    res.status(500).json({ error: msg });
+    res.status(500).json({ error: 'アカウント削除に失敗しました' });
   }
 });
 

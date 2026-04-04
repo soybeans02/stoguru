@@ -113,7 +113,7 @@ export async function searchUsers(query: string) {
     Limit: 60,
     // Cognito Filterは standard attributes (email, name等) のみ対応
     // nickname は custom attribute でないため Filter 利用可能
-    Filter: query.length >= 2 ? `nickname ^= "${query.replace(/["\\\x00-\x1f]/g, '')}"` : undefined,
+    Filter: query.length >= 2 ? `nickname ^= "${query.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\s]/g, '')}"` : undefined,
   });
   try {
     const result = await client.send(command);

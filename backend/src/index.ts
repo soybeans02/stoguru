@@ -78,8 +78,24 @@ app.use(cors({
   credentials: true,
   maxAge: 600,
 }));
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // API server, not serving HTML
+  strictTransportSecurity: { maxAge: 63072000 },
+  frameguard: { action: 'deny' },
+}));
 app.use(express.json({ limit: '1mb' }));
+
+// ─── CSRF対策: state-changing requestsにContent-Type: application/jsonを要求 ───
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    const ct = req.headers['content-type'] ?? '';
+    if (!ct.includes('application/json')) {
+      res.status(415).json({ error: 'Content-Type: application/json が必要です' });
+      return;
+    }
+  }
+  next();
+});
 
 // ─── リクエスト統計 ───
 export const stats = {
