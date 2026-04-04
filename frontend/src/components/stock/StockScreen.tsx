@@ -159,31 +159,8 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           {filtered.map((s) => (
             <div
               key={s.id}
-              className={`flex gap-3 rounded-xl p-3.5 relative ${s.pinned ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-gray-50'}`}
+              className={`flex gap-3 rounded-xl p-3.5 ${s.pinned ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-gray-50'}`}
             >
-              {/* Pin button */}
-              <button
-                onClick={() => onTogglePin(s.id)}
-                className={`absolute top-2.5 right-9 p-0.5 transition-colors ${s.pinned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
-              </button>
-              {/* Delete button */}
-              <button
-                onClick={() => { if (window.confirm(`「${s.name}」をストックから削除する？`)) onRemoveStock(s.id); }}
-                className="absolute top-2.5 right-2.5 text-gray-300 hover:text-red-400 transition-colors p-0.5"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-              {s.visited && (
-                <button
-                  onClick={() => onUnmarkVisited(s.id)}
-                  className="absolute top-9 right-2.5 bg-green-500 hover:bg-green-600 text-white text-[10px] px-2 py-0.5 rounded font-medium active:scale-95 transition-all"
-                  title="タップで未訪問に戻す"
-                >
-                  visited ✕
-                </button>
-              )}
               <div
                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
                   s.visited ? 'bg-green-50' : 'bg-gray-200'
@@ -192,7 +169,23 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                 {s.photoEmoji}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><span className="truncate">{s.name}</span><span className="text-[10px] font-normal text-gray-300 flex-shrink-0">{formatDate(s.stockedAt)}</span></h3>
+                {/* 店名行: 名前...  日付  📌  ✕ */}
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-semibold text-gray-900 truncate">{s.name}</h3>
+                  <span className="text-[10px] font-normal text-gray-300 flex-shrink-0 ml-auto">{formatDate(s.stockedAt)}</span>
+                  <button
+                    onClick={() => onTogglePin(s.id)}
+                    className={`flex-shrink-0 p-0.5 transition-colors ${s.pinned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
+                  </button>
+                  <button
+                    onClick={() => { if (window.confirm(`「${s.name}」をストックから削除する？`)) onRemoveStock(s.id); }}
+                    className="flex-shrink-0 text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
                 <p className="text-[11px] text-gray-400 mb-2 truncate">
                   {userPosition ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng)) : s.distance}{s.genre ? ` · ${s.genre}` : ''}
                 </p>
@@ -215,6 +208,15 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                       className="text-xs px-4 py-2 rounded-lg bg-gray-900 text-white font-medium active:scale-95 transition-transform"
                     >
                       行った
+                    </button>
+                  )}
+                  {s.visited && (
+                    <button
+                      onClick={() => onUnmarkVisited(s.id)}
+                      className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
+                      title="タップで未訪問に戻す"
+                    >
+                      visited
                     </button>
                   )}
                 </div>
