@@ -26,7 +26,6 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
 function MainApp() {
   const [tab, setTab] = useState<Tab>('home');
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
-  const [swipeStats, setSwipeStats] = useState({ total: 0, likes: 0 });
   const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null);
   const { position } = useGPS();
 
@@ -35,12 +34,9 @@ function MainApp() {
       if (prev.some((s) => s.id === r.id)) return prev;
       return [...prev, { ...r, visited: false, stockedAt: new Date().toISOString() }];
     });
-    setSwipeStats((s) => ({ total: s.total + 1, likes: s.likes + 1 }));
   }, []);
 
-  const handleNope = useCallback(() => {
-    setSwipeStats((s) => ({ total: s.total + 1, likes: s.likes }));
-  }, []);
+  const handleNope = useCallback(() => {}, []);
 
   const handleMarkVisited = useCallback((id: string) => {
     setStocks((prev) =>
