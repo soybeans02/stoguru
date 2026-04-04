@@ -6,42 +6,7 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 
-// トランプシャッフル音（Web Audio API）
-function createShuffleSound() {
-  const ctx = new AudioContext();
-  const totalDur = 1.4;
-  const flicks = 8;
-
-  for (let i = 0; i < flicks; i++) {
-    const t = ctx.currentTime + (i / flicks) * totalDur;
-    const dur = 0.05 + Math.random() * 0.04;
-    const bufferSize = Math.floor(ctx.sampleRate * dur);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let j = 0; j < bufferSize; j++) {
-      data[j] = (Math.random() * 2 - 1) * (1 - j / bufferSize);
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 2000 + Math.random() * 3000;
-    bp.Q.value = 1.5;
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.15 + Math.random() * 0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
-
-    noise.connect(bp);
-    bp.connect(gain);
-    gain.connect(ctx.destination);
-    noise.start(t);
-    noise.stop(t + dur);
-  }
-}
-
-// 効果音を生成（Web Audio API）
+// スワイプ効果音（Web Audio API）
 function createSwipeSound(type: 'like' | 'nope') {
   const ctx = new AudioContext();
   const osc = ctx.createOscillator();
@@ -59,7 +24,6 @@ function createSwipeSound(type: 'like' | 'nope') {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.3);
   } else {
-    // シュッ: ホワイトノイズ + バンドパスで空気を切る音
     osc.disconnect();
     const dur = 0.25;
     const bufferSize = ctx.sampleRate * dur;
@@ -86,6 +50,38 @@ function createSwipeSound(type: 'like' | 'nope') {
   }
 }
 
+
+// トランプシャッフル音
+function createShuffleSound() {
+  const ctx = new AudioContext();
+  const totalDur = 1.4;
+  const flicks = 8;
+  for (let i = 0; i < flicks; i++) {
+    const t = ctx.currentTime + (i / flicks) * totalDur;
+    const dur = 0.05 + Math.random() * 0.04;
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let j = 0; j < bufferSize; j++) {
+      data[j] = (Math.random() * 2 - 1) * (1 - j / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2000 + Math.random() * 3000;
+    bp.Q.value = 1.5;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.15 + Math.random() * 0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+    noise.connect(bp);
+    bp.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(t);
+    noise.stop(t + dur);
+  }
+}
+
 interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
   onNope?: () => void;
@@ -109,17 +105,9 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
-  const [filterVersion, setFilterVersion] = useState(0);
 
-  // フィルター確定時（「この条件で探す」ボタン）にインクリメント
-  const applyFilter = useCallback(() => {
-    setFilterVersion((v) => v + 1);
-    setFilterOpen(false);
-  }, []);
-
-  // フィルター確定時のみカードリセット+シャッフル
-  useEffect(() => {
-    if (filterVersion === 0) return;
+  // カード再フィルタ（共通ロジック）
+  const refilter = useCallback(() => {
     let filtered = [...MOCK_RESTAURANTS];
     const excludeIds = new Set([...stockedIds, ...nopedIds]);
     filtered = filtered.filter((r) => !excludeIds.has(r.id));
@@ -133,13 +121,31 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     }
     setCards(filtered);
     setCurrentIndex(0);
+    return filtered;
+  }, [stockedIds, nopedIds, selectedScenes, selectedGenres]);
+
+  // 「この条件で探す」ボタンから呼ばれる
+  const applyFilter = useCallback(() => {
+    setFilterOpen(false);
+    const filtered = refilter();
     if (filtered.length > 0) {
       setShuffling(true);
       createShuffleSound();
       setTimeout(() => setShuffling(false), 1500);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterVersion]);
+  }, [refilter]);
+
+  // スワイプ等によるstockedIds/nopedIds変更時は静かに再フィルタ
+  const prevStockedRef = useRef(stockedIds);
+  const prevNopedRef = useRef(nopedIds);
+  useEffect(() => {
+    // stockedIds/nopedIds変更時のみ（フィルター変更時はapplyFilterで処理）
+    if (prevStockedRef.current !== stockedIds || prevNopedRef.current !== nopedIds) {
+      prevStockedRef.current = stockedIds;
+      prevNopedRef.current = nopedIds;
+      // スワイプで1枚消えただけなのでcurrentIndexはリセットしない
+    }
+  }, [stockedIds, nopedIds]);
 
   const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {
@@ -147,7 +153,6 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       if (!current) return;
 
       createSwipeSound(direction === 'right' ? 'like' : 'nope');
-
       setHistory((h) => [...h, { id: current.id, direction }]);
 
       if (direction === 'right') {
@@ -213,7 +218,6 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       <div className="flex-1 flex flex-col items-center justify-start w-full px-4 pt-4 min-h-0 overflow-hidden">
         {shuffling ? (
           <div className="flex-1 flex flex-col items-center justify-center">
-            {/* シャッフルアニメーション */}
             <div className="relative w-[200px] h-[280px]">
               {[...Array(6)].map((_, i) => (
                 <div
@@ -310,8 +314,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
           selectedGenres={selectedGenres}
           onScenesChange={setSelectedScenes}
           onGenresChange={setSelectedGenres}
-          onClose={applyFilter}
-          onDismiss={() => setFilterOpen(false)}
+          onClose={() => setFilterOpen(false)}
+          onApply={applyFilter}
         />
       )}
     </div>
