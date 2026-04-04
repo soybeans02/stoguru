@@ -59,13 +59,13 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     }
   }, [map, labelsOn]);
 
-  // Set initial center to user position (once only)
+  // Set initial center to user position (once only, skip if panTo is active)
   useEffect(() => {
-    if (map && userPosition && !initialCenterSet.current) {
+    if (map && userPosition && !initialCenterSet.current && !panTo) {
       initialCenterSet.current = true;
       map.panTo(userPosition);
     }
-  }, [map, userPosition]);
+  }, [map, userPosition, panTo]);
 
   const center = defaultCenter;
 
