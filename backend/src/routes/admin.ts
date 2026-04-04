@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import {
   CognitoIdentityProviderClient,
   ListUsersCommand,
@@ -18,9 +19,12 @@ function getAdminSecret(): string {
 const ADMIN_JWT_SECRET = getAdminSecret();
 
 // 管理者ログイン → JWT返却
-router.post('/login', (req: Request, res: Response) => {
+// ADMIN_PASSWORD env var must store a bcrypt hash (not plain text).
+// Generate one with: node -e "require('bcryptjs').hash('yourpassword', 10).then(h => console.log(h))"
+router.post('/login', async (req: Request, res: Response) => {
   const { id, password } = req.body;
-  if (id === process.env.ADMIN_ID && password === process.env.ADMIN_PASSWORD) {
+  const hash = process.env.ADMIN_PASSWORD;
+  if (id === process.env.ADMIN_ID && hash && await bcrypt.compare(password, hash)) {
     const token = jwt.sign({ sub: id, role: 'admin' }, ADMIN_JWT_SECRET, {
       expiresIn: '8h',
     });

@@ -87,33 +87,62 @@ function MainApp() {
   const handleNope = useCallback(() => {}, []);
 
   const handleMarkVisited = useCallback((id: string) => {
+    const stock = stocks.find((s) => s.id === id);
     setStocks((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, visited: true, visitedAt: new Date().toISOString() } : s
       ),
     );
-    // バックエンドも更新
-    api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
-      const existing = data.find((r) => String(r.restaurantId ?? r.id) === id);
-      if (existing) {
-        api.putRestaurant({ ...existing, id, status: 'visited', visitedAt: new Date().toISOString() }).catch(() => {});
-      }
-    }).catch(() => {});
-  }, []);
+    // バックエンドも更新（ローカルstateから直接）
+    if (stock) {
+      api.putRestaurant({
+        id,
+        name: stock.name,
+        address: stock.address,
+        lat: stock.lat,
+        lng: stock.lng,
+        genre: stock.genre,
+        scene: stock.scene,
+        priceRange: stock.priceRange,
+        distance: stock.distance,
+        influencer: stock.influencer,
+        videoUrl: stock.videoUrl,
+        photoEmoji: stock.photoEmoji,
+        pinned: stock.pinned,
+        status: 'visited',
+        visitedAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
+  }, [stocks]);
 
   const handleUnmarkVisited = useCallback((id: string) => {
+    const stock = stocks.find((s) => s.id === id);
     setStocks((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, visited: false, visitedAt: undefined } : s
       ),
     );
-    api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
-      const existing = data.find((r) => String(r.restaurantId ?? r.id) === id);
-      if (existing) {
-        api.putRestaurant({ ...existing, id, status: 'wishlist', visitedAt: undefined }).catch(() => {});
-      }
-    }).catch(() => {});
-  }, []);
+    // バックエンドも更新（ローカルstateから直接）
+    if (stock) {
+      api.putRestaurant({
+        id,
+        name: stock.name,
+        address: stock.address,
+        lat: stock.lat,
+        lng: stock.lng,
+        genre: stock.genre,
+        scene: stock.scene,
+        priceRange: stock.priceRange,
+        distance: stock.distance,
+        influencer: stock.influencer,
+        videoUrl: stock.videoUrl,
+        photoEmoji: stock.photoEmoji,
+        pinned: stock.pinned,
+        status: 'wishlist',
+        visitedAt: undefined,
+      }).catch(() => {});
+    }
+  }, [stocks]);
 
   const handleRemoveStock = useCallback((id: string) => {
     setStocks((prev) => prev.filter((s) => s.id !== id));

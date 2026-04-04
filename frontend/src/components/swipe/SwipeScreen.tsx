@@ -6,9 +6,21 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 
+// 共有AudioContext（lazy初期化でリソースリーク防止）
+let sharedAudioCtx: AudioContext | null = null;
+function getAudioContext(): AudioContext {
+  if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+    sharedAudioCtx = new AudioContext();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+}
+
 // スワイプ効果音（Web Audio API）
 function createSwipeSound(type: 'like' | 'nope') {
-  const ctx = new AudioContext();
+  const ctx = getAudioContext();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
@@ -53,7 +65,7 @@ function createSwipeSound(type: 'like' | 'nope') {
 
 // トランプシャッフル音
 function createShuffleSound() {
-  const ctx = new AudioContext();
+  const ctx = getAudioContext();
   const totalDur = 1.4;
   const flicks = 8;
   for (let i = 0; i < flicks; i++) {

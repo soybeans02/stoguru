@@ -20,7 +20,6 @@ import type {
 const rawClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 const db = DynamoDBDocumentClient.from(rawClient);
 
-import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 const TABLE = {
   restaurants: 'GourmetStock_Restaurants',
@@ -48,6 +47,7 @@ export async function getRestaurants(userId: string): Promise<Restaurant[]> {
     TableName: TABLE.restaurants,
     KeyConditionExpression: 'userId = :uid',
     ExpressionAttributeValues: { ':uid': userId },
+    Limit: 500,
   }));
   return (result.Items ?? []) as Restaurant[];
 }
@@ -115,6 +115,7 @@ export async function getFollowRequests(targetId: string): Promise<FollowRequest
     TableName: TABLE.followRequests,
     KeyConditionExpression: 'targetId = :tid',
     ExpressionAttributeValues: { ':tid': targetId },
+    Limit: 100,
   }));
   return (result.Items ?? []) as FollowRequest[];
 }
@@ -286,16 +287,9 @@ export async function getUserConversations(userId: string) {
     return items.sort((a, b) =>
       ((b as Record<string, number>).lastMessageAt ?? 0) - ((a as Record<string, number>).lastMessageAt ?? 0)
     );
-  } catch {
-    // GSI未作成時はScanフォールバック
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.conversations,
-      FilterExpression: 'user1 = :uid OR user2 = :uid',
-      ExpressionAttributeValues: { ':uid': userId },
-    }));
-    return (result.Items ?? []).sort((a, b) =>
-      ((b as Record<string, number>).lastMessageAt ?? 0) - ((a as Record<string, number>).lastMessageAt ?? 0)
-    );
+  } catch (err) {
+    // GSIが存在しない場合はエラーを投げる（Scanフォールバックは避ける）
+    throw new Error(`getUserConversations failed: GSI query error for userId=${userId}: ${err}`);
   }
 }
 
