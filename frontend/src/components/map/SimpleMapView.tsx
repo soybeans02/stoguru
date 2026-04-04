@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
@@ -23,17 +23,28 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedPin, setSelectedPin] = useState<StockedRestaurant | null>(null);
+  const initialCenterSet = useRef(false);
 
   const onLoad = useCallback((m: google.maps.Map) => setMap(m), []);
 
-  // Pan to location
-  if (map && panTo) {
-    map.panTo(panTo);
-    map.setZoom(16);
-    onPanComplete();
-  }
+  // Pan to location (from stock screen "マップ" button)
+  useEffect(() => {
+    if (map && panTo) {
+      map.panTo(panTo);
+      map.setZoom(16);
+      onPanComplete();
+    }
+  }, [map, panTo, onPanComplete]);
 
-  const center = userPosition ?? defaultCenter;
+  // Set initial center to user position (once only)
+  useEffect(() => {
+    if (map && userPosition && !initialCenterSet.current) {
+      initialCenterSet.current = true;
+      map.panTo(userPosition);
+    }
+  }, [map, userPosition]);
+
+  const center = defaultCenter;
 
   if (!isLoaded) {
     return (

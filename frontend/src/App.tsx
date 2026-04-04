@@ -50,6 +50,10 @@ function MainApp() {
     );
   }, []);
 
+  const handleRemoveStock = useCallback((id: string) => {
+    setStocks((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
   const handleShowOnMap = useCallback((lat: number, lng: number) => {
     setPanTo({ lat, lng });
     setTab('map');
@@ -62,11 +66,12 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} userPosition={position} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} userPosition={position} stockedIds={stocks.map(s => s.id)} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}
             onMarkVisited={handleMarkVisited}
+            onRemoveStock={handleRemoveStock}
             onShowOnMap={handleShowOnMap}
             userPosition={position}
           />

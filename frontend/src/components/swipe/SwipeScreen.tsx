@@ -55,6 +55,7 @@ interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
   onNope?: () => void;
   userPosition: GPSPosition | null;
+  stockedIds: string[];
 }
 
 function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
@@ -62,16 +63,21 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
+export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props) {
   const [cards, setCards] = useState<SwipeRestaurant[]>([...MOCK_RESTAURANTS]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
+  const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
+  const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
 
   useEffect(() => {
     let filtered = [...MOCK_RESTAURANTS];
+    // ストック済み・×済みを除外
+    const excludeIds = new Set([...stockedIds, ...nopedIds]);
+    filtered = filtered.filter((r) => !excludeIds.has(r.id));
     if (selectedScenes.length > 0) {
       filtered = filtered.filter((r) =>
         r.scene.some((s) => selectedScenes.includes(s))
@@ -82,7 +88,7 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
     }
     setCards(filtered);
     setCurrentIndex(0);
-  }, [selectedScenes, selectedGenres]);
+  }, [selectedScenes, selectedGenres, stockedIds, nopedIds]);
 
   const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {
@@ -91,9 +97,12 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
 
       createSwipeSound(direction === 'right' ? 'like' : 'nope');
 
+      setHistory((h) => [...h, { id: current.id, direction }]);
+
       if (direction === 'right') {
         onStock(current);
       } else {
+        setNopedIds((prev) => new Set(prev).add(current.id));
         onNope?.();
       }
 
@@ -102,6 +111,22 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
     },
     [cards, currentIndex, onStock, onNope],
   );
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    if (last.direction === 'left') {
+      // ×を取り消す → nopedIdsから削除
+      setNopedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(last.id);
+        return next;
+      });
+    }
+    // ストック（右スワイプ）の取り消しはstockから除外で対応するが
+    // 現状App側のstocksから削除する手段がないので×のundoのみ有効
+  }, [history]);
 
   const handleButtonSwipe = (direction: 'left' | 'right') => {
     if (buttonFlyOut) return;
@@ -171,7 +196,14 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center gap-16 pt-14 pb-4 flex-shrink-0">
+            <div className="flex items-center gap-8 pt-14 pb-4 flex-shrink-0">
+              <button
+                onClick={handleUndo}
+                disabled={history.length === 0}
+                className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              </button>
               <button
                 onClick={() => handleButtonSwipe('left')}
                 disabled={!!buttonFlyOut}
@@ -186,6 +218,7 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>
               </button>
+              <div className="w-10" /> {/* spacer for symmetry */}
             </div>
           </>
         )}
