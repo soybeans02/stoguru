@@ -91,8 +91,72 @@ function PasswordChangePage({ onBack }: { onBack: () => void }) {
   );
 }
 
+function NicknameEditor({ nickname, onSaved }: { nickname: string; onSaved: (n: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(nickname);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    const trimmed = value.trim();
+    if (!trimmed) { setError('ニックネームは必須です'); return; }
+    if (trimmed === nickname) { setEditing(false); return; }
+    if (trimmed.length > 50) { setError('50文字以内にしてください'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      await api.updateNickname(trimmed);
+      onSaved(trimmed);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '変更に失敗しました');
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400 mb-1">ニックネーム</p>
+      {editing ? (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError(''); }}
+            maxLength={50}
+            autoFocus
+            className="w-full text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 outline-none focus:border-orange-400"
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="text-xs bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 disabled:opacity-50"
+            >
+              {saving ? '保存中...' : '保存'}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setValue(nickname); setError(''); }}
+              className="text-xs text-gray-500 px-4 py-1.5 rounded-lg hover:bg-gray-100"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => { setValue(nickname); setEditing(true); }}
+          className="w-full text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors"
+        >
+          {nickname} <span className="text-xs text-gray-400 ml-1">変更</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onOpenMessage, messageCount: externalMsgCount }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateNickname: updateNicknameLocal } = useAuth();
   const { state } = useRestaurantContext();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [page, setPage] = useState<SettingsPage>('main');
@@ -100,6 +164,8 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
   const [isPrivate, setIsPrivate] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [profileIcon, setProfileIcon] = useState<string | null>(null);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
   const [followRequests, setFollowRequests] = useState<{ requesterId: string; nickname: string }[]>([]);
@@ -194,6 +260,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
     }).catch((err) => { console.warn('[Header] フォロー一覧取得失敗:', err); });
 
     api.getPrivacySettings().then((s) => setIsPrivate(s.isPrivate)).catch((err) => { console.warn('[Header] プライバシー設定取得失敗:', err); });
+    api.fetchSettings().then((s: any) => { if (s.profileIcon) setProfileIcon(s.profileIcon); }).catch(() => {});
   }, [settingsOpen]);
 
   function closeSettings() {
@@ -403,9 +470,13 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
           <div className="space-y-5">
             {/* プロフィールカード */}
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-orange-300 flex items-center justify-center text-white text-xl font-bold shadow-sm">
-                {user?.nickname?.charAt(0) ?? '?'}
-              </div>
+              <button
+                onClick={() => setIconPickerOpen(true)}
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-orange-300 flex items-center justify-center text-white text-xl font-bold shadow-sm hover:opacity-80 transition-opacity relative"
+              >
+                {profileIcon ? <span className="text-2xl">{profileIcon}</span> : (user?.nickname?.charAt(0) ?? '?')}
+                <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white rounded-full shadow border border-gray-200 flex items-center justify-center text-[10px] text-gray-400">+</span>
+              </button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-gray-900 text-base truncate">{user?.nickname}</p>
@@ -512,10 +583,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
               <p className="text-xs text-gray-400 mb-1">メールアドレス</p>
               <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2">{user?.email}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">ニックネーム</p>
-              <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2">{user?.nickname}</p>
-            </div>
+            <NicknameEditor nickname={user?.nickname ?? ''} onSaved={updateNicknameLocal} />
             <button
               onClick={() => setPage('password')}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors"
@@ -579,6 +647,37 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
             })()}
           </div>
         )}
+      </Modal>
+
+      {/* アイコンピッカー */}
+      <Modal isOpen={iconPickerOpen} onClose={() => setIconPickerOpen(false)} title="アイコンを選択">
+        <div className="grid grid-cols-6 gap-2">
+          {['😊','😎','🤩','😋','🍣','🍜','🍕','🍔','🍰','🍩','🍙','🍛','🍺','☕','🍷','🌮','🥐','🍝','🥞','🍦','🐱','🐶','🐼','🦊','🐸','🐷','🌸','🌻','⭐','🔥','💜','🍀'].map((emoji) => (
+            <button
+              key={emoji}
+              onClick={async () => {
+                setProfileIcon(emoji);
+                setIconPickerOpen(false);
+                try { await api.putSettings({ profileIcon: emoji }); } catch {}
+              }}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl hover:bg-gray-100 transition-colors ${
+                profileIcon === emoji ? 'bg-orange-50 ring-2 ring-orange-400' : 'bg-gray-50'
+              }`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={async () => {
+            setProfileIcon(null);
+            setIconPickerOpen(false);
+            try { await api.putSettings({ profileIcon: '' }); } catch {}
+          }}
+          className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 py-2"
+        >
+          デフォルトに戻す
+        </button>
       </Modal>
     </>
   );

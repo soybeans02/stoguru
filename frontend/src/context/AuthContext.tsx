@@ -20,6 +20,7 @@ interface AuthContextValue {
   refreshToken: () => Promise<string | null>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  updateNickname: (nickname: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -106,6 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function updateNicknameLocal(nickname: string) {
+    setUser((prev) => prev ? { ...prev, nickname } : prev);
+  }
+
   function logout() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -141,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn, forgotPassword, resetPassword }}>
+    <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn, forgotPassword, resetPassword, updateNickname: updateNicknameLocal }}>
       {children}
     </AuthContext.Provider>
   );

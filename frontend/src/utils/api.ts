@@ -77,6 +77,18 @@ export async function getUserProfile(userId: string) {
   return res.json();
 }
 
+// ─── ニックネーム変更 ───
+
+export async function updateNickname(nickname: string): Promise<{ nickname: string }> {
+  const res = await fetch(`${BASE}/auth/nickname`, {
+    method: 'PUT', headers: headers(),
+    body: JSON.stringify({ nickname }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ニックネーム変更に失敗しました');
+  return data;
+}
+
 // ─── パスワード変更 ───
 
 export async function changePassword(oldPassword: string, newPassword: string) {

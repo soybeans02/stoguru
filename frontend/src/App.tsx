@@ -105,13 +105,13 @@ function MainApp() {
 
   return (
     <RestaurantProvider>
-      <div className="flex flex-col min-h-svh bg-gray-50 max-w-xl mx-auto overflow-x-hidden">
+      <div className="flex flex-col h-svh bg-gray-50 max-w-xl mx-auto overflow-hidden">
         <Header activeTab={tab} onTabChange={setTab} onOpenProfile={setProfileUserId} onJumpToMap={handleJumpToMap} onOpenMessage={() => setMessageOpen(true)} messageCount={msgUnreadCount} />
-        <main className="flex-1 flex flex-col pt-[104px]">
-          <div style={{ display: tab === 'map' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col pt-[104px] overflow-hidden">
+          <div style={{ display: tab === 'map' ? 'flex' : 'none' }} className="flex-1 flex flex-col overflow-hidden">
             <MapView onDetail={setDetailRestaurant} onReview={openReview} onQuickAdd={handleQuickAdd} panTo={panToLocation} onPanComplete={() => setPanToLocation(null)} />
           </div>
-          <div style={{ display: tab === 'list' ? 'block' : 'none' }}>
+          <div style={{ display: tab === 'list' ? 'flex' : 'none' }} className="flex-1 flex flex-col overflow-y-auto overscroll-none">
             <RestaurantList
               onEdit={openEdit}
               onDetail={setDetailRestaurant}
@@ -119,7 +119,7 @@ function MainApp() {
               onJumpToMap={handleJumpToMap}
             />
           </div>
-          <div style={{ display: tab === 'keep' ? 'block' : 'none' }}>
+          <div style={{ display: tab === 'keep' ? 'flex' : 'none' }} className="flex-1 flex flex-col overflow-y-auto overscroll-none">
             <KeepView onDetail={setDetailRestaurant} onOpenProfile={setProfileUserId} onOpenMessage={(targetId) => { setMessageTargetId(targetId); setMessageOpen(true); }} />
           </div>
         </main>

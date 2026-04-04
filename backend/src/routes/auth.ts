@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword } from '../services/cognito';
+import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword, isNicknameTaken, updateNickname } from '../services/cognito';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
-import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators';
+import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema } from '../validators';
 
 const router = Router();
 
@@ -86,6 +86,23 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 
 router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   res.json(req.user);
+});
+
+router.put('/nickname', requireAuth, async (req: AuthRequest, res: Response) => {
+  const v = validate(updateNicknameSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  try {
+    const taken = await isNicknameTaken(v.data.nickname, req.user!.userId);
+    if (taken) {
+      res.status(409).json({ error: 'このニックネームは既に使われています' });
+      return;
+    }
+    await updateNickname(req.user!.userId, v.data.nickname);
+    res.json({ message: 'ニックネームを変更しました', nickname: v.data.nickname });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'ニックネーム変更に失敗しました';
+    res.status(500).json({ error: msg });
+  }
 });
 
 router.post('/change-password', requireAuth, async (req: AuthRequest, res: Response) => {

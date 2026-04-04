@@ -10,6 +10,7 @@ import {
   ChangePasswordCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
+  AdminUpdateUserAttributesCommand,
   AdminDisableUserCommand,
   AdminEnableUserCommand,
   AdminResetUserPasswordCommand,
@@ -174,6 +175,43 @@ export async function getUserById(userId: string) {
     createdAt: u.UserCreateDate?.toISOString(),
     username: u.Username,
   };
+}
+
+// ─── ニックネーム変更 ───
+
+export async function isNicknameTaken(nickname: string, excludeUserId?: string): Promise<boolean> {
+  const command = new ListUsersCommand({
+    UserPoolId: getUserPoolId(),
+    Filter: `nickname = "${nickname.replace(/"/g, '')}"`,
+    Limit: 10,
+  });
+  try {
+    const result = await client.send(command);
+    return (result.Users ?? []).some((u) => {
+      const sub = u.Attributes?.find((a) => a.Name === 'sub')?.Value;
+      return sub !== excludeUserId;
+    });
+  } catch {
+    // フィルタ失敗時はフォールバック
+    const fallback = new ListUsersCommand({ UserPoolId: getUserPoolId(), Limit: 60 });
+    const result = await client.send(fallback);
+    return (result.Users ?? []).some((u) => {
+      const attrs: Record<string, string> = {};
+      u.Attributes?.forEach((a) => { if (a.Name && a.Value) attrs[a.Name] = a.Value; });
+      return attrs['nickname'] === nickname && attrs['sub'] !== excludeUserId;
+    });
+  }
+}
+
+export async function updateNickname(userId: string, nickname: string) {
+  // Cognito内のユーザー名(email)を取得
+  const user = await getUserById(userId);
+  if (!user?.username) throw new Error('ユーザーが見つかりません');
+  await client.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: getUserPoolId(),
+    Username: user.username,
+    UserAttributes: [{ Name: 'nickname', Value: nickname }],
+  }));
 }
 
 // ─── パスワードリセット ───

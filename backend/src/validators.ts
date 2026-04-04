@@ -37,6 +37,10 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, 'パスワードは8文字以上にしてください').max(128),
 });
 
+export const updateNicknameSchema = z.object({
+  nickname: z.string().min(1, 'ニックネームは必須です').max(50, 'ニックネームは50文字以内にしてください').trim(),
+});
+
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({
