@@ -9,12 +9,12 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 // トランプシャッフル音（Web Audio API）
 function createShuffleSound() {
   const ctx = new AudioContext();
-  const totalDur = 0.8;
-  const flicks = 12;
+  const totalDur = 1.1;
+  const flicks = 10;
 
   for (let i = 0; i < flicks; i++) {
     const t = ctx.currentTime + (i / flicks) * totalDur;
-    const dur = 0.04 + Math.random() * 0.03;
+    const dur = 0.05 + Math.random() * 0.04;
     const bufferSize = Math.floor(ctx.sampleRate * dur);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -109,11 +109,17 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
-  const filterApplied = useRef(false);
+  const [filterVersion, setFilterVersion] = useState(0);
 
+  // フィルター確定時（「この条件で探す」ボタン）にインクリメント
+  const applyFilter = useCallback(() => {
+    setFilterVersion((v) => v + 1);
+    setFilterOpen(false);
+  }, []);
+
+  // カードフィルタリング（stockedIds/nopedIds変更時はアニメなし）
   useEffect(() => {
     let filtered = [...MOCK_RESTAURANTS];
-    // ストック済み・×済みを除外
     const excludeIds = new Set([...stockedIds, ...nopedIds]);
     filtered = filtered.filter((r) => !excludeIds.has(r.id));
     if (selectedScenes.length > 0) {
@@ -124,22 +130,17 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     if (selectedGenres.length > 0) {
       filtered = filtered.filter((r) => selectedGenres.includes(r.genre));
     }
+    setCards(filtered);
+    setCurrentIndex(0);
+  }, [stockedIds, nopedIds, selectedScenes, selectedGenres]);
 
-    // フィルター変更時のみシャッフルアニメーション
-    if (filterApplied.current && filtered.length > 0) {
-      setShuffling(true);
-      createShuffleSound();
-      setTimeout(() => {
-        setCards(filtered);
-        setCurrentIndex(0);
-        setShuffling(false);
-      }, 900);
-    } else {
-      setCards(filtered);
-      setCurrentIndex(0);
-    }
-    filterApplied.current = true;
-  }, [selectedScenes, selectedGenres, stockedIds, nopedIds]);
+  // フィルター確定時のみシャッフルアニメーション+音
+  useEffect(() => {
+    if (filterVersion === 0) return;
+    setShuffling(true);
+    createShuffleSound();
+    setTimeout(() => setShuffling(false), 1200);
+  }, [filterVersion]);
 
   const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {
@@ -310,7 +311,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
           selectedGenres={selectedGenres}
           onScenesChange={setSelectedScenes}
           onGenresChange={setSelectedGenres}
-          onClose={() => setFilterOpen(false)}
+          onClose={applyFilter}
+          onDismiss={() => setFilterOpen(false)}
         />
       )}
     </div>

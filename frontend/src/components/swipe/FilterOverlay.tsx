@@ -6,6 +6,7 @@ interface Props {
   onScenesChange: (scenes: string[]) => void;
   onGenresChange: (genres: string[]) => void;
   onClose: () => void;
+  onDismiss?: () => void;
 }
 
 export function FilterOverlay({
@@ -14,6 +15,7 @@ export function FilterOverlay({
   onScenesChange,
   onGenresChange,
   onClose,
+  onDismiss,
 }: Props) {
   function toggleScene(id: string) {
     onScenesChange(
@@ -41,7 +43,7 @@ export function FilterOverlay({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <h2 className="text-base font-bold text-gray-900">絞り込み</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+        <button onClick={onDismiss ?? onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
