@@ -10,48 +10,63 @@ export function useGPS() {
   const [position, setPosition] = useState<GPSPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
+  const [compassGranted, setCompassGranted] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const positionRef = useRef<GPSPosition | null>(null);
   const headingRef = useRef<number | null>(null);
 
-  // DeviceOrientation でコンパス方向を取得（静止時も動作）
-  useEffect(() => {
-    const handler = (e: DeviceOrientationEvent) => {
-      // iOS: webkitCompassHeading (0-360, 北基準)
-      // Android: alpha (0-360, 反転)
-      let h: number | null = null;
-      if ('webkitCompassHeading' in e && typeof (e as any).webkitCompassHeading === 'number') {
-        h = (e as any).webkitCompassHeading;
-      } else if (e.alpha != null && e.absolute) {
-        h = (360 - e.alpha) % 360;
-      } else if (e.alpha != null) {
-        h = (360 - e.alpha) % 360;
-      }
-
-      if (h != null) {
-        headingRef.current = h;
-        // positionがあればheadingも更新
-        if (positionRef.current) {
-          const updated = { ...positionRef.current, heading: h };
-          positionRef.current = updated;
-          setPosition(updated);
-        }
-      }
-    };
-
-    // iOS 13+ はパーミッション必要
-    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-      (DeviceOrientationEvent as any).requestPermission().then((state: string) => {
-        if (state === 'granted') {
-          window.addEventListener('deviceorientation', handler, true);
-        }
-      }).catch(() => {});
-    } else {
-      window.addEventListener('deviceorientation', handler, true);
+  // DeviceOrientation ハンドラ
+  const orientationHandler = useCallback((e: DeviceOrientationEvent) => {
+    let h: number | null = null;
+    // iOS: webkitCompassHeading (0-360, 北基準)
+    if ('webkitCompassHeading' in e && typeof (e as any).webkitCompassHeading === 'number') {
+      h = (e as any).webkitCompassHeading;
+    } else if (e.alpha != null) {
+      // Android: alpha (反転)
+      h = (360 - e.alpha) % 360;
     }
 
-    return () => window.removeEventListener('deviceorientation', handler, true);
+    if (h != null) {
+      headingRef.current = h;
+      if (positionRef.current) {
+        const updated = { ...positionRef.current, heading: h };
+        positionRef.current = updated;
+        setPosition(updated);
+      }
+    }
   }, []);
+
+  // ユーザータップから呼ぶコンパス許可リクエスト（iOS 13+対応）
+  const requestCompass = useCallback(async () => {
+    if (compassGranted) return;
+
+    const needsPermission = typeof (DeviceOrientationEvent as any).requestPermission === 'function';
+    if (needsPermission) {
+      try {
+        const state = await (DeviceOrientationEvent as any).requestPermission();
+        if (state === 'granted') {
+          setCompassGranted(true);
+          window.addEventListener('deviceorientation', orientationHandler, true);
+        }
+      } catch {
+        // ユーザーが拒否
+      }
+    } else {
+      // Android / 許可不要ブラウザ
+      setCompassGranted(true);
+      window.addEventListener('deviceorientation', orientationHandler, true);
+    }
+  }, [compassGranted, orientationHandler]);
+
+  // Android等はマウント時に自動でリスン開始（許可不要）
+  useEffect(() => {
+    const needsPermission = typeof (DeviceOrientationEvent as any).requestPermission === 'function';
+    if (!needsPermission) {
+      setCompassGranted(true);
+      window.addEventListener('deviceorientation', orientationHandler, true);
+    }
+    return () => window.removeEventListener('deviceorientation', orientationHandler, true);
+  }, [orientationHandler]);
 
   const startWatch = useCallback(() => {
     if (!navigator.geolocation) {
@@ -65,7 +80,6 @@ export function useGPS() {
     setDenied(false);
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        // GPSのheadingよりDeviceOrientationを優先
         const gpsHeading = pos.coords.heading;
         const heading = headingRef.current ?? gpsHeading;
         const p = { lat: pos.coords.latitude, lng: pos.coords.longitude, heading };
@@ -116,5 +130,5 @@ export function useGPS() {
     };
   }, [startWatch]);
 
-  return { position, positionRef, error, denied, startWatch, stopWatch };
+  return { position, positionRef, error, denied, startWatch, stopWatch, compassGranted, requestCompass };
 }

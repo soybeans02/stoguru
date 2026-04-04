@@ -29,7 +29,7 @@ function MainApp() {
   const [tab, setTab] = useState<Tab>('home');
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
   const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null);
-  const { position } = useGPS();
+  const { position, compassGranted, requestCompass } = useGPS();
 
   // 起動時にバックエンドからストック復元
   useEffect(() => {
@@ -167,6 +167,8 @@ function MainApp() {
             panTo={panTo}
             onPanComplete={() => setPanTo(null)}
             userPosition={position}
+            compassGranted={compassGranted}
+            requestCompass={requestCompass}
           />
         )}
         {tab === 'account' && (

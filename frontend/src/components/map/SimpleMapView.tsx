@@ -11,12 +11,14 @@ interface Props {
   panTo: { lat: number; lng: number } | null;
   onPanComplete: () => void;
   userPosition: GPSPosition | null;
+  compassGranted: boolean;
+  requestCompass: () => void;
 }
 
 const containerStyle = { width: '100%', height: '100%' };
 const defaultCenter = { lat: 34.7025, lng: 135.4959 }; // 梅田
 
-export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Props) {
+export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, compassGranted, requestCompass }: Props) {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
   });
@@ -189,12 +191,22 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
         </span>
       </div>
-      <button
-        onClick={() => setLabelsOn(!labelsOn)}
-        className={`absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm transition-colors ${labelsOn ? 'text-gray-600' : 'text-gray-400'}`}
-      >
-        {labelsOn ? 'ラベル非表示' : 'ラベル表示'}
-      </button>
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+        {!compassGranted && (
+          <button
+            onClick={requestCompass}
+            className="bg-blue-500 text-white backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm"
+          >
+            方向を表示
+          </button>
+        )}
+        <button
+          onClick={() => setLabelsOn(!labelsOn)}
+          className={`bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm transition-colors ${labelsOn ? 'text-gray-600' : 'text-gray-400'}`}
+        >
+          {labelsOn ? 'ラベル非表示' : 'ラベル表示'}
+        </button>
+      </div>
     </div>
   );
 }
