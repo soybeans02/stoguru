@@ -23,18 +23,39 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedPin, setSelectedPin] = useState<StockedRestaurant | null>(null);
+  const [labelsOn, setLabelsOn] = useState(true);
+  const [zoom, setZoom] = useState(15);
   const initialCenterSet = useRef(false);
 
-  const onLoad = useCallback((m: google.maps.Map) => setMap(m), []);
+  const onLoad = useCallback((m: google.maps.Map) => {
+    setMap(m);
+    m.addListener('zoom_changed', () => setZoom(m.getZoom() ?? 15));
+  }, []);
 
   // Pan to location (from stock screen "マップ" button)
   useEffect(() => {
     if (map && panTo) {
       map.panTo(panTo);
-      map.setZoom(16);
+      map.setZoom(17);
       onPanComplete();
     }
   }, [map, panTo, onPanComplete]);
+
+  // Toggle labels
+  useEffect(() => {
+    if (!map) return;
+    if (labelsOn) {
+      map.setOptions({ styles: [] });
+    } else {
+      map.setOptions({
+        styles: [
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+        ],
+      });
+    }
+  }, [map, labelsOn]);
 
   // Set initial center to user position (once only)
   useEffect(() => {
@@ -105,13 +126,21 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
           <Marker
             key={s.id}
             position={{ lat: s.lat, lng: s.lng }}
-            icon={{
+            icon={zoom >= 14 ? {
+              path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9zm0 12.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 5.25 12 5.25 15.75 6.93 15.75 9 14.07 12.75 12 12.75z',
+              fillColor: s.visited ? '#22c55e' : '#ef4444',
+              fillOpacity: 1,
+              strokeColor: '#fff',
+              strokeWeight: 1.5,
+              scale: 1.1,
+              anchor: new google.maps.Point(12, 24),
+            } : {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: s.visited ? '#22c55e' : '#ef4444',
               fillOpacity: 1,
               strokeColor: '#fff',
-              strokeWeight: 2,
-              scale: 10,
+              strokeWeight: 1.5,
+              scale: 6,
             }}
             onClick={() => setSelectedPin(s)}
             onUnmount={(marker) => marker.setMap(null)}
@@ -147,7 +176,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
         )}
       </GoogleMap>
 
-      {/* Legend */}
+      {/* Legend + label toggle */}
       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 flex gap-3 text-[11px] text-gray-600 shadow-sm">
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> ストック
@@ -159,6 +188,12 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
         </span>
       </div>
+      <button
+        onClick={() => setLabelsOn(!labelsOn)}
+        className={`absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm transition-colors ${labelsOn ? 'text-gray-600' : 'text-gray-400'}`}
+      >
+        {labelsOn ? 'ラベル非表示' : 'ラベル表示'}
+      </button>
     </div>
   );
 }
