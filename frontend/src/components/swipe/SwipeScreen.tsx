@@ -173,7 +173,7 @@ export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[320px] h-[420px] flex-shrink-0">
+            <div className="relative w-full max-w-[320px] h-[460px] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}
