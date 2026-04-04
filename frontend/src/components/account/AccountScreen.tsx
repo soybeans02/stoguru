@@ -119,7 +119,7 @@ export function AccountScreen({ stocks }: Props) {
       <div className="flex justify-center gap-10 mb-8 pb-6 border-b border-gray-100">
         <button onClick={() => setListPanel('stocks')} className="text-center">
           <p className="text-2xl font-bold text-gray-900">{stockCount}</p>
-          <p className="text-[10px] text-gray-400">ストック</p>
+          <p className="text-[10px] text-gray-400">保存</p>
         </button>
         <button onClick={() => setListPanel('visited')} className="text-center">
           <p className="text-2xl font-bold text-gray-900">{visitedCount}</p>
@@ -156,9 +156,9 @@ export function AccountScreen({ stocks }: Props) {
 
       {/* List panels */}
       {listPanel === 'stocks' && (
-        <Overlay title="ストック" onClose={() => setListPanel(null)}>
+        <Overlay title="保存" onClose={() => setListPanel(null)}>
           {stocks.filter(s => !s.visited).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">まだストックがないよ</p>
+            <p className="text-sm text-gray-400 text-center py-4">まだ保存がないよ</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {stocks.filter(s => !s.visited).map(s => (

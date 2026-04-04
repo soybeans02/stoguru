@@ -181,7 +181,7 @@ function MainApp() {
         <TabButton active={tab === 'home'} onClick={() => setTab('home')} label="ホーム">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'home' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
         </TabButton>
-        <TabButton active={tab === 'stock'} onClick={() => setTab('stock')} label="ストック">
+        <TabButton active={tab === 'stock'} onClick={() => setTab('stock')} label="保存">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'stock' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
         </TabButton>
         <TabButton active={tab === 'map'} onClick={() => setTab('map')} label="マップ">

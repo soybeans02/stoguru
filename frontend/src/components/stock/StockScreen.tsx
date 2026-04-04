@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
@@ -29,12 +29,202 @@ interface Props {
   userPosition: GPSPosition | null;
 }
 
+/* ── Swipeable card ── */
+function SwipeableCard({
+  s,
+  onTogglePin,
+  onRemoveStock,
+  onMarkVisited,
+  onUnmarkVisited,
+  onShowOnMap,
+  userPosition,
+  openId,
+  setOpenId,
+}: {
+  s: StockedRestaurant;
+  onTogglePin: (id: string) => void;
+  onRemoveStock: (id: string) => void;
+  onMarkVisited: (id: string) => void;
+  onUnmarkVisited: (id: string) => void;
+  onShowOnMap: (lat: number, lng: number) => void;
+  userPosition: GPSPosition | null;
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
+}) {
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const currentX = useRef(0);
+  const swiping = useRef(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const ACTION_WIDTH = 120; // px to reveal
+
+  const isOpen = openId === s.id;
+
+  const setTranslate = useCallback((x: number) => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = `translateX(${x}px)`;
+    }
+  }, []);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    currentX.current = isOpen ? -ACTION_WIDTH : 0;
+    swiping.current = false;
+    if (cardRef.current) cardRef.current.style.transition = 'none';
+  }, [isOpen]);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = e.touches[0].clientY - startY.current;
+
+    // 最初の動きで横か縦か判定
+    if (!swiping.current && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+    if (!swiping.current) {
+      if (Math.abs(dy) > Math.abs(dx)) return; // 縦スクロール優先
+      swiping.current = true;
+    }
+
+    const base = isOpen ? -ACTION_WIDTH : 0;
+    const raw = base + dx;
+    const clamped = Math.min(0, raw);
+
+    // ACTION_WIDTH超えた分はラバーバンド（抵抗感）
+    if (clamped < -ACTION_WIDTH) {
+      const over = -clamped - ACTION_WIDTH;
+      const damped = -ACTION_WIDTH - over * 0.15;
+      setTranslate(damped);
+    } else {
+      setTranslate(clamped);
+    }
+  }, [isOpen, setTranslate]);
+
+  const onTouchEnd = useCallback(() => {
+    if (!cardRef.current) return;
+    cardRef.current.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+
+    const current = cardRef.current.getBoundingClientRect();
+    const parent = cardRef.current.parentElement?.getBoundingClientRect();
+    if (!parent) return;
+
+    const offset = current.left - parent.left;
+    if (offset < -ACTION_WIDTH / 3) {
+      // スナップ: ピタッとACTION_WIDTHで止まる
+      setTranslate(-ACTION_WIDTH);
+      setOpenId(s.id);
+    } else {
+      setTranslate(0);
+      if (isOpen) setOpenId(null);
+    }
+  }, [isOpen, s.id, setOpenId, setTranslate]);
+
+  // 他のカード開いたら閉じる
+  const translate = isOpen ? -ACTION_WIDTH : 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Action buttons behind */}
+      <div className="absolute right-0 top-0 bottom-0 flex items-stretch" style={{ width: ACTION_WIDTH }}>
+        <button
+          onClick={() => { onTogglePin(s.id); setOpenId(null); }}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 ${s.pinned ? 'bg-amber-400' : 'bg-amber-500'} text-white`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
+          <span className="text-[10px] font-medium">{s.pinned ? '解除' : 'ピン'}</span>
+        </button>
+        <button
+          onClick={() => { onRemoveStock(s.id); setOpenId(null); }}
+          className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-500 text-white"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          <span className="text-[10px] font-medium">削除</span>
+        </button>
+      </div>
+
+      {/* Foreground card */}
+      <div
+        ref={cardRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className={`flex gap-3 p-3.5 relative bg-white ${s.pinned ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-gray-50'}`}
+        style={{ transform: `translateX(${translate}px)`, transition: 'transform 0.25s ease' }}
+      >
+        <div
+          className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
+            s.visited ? 'bg-green-50' : 'bg-gray-200'
+          }`}
+        >
+          {s.photoEmoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-gray-900 truncate">{s.name}</h3>
+            {s.pinned && (
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 flex-shrink-0"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
+            )}
+            <span className="text-[12px] font-normal text-gray-300 flex-shrink-0 ml-auto">{formatDate(s.stockedAt)}</span>
+            {/* PC版: ピン・削除ボタン */}
+            <button
+              onClick={() => onTogglePin(s.id)}
+              className={`hidden md:block flex-shrink-0 p-0.5 transition-colors ${s.pinned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
+            </button>
+            <button
+              onClick={() => { if (window.confirm(`「${s.name}」を保存から削除する？`)) onRemoveStock(s.id); }}
+              className="hidden md:block flex-shrink-0 text-gray-300 hover:text-red-400 transition-colors p-0.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-2 truncate">
+            {userPosition ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng)) : s.distance}{s.genre ? ` · ${s.genre}` : ''}
+          </p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => onShowOnMap(s.lat, s.lng)}
+              className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
+            >
+              マップ
+            </button>
+            <button
+              onClick={() => window.open(s.videoUrl, '_blank')}
+              className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
+            >
+              動画
+            </button>
+            {!s.visited && (
+              <button
+                onClick={() => onMarkVisited(s.id)}
+                className="text-xs px-4 py-2 rounded-lg bg-gray-900 text-white font-medium active:scale-95 transition-transform"
+              >
+                行った
+              </button>
+            )}
+            {s.visited && (
+              <button
+                onClick={() => onUnmarkVisited(s.id)}
+                className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
+                title="タップで未訪問に戻す"
+              >
+                visited
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveStock, onTogglePin, onShowOnMap, userPosition }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [genreOpen, setGenreOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('added');
+  const [openId, setOpenId] = useState<string | null>(null);
   const visitedCount = stocks.filter((s) => s.visited).length;
 
   // ストック内のジャンル一覧
@@ -71,7 +261,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white">
-      <h1 className="text-lg font-bold text-gray-900 mb-0.5">ストック</h1>
+      <h1 className="text-lg font-bold text-gray-900 mb-0.5">保存</h1>
       <p className="text-xs text-gray-400 mb-3">
         {stocks.length}件 · うち{visitedCount}件 行った
       </p>
@@ -147,7 +337,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       {stocks.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-300 text-5xl font-thin mb-3">0</p>
-          <p className="text-gray-500 text-sm">まだストックがないよ</p>
+          <p className="text-gray-500 text-sm">まだ保存がないよ</p>
           <p className="text-gray-400 text-xs mt-1">ホームで気になる店をスワイプしよう</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -157,71 +347,18 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       ) : (
         <div className="space-y-2">
           {filtered.map((s) => (
-            <div
+            <SwipeableCard
               key={s.id}
-              className={`flex gap-3 rounded-xl p-3.5 ${s.pinned ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-gray-50'}`}
-            >
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
-                  s.visited ? 'bg-green-50' : 'bg-gray-200'
-                }`}
-              >
-                {s.photoEmoji}
-              </div>
-              <div className="flex-1 min-w-0">
-                {/* 店名行: 名前...  日付  📌  ✕ */}
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-semibold text-gray-900 truncate">{s.name}</h3>
-                  <span className="text-[10px] font-normal text-gray-300 flex-shrink-0 ml-auto">{formatDate(s.stockedAt)}</span>
-                  <button
-                    onClick={() => onTogglePin(s.id)}
-                    className={`flex-shrink-0 p-0.5 transition-colors ${s.pinned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={s.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
-                  </button>
-                  <button
-                    onClick={() => { if (window.confirm(`「${s.name}」をストックから削除する？`)) onRemoveStock(s.id); }}
-                    className="flex-shrink-0 text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-                <p className="text-[11px] text-gray-400 mb-2 truncate">
-                  {userPosition ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng)) : s.distance}{s.genre ? ` · ${s.genre}` : ''}
-                </p>
-                <div className="flex gap-2 mt-1">
-                  <button
-                    onClick={() => onShowOnMap(s.lat, s.lng)}
-                    className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
-                  >
-                    マップ
-                  </button>
-                  <button
-                    onClick={() => window.open(s.videoUrl, '_blank')}
-                    className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
-                  >
-                    動画
-                  </button>
-                  {!s.visited && (
-                    <button
-                      onClick={() => onMarkVisited(s.id)}
-                      className="text-xs px-4 py-2 rounded-lg bg-gray-900 text-white font-medium active:scale-95 transition-transform"
-                    >
-                      行った
-                    </button>
-                  )}
-                  {s.visited && (
-                    <button
-                      onClick={() => onUnmarkVisited(s.id)}
-                      className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
-                      title="タップで未訪問に戻す"
-                    >
-                      visited
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+              s={s}
+              onTogglePin={onTogglePin}
+              onRemoveStock={onRemoveStock}
+              onMarkVisited={onMarkVisited}
+              onUnmarkVisited={onUnmarkVisited}
+              onShowOnMap={onShowOnMap}
+              userPosition={userPosition}
+              openId={openId}
+              setOpenId={setOpenId}
+            />
           ))}
         </div>
       )}

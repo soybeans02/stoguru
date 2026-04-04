@@ -182,7 +182,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
       {/* Legend + label toggle */}
       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 flex gap-3 text-[11px] text-gray-600 shadow-sm">
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> ストック
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> 保存
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> 行った
