@@ -139,8 +139,8 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         )}
 
         {/* Photo area */}
-        <div className="w-full h-[50%] bg-gray-100 flex items-center justify-center relative">
-          <span className="text-7xl">{restaurant.photoEmoji}</span>
+        <div className="w-full h-[55%] bg-gray-100 flex items-center justify-center relative">
+          <span className="text-8xl">{restaurant.photoEmoji}</span>
           <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm">
             {restaurant.influencer.handle}
           </div>

@@ -5,23 +5,24 @@ import * as api from '../../utils/api';
 interface Props {
   stockCount: number;
   visitedCount: number;
-  likeRate: number;
 }
 
 type Panel = null | 'password' | 'email' | 'deleteAccount';
 
-export function AccountScreen({ stockCount, visitedCount, likeRate }: Props) {
+export function AccountScreen({ stockCount, visitedCount }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
   const [profileIcon, setProfileIcon] = useState('🍕');
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [panel, setPanel] = useState<Panel>(null);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
       if (s.profileIcon) setProfileIcon(s.profileIcon);
     }).catch(() => {});
+    api.getFollowing().then((f) => setFollowingCount(f.length)).catch(() => {});
   }, []);
 
   async function handleSaveNickname() {
@@ -111,8 +112,8 @@ export function AccountScreen({ stockCount, visitedCount, likeRate }: Props) {
           <p className="text-[10px] text-gray-400">行った</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{likeRate}%</p>
-          <p className="text-[10px] text-gray-400">Like率</p>
+          <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
+          <p className="text-[10px] text-gray-400">フォロー</p>
         </div>
       </div>
 

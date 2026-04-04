@@ -60,7 +60,6 @@ function MainApp() {
   }, []);
 
   const visitedCount = stocks.filter((s) => s.visited).length;
-  const likeRate = swipeStats.total > 0 ? Math.round((swipeStats.likes / swipeStats.total) * 100) : 0;
 
   return (
     <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
@@ -88,7 +87,6 @@ function MainApp() {
           <AccountScreen
             stockCount={stocks.length}
             visitedCount={visitedCount}
-            likeRate={likeRate}
           />
         )}
       </main>

@@ -173,7 +173,7 @@ export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[300px] h-[340px] flex-shrink-0">
+            <div className="relative w-full max-w-[320px] h-[420px] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}
@@ -196,7 +196,7 @@ export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center gap-8 pt-14 pb-4 flex-shrink-0">
+            <div className="flex items-center gap-10 pt-6 pb-4 flex-shrink-0">
               <button
                 onClick={handleUndo}
                 disabled={history.length === 0}
