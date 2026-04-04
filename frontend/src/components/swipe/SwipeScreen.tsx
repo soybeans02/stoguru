@@ -1,10 +1,45 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { FilterOverlay } from './FilterOverlay';
 import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+
+// トランプシャッフル音（Web Audio API）
+function createShuffleSound() {
+  const ctx = new AudioContext();
+  const totalDur = 0.8;
+  const flicks = 12;
+
+  for (let i = 0; i < flicks; i++) {
+    const t = ctx.currentTime + (i / flicks) * totalDur;
+    const dur = 0.04 + Math.random() * 0.03;
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let j = 0; j < bufferSize; j++) {
+      data[j] = (Math.random() * 2 - 1) * (1 - j / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2000 + Math.random() * 3000;
+    bp.Q.value = 1.5;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.15 + Math.random() * 0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+
+    noise.connect(bp);
+    bp.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(t);
+    noise.stop(t + dur);
+  }
+}
 
 // 効果音を生成（Web Audio API）
 function createSwipeSound(type: 'like' | 'nope') {
@@ -73,6 +108,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
   const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
+  const [shuffling, setShuffling] = useState(false);
+  const filterApplied = useRef(false);
 
   useEffect(() => {
     let filtered = [...MOCK_RESTAURANTS];
@@ -87,8 +124,21 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     if (selectedGenres.length > 0) {
       filtered = filtered.filter((r) => selectedGenres.includes(r.genre));
     }
-    setCards(filtered);
-    setCurrentIndex(0);
+
+    // フィルター変更時のみシャッフルアニメーション
+    if (filterApplied.current && filtered.length > 0) {
+      setShuffling(true);
+      createShuffleSound();
+      setTimeout(() => {
+        setCards(filtered);
+        setCurrentIndex(0);
+        setShuffling(false);
+      }, 900);
+    } else {
+      setCards(filtered);
+      setCurrentIndex(0);
+    }
+    filterApplied.current = true;
   }, [selectedScenes, selectedGenres, stockedIds, nopedIds]);
 
   const handleSwipeComplete = useCallback(
@@ -161,7 +211,35 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
 
       {/* Card area */}
       <div className="flex-1 flex flex-col items-center justify-start w-full px-4 pt-4 min-h-0 overflow-hidden">
-        {isFinished ? (
+        {shuffling ? (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            {/* シャッフルアニメーション */}
+            <div className="relative w-[200px] h-[280px]">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-md"
+                  style={{
+                    animation: `shuffle-${i % 2 === 0 ? 'left' : 'right'} 0.3s ease-in-out ${i * 0.12}s infinite alternate`,
+                    zIndex: 6 - i,
+                    transform: `rotate(${(i - 2.5) * 3}deg)`,
+                  }}
+                />
+              ))}
+              <style>{`
+                @keyframes shuffle-left {
+                  0% { transform: translateX(0) rotate(-3deg); }
+                  100% { transform: translateX(-30px) rotate(-8deg); }
+                }
+                @keyframes shuffle-right {
+                  0% { transform: translateX(0) rotate(3deg); }
+                  100% { transform: translateX(30px) rotate(8deg); }
+                }
+              `}</style>
+            </div>
+            <p className="text-gray-400 text-sm mt-6 font-medium">シャッフル中...</p>
+          </div>
+        ) : isFinished ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <p className="text-gray-300 text-6xl font-thin mb-4">0</p>
             <p className="text-gray-800 font-semibold text-base mb-1">全部見たよ</p>
