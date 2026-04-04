@@ -91,10 +91,10 @@ export async function updateNickname(nickname: string): Promise<{ nickname: stri
 
 // ─── メールアドレス変更 ───
 
-export async function changeEmail(newEmail: string): Promise<{ email: string }> {
+export async function changeEmail(newEmail: string, currentPassword: string): Promise<{ email: string }> {
   const res = await fetch(`${BASE}/auth/email`, {
     method: 'PUT', headers: headers(),
-    body: JSON.stringify({ newEmail }),
+    body: JSON.stringify({ newEmail, currentPassword }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'メールアドレス変更に失敗しました');

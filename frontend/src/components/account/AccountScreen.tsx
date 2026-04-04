@@ -283,6 +283,7 @@ function ChangePasswordPanel({ onClose }: { onClose: () => void }) {
 
 function ChangeEmailPanel({ currentEmail, onSuccess, onClose }: { currentEmail: string; onSuccess: (email: string) => void; onClose: () => void }) {
   const [newEmail, setNewEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -297,9 +298,13 @@ function ChangeEmailPanel({ currentEmail, onSuccess, onClose }: { currentEmail: 
       setError('現在と同じメールアドレスです');
       return;
     }
+    if (!currentPassword) {
+      setError('現在のパスワードを入力してください');
+      return;
+    }
     setLoading(true);
     try {
-      const result = await api.changeEmail(newEmail.trim());
+      const result = await api.changeEmail(newEmail.trim(), currentPassword);
       onSuccess(result.email);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
@@ -316,6 +321,7 @@ function ChangeEmailPanel({ currentEmail, onSuccess, onClose }: { currentEmail: 
           <p className="text-sm text-gray-700">{currentEmail}</p>
         </div>
         <FormInput label="新しいメールアドレス" type="email" value={newEmail} onChange={setNewEmail} placeholder="mail@example.com" autoFocus />
+        <FormInput label="現在のパスワード" type="password" value={currentPassword} onChange={setCurrentPassword} placeholder="パスワードを入力" />
         {error && <p className="text-red-500 text-xs">{error}</p>}
         <button type="submit" disabled={loading} className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50">
           {loading ? '...' : '変更する'}
