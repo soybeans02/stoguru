@@ -3,10 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 
-type Mode = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
+type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
 export function AuthScreen() {
-  const { signUp, confirm, login, forgotPassword, resetPassword } = useAuth();
+  const { signUp, login, forgotPassword, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,9 +23,6 @@ export function AuthScreen() {
     try {
       if (mode === 'signup') {
         await signUp(email, password, nickname);
-        setMode('confirm');
-      } else if (mode === 'confirm') {
-        await confirm(email, code);
         await login(email, password);
       } else if (mode === 'forgot') {
         await forgotPassword(email);
@@ -49,7 +46,6 @@ export function AuthScreen() {
   const modeLabel: Record<Mode, string> = {
     login: 'ログイン',
     signup: 'アカウント作成',
-    confirm: '確認コード入力',
     forgot: 'パスワード再設定',
     reset: '新しいパスワード設定',
   };
@@ -84,20 +80,7 @@ export function AuthScreen() {
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {mode === 'confirm' ? (
-            <>
-              <p className="text-sm text-gray-600 text-center">
-                <span className="font-medium">{email}</span> に確認コードを送信しました
-              </p>
-              <Input
-                label="確認コード"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="6桁のコード"
-                autoFocus
-              />
-            </>
-          ) : mode === 'forgot' ? (
+          {mode === 'forgot' ? (
             <>
               <p className="text-sm text-gray-600 text-center">
                 登録済みのメールアドレスを入力してください
@@ -163,7 +146,7 @@ export function AuthScreen() {
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? '...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? '登録' : mode === 'forgot' ? '送信' : mode === 'reset' ? '再設定' : '確認'}
+            {loading ? '...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? '登録' : mode === 'forgot' ? '送信' : '再設定'}
           </Button>
         </form>
 
