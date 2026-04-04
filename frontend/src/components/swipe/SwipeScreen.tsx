@@ -54,6 +54,7 @@ function createSwipeSound(type: 'like' | 'nope') {
 interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
   onNope?: () => void;
+  onRemoveStock: (id: string) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
 }
@@ -63,7 +64,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props) {
+export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds }: Props) {
   const [cards, setCards] = useState<SwipeRestaurant[]>([...MOCK_RESTAURANTS]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -123,10 +124,11 @@ export function SwipeScreen({ onStock, onNope, userPosition, stockedIds }: Props
         next.delete(last.id);
         return next;
       });
+    } else {
+      // いいねを取り消す → ストックから削除
+      onRemoveStock(last.id);
     }
-    // ストック（右スワイプ）の取り消しはstockから除外で対応するが
-    // 現状App側のstocksから削除する手段がないので×のundoのみ有効
-  }, [history]);
+  }, [history, onRemoveStock]);
 
   const handleButtonSwipe = (direction: 'left' | 'right') => {
     if (buttonFlyOut) return;

@@ -1,28 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
+import type { StockedRestaurant } from '../stock/StockScreen';
 
 interface Props {
-  stockCount: number;
-  visitedCount: number;
+  stocks: StockedRestaurant[];
 }
 
 type Panel = null | 'password' | 'email' | 'deleteAccount';
+type ListPanel = null | 'stocks' | 'visited' | 'following';
 
-export function AccountScreen({ stockCount, visitedCount }: Props) {
+export function AccountScreen({ stocks }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
   const [profileIcon, setProfileIcon] = useState('🍕');
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [panel, setPanel] = useState<Panel>(null);
+  const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(0);
+  const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
+
+  const stockCount = stocks.length;
+  const visitedCount = stocks.filter((s) => s.visited).length;
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
       if (s.profileIcon) setProfileIcon(s.profileIcon);
     }).catch(() => {});
-    api.getFollowing().then((f) => setFollowingCount(f.length)).catch(() => {});
+    api.getFollowing().then((f) => {
+      setFollowingCount(f.length);
+      setFollowingList(f);
+    }).catch(() => {});
   }, []);
 
   async function handleSaveNickname() {
@@ -103,18 +112,18 @@ export function AccountScreen({ stockCount, visitedCount }: Props) {
 
       {/* Stats */}
       <div className="flex justify-center gap-10 mb-8 pb-6 border-b border-gray-100">
-        <div className="text-center">
+        <button onClick={() => setListPanel('stocks')} className="text-center">
           <p className="text-2xl font-bold text-gray-900">{stockCount}</p>
           <p className="text-[10px] text-gray-400">ストック</p>
-        </div>
-        <div className="text-center">
+        </button>
+        <button onClick={() => setListPanel('visited')} className="text-center">
           <p className="text-2xl font-bold text-gray-900">{visitedCount}</p>
           <p className="text-[10px] text-gray-400">行った</p>
-        </div>
-        <div className="text-center">
+        </button>
+        <button onClick={() => setListPanel('following')} className="text-center">
           <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
           <p className="text-[10px] text-gray-400">フォロー</p>
-        </div>
+        </button>
       </div>
 
       {/* Menu */}
@@ -138,6 +147,62 @@ export function AccountScreen({ stockCount, visitedCount }: Props) {
       )}
       {panel === 'deleteAccount' && (
         <DeleteAccountPanel onClose={() => setPanel(null)} onDeleted={logout} />
+      )}
+
+      {/* List panels */}
+      {listPanel === 'stocks' && (
+        <Overlay title="ストック" onClose={() => setListPanel(null)}>
+          {stocks.filter(s => !s.visited).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">まだストックがないよ</p>
+          ) : (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {stocks.filter(s => !s.visited).map(s => (
+                <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
+                  <span className="text-xl">{s.photoEmoji}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
+                    <p className="text-[11px] text-gray-400">{s.genre}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Overlay>
+      )}
+      {listPanel === 'visited' && (
+        <Overlay title="行った" onClose={() => setListPanel(null)}>
+          {stocks.filter(s => s.visited).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">まだ行ったお店がないよ</p>
+          ) : (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {stocks.filter(s => s.visited).map(s => (
+                <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
+                  <span className="text-xl">{s.photoEmoji}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
+                    <p className="text-[11px] text-gray-400">{s.genre}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Overlay>
+      )}
+      {listPanel === 'following' && (
+        <Overlay title="フォロー" onClose={() => setListPanel(null)}>
+          {followingList.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">まだフォローしてないよ</p>
+          ) : (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {followingList.map(f => (
+                <div key={f.followeeId} className="flex items-center gap-3 py-2 border-b border-gray-50">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</span>
+                  <p className="text-sm text-gray-900">{f.nickname ?? f.followeeId}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Overlay>
       )}
     </div>
   );

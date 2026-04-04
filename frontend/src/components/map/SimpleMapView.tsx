@@ -68,7 +68,24 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition }: Pr
           zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
         }}
       >
-        {/* Current location marker */}
+        {/* Current location: heading cone */}
+        {userPosition && userPosition.heading != null && (
+          <Marker
+            position={userPosition}
+            icon={{
+              path: 'M0,-20 L-12,0 L0,-5 L12,0 Z',
+              fillColor: '#3b82f6',
+              fillOpacity: 0.35,
+              strokeColor: '#3b82f6',
+              strokeWeight: 0,
+              scale: 1.2,
+              rotation: userPosition.heading,
+              anchor: new google.maps.Point(0, 0),
+            }}
+            zIndex={99}
+          />
+        )}
+        {/* Current location: blue dot */}
         {userPosition && (
           <Marker
             position={userPosition}

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export interface GPSPosition {
   lat: number;
   lng: number;
+  heading: number | null;
 }
 
 export function useGPS() {
@@ -24,7 +25,7 @@ export function useGPS() {
     setDenied(false);
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude, heading: pos.coords.heading };
         positionRef.current = p;
         setPosition(p);
         setError(null);

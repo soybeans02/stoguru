@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGPS } from './hooks/useGPS';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -9,6 +9,7 @@ import type { StockedRestaurant } from './components/stock/StockScreen';
 import { SimpleMapView } from './components/map/SimpleMapView';
 import { AccountScreen } from './components/account/AccountScreen';
 import type { SwipeRestaurant } from './data/mockRestaurants';
+import * as api from './utils/api';
 type Tab = 'home' | 'stock' | 'map' | 'account';
 
 function TabButton({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
@@ -29,11 +30,52 @@ function MainApp() {
   const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null);
   const { position } = useGPS();
 
+  // 起動時にバックエンドからストック復元
+  useEffect(() => {
+    api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
+      const restored: StockedRestaurant[] = data.map((r) => ({
+        id: String(r.restaurantId ?? r.id),
+        name: String(r.name ?? ''),
+        address: String(r.address ?? ''),
+        lat: Number(r.lat ?? 0),
+        lng: Number(r.lng ?? 0),
+        genre: String(r.genre ?? ''),
+        scene: Array.isArray(r.scene) ? r.scene as string[] : [],
+        priceRange: String(r.priceRange ?? ''),
+        distance: String(r.distance ?? ''),
+        influencer: (r.influencer as SwipeRestaurant['influencer']) ?? { name: '', handle: '', platform: 'tiktok' as const },
+        videoUrl: String(r.videoUrl ?? ''),
+        photoEmoji: String(r.photoEmoji ?? '🍽️'),
+        visited: r.status === 'visited',
+        pinned: !!r.pinned,
+        stockedAt: String(r.createdAt ?? new Date().toISOString()),
+        visitedAt: r.visitedAt ? String(r.visitedAt) : undefined,
+      }));
+      setStocks(restored);
+    }).catch(() => {});
+  }, []);
+
   const handleStock = useCallback((r: SwipeRestaurant) => {
     setStocks((prev) => {
       if (prev.some((s) => s.id === r.id)) return prev;
       return [...prev, { ...r, visited: false, stockedAt: new Date().toISOString() }];
     });
+    // バックエンドに保存
+    api.putRestaurant({
+      id: r.id,
+      name: r.name,
+      address: r.address,
+      lat: r.lat,
+      lng: r.lng,
+      genre: r.genre,
+      scene: r.scene,
+      priceRange: r.priceRange,
+      distance: r.distance,
+      influencer: r.influencer,
+      videoUrl: r.videoUrl,
+      photoEmoji: r.photoEmoji,
+      status: 'wishlist',
+    }).catch(() => {});
   }, []);
 
   const handleNope = useCallback(() => {}, []);
@@ -44,29 +86,56 @@ function MainApp() {
         s.id === id ? { ...s, visited: true, visitedAt: new Date().toISOString() } : s
       ),
     );
+    // バックエンドも更新
+    api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
+      const existing = data.find((r) => String(r.restaurantId ?? r.id) === id);
+      if (existing) {
+        api.putRestaurant({ ...existing, id, status: 'visited', visitedAt: new Date().toISOString() }).catch(() => {});
+      }
+    }).catch(() => {});
   }, []);
 
   const handleRemoveStock = useCallback((id: string) => {
     setStocks((prev) => prev.filter((s) => s.id !== id));
+    api.deleteRestaurant(id).catch(() => {});
   }, []);
+
+  const handleTogglePin = useCallback((id: string) => {
+    setStocks((prev) =>
+      prev.map((s) => s.id === id ? { ...s, pinned: !s.pinned } : s)
+    );
+    // バックエンドにもpinned状態を保存
+    const stock = stocks.find((s) => s.id === id);
+    if (stock) {
+      api.putRestaurant({
+        id,
+        name: stock.name,
+        address: stock.address,
+        lat: stock.lat,
+        lng: stock.lng,
+        genre: stock.genre,
+        status: stock.visited ? 'visited' : 'wishlist',
+        pinned: !stock.pinned,
+      }).catch(() => {});
+    }
+  }, [stocks]);
 
   const handleShowOnMap = useCallback((lat: number, lng: number) => {
     setPanTo({ lat, lng });
     setTab('map');
   }, []);
 
-  const visitedCount = stocks.filter((s) => s.visited).length;
-
   return (
     <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} userPosition={position} stockedIds={stocks.map(s => s.id)} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stocks.map(s => s.id)} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}
             onMarkVisited={handleMarkVisited}
             onRemoveStock={handleRemoveStock}
+            onTogglePin={handleTogglePin}
             onShowOnMap={handleShowOnMap}
             userPosition={position}
           />
@@ -80,10 +149,7 @@ function MainApp() {
           />
         )}
         {tab === 'account' && (
-          <AccountScreen
-            stockCount={stocks.length}
-            visitedCount={visitedCount}
-          />
+          <AccountScreen stocks={stocks} />
         )}
       </main>
 
