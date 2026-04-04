@@ -25,6 +25,7 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [genreOpen, setGenreOpen] = useState(false);
   const visitedCount = stocks.filter((s) => s.visited).length;
 
   // ストック内のジャンル一覧
@@ -67,8 +68,8 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
         />
       </div>
 
-      {/* Filter tabs + genre chips */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-4">
         {([['all', '全て'], ['unvisited', '未訪問'], ['visited', '行った']] as const).map(([key, label]) => (
           <button
             key={key}
@@ -80,18 +81,41 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
             {label}
           </button>
         ))}
-        {genres.length > 1 && genres.map((g) => (
+        {genres.length > 0 && (
           <button
-            key={g}
-            onClick={() => setSelectedGenre(selectedGenre === g ? null : g)}
-            className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors ${
-              selectedGenre === g ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'
+            onClick={() => setGenreOpen(!genreOpen)}
+            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${
+              selectedGenre ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-500'
             }`}
           >
-            {g}
+            {selectedGenre ?? '絞り込み'}
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${genreOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-        ))}
+        )}
       </div>
+      {genreOpen && genres.length > 0 && (
+        <div className="flex gap-1.5 mb-4 flex-wrap">
+          {selectedGenre && (
+            <button
+              onClick={() => { setSelectedGenre(null); setGenreOpen(false); }}
+              className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-100 text-gray-500"
+            >
+              クリア
+            </button>
+          )}
+          {genres.map((g) => (
+            <button
+              key={g}
+              onClick={() => { setSelectedGenre(selectedGenre === g ? null : g); setGenreOpen(false); }}
+              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors ${
+                selectedGenre === g ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'
+              }`}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
 
       {stocks.length === 0 ? (
         <div className="text-center py-20">

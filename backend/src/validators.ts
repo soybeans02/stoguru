@@ -48,7 +48,7 @@ export const changeEmailSchema = z.object({
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1).max(100),
   name: z.string().min(1, '店名は必須です').max(100).trim(),
   address: z.string().max(200).default(''),
   lat: z.union([z.number(), z.null()]).optional().transform(v => v ?? undefined),

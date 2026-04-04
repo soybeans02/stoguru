@@ -9,6 +9,7 @@ import type { StockedRestaurant } from './components/stock/StockScreen';
 import { SimpleMapView } from './components/map/SimpleMapView';
 import { AccountScreen } from './components/account/AccountScreen';
 import type { SwipeRestaurant } from './data/mockRestaurants';
+import { MOCK_RESTAURANTS } from './data/mockRestaurants';
 import * as api from './utils/api';
 type Tab = 'home' | 'stock' | 'map' | 'account';
 
@@ -32,25 +33,30 @@ function MainApp() {
 
   // 起動時にバックエンドからストック復元
   useEffect(() => {
+    const mockMap = new Map(MOCK_RESTAURANTS.map((m) => [m.id, m]));
     api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
-      const restored: StockedRestaurant[] = data.map((r) => ({
-        id: String(r.restaurantId ?? r.id),
-        name: String(r.name ?? ''),
-        address: String(r.address ?? ''),
-        lat: Number(r.lat ?? 0),
-        lng: Number(r.lng ?? 0),
-        genre: String(r.genre ?? ''),
-        scene: Array.isArray(r.scene) ? r.scene as string[] : [],
-        priceRange: String(r.priceRange ?? ''),
-        distance: String(r.distance ?? ''),
-        influencer: (r.influencer as SwipeRestaurant['influencer']) ?? { name: '', handle: '', platform: 'tiktok' as const },
-        videoUrl: String(r.videoUrl ?? ''),
-        photoEmoji: String(r.photoEmoji ?? '🍽️'),
-        visited: r.status === 'visited',
-        pinned: !!r.pinned,
-        stockedAt: String(r.createdAt ?? new Date().toISOString()),
-        visitedAt: r.visitedAt ? String(r.visitedAt) : undefined,
-      }));
+      const restored: StockedRestaurant[] = data.map((r) => {
+        const id = String(r.restaurantId ?? r.id);
+        const mock = mockMap.get(id);
+        return {
+          id,
+          name: String(r.name ?? mock?.name ?? ''),
+          address: String(r.address ?? mock?.address ?? ''),
+          lat: Number(r.lat ?? mock?.lat ?? 0),
+          lng: Number(r.lng ?? mock?.lng ?? 0),
+          genre: String(r.genre || mock?.genre || ''),
+          scene: Array.isArray(r.scene) ? r.scene as string[] : (mock?.scene ?? []),
+          priceRange: String(r.priceRange || mock?.priceRange || ''),
+          distance: String(r.distance || mock?.distance || ''),
+          influencer: (r.influencer as SwipeRestaurant['influencer']) ?? mock?.influencer ?? { name: '', handle: '', platform: 'tiktok' as const },
+          videoUrl: String(r.videoUrl || mock?.videoUrl || ''),
+          photoEmoji: String(r.photoEmoji || mock?.photoEmoji || '🍽️'),
+          visited: r.status === 'visited',
+          pinned: !!r.pinned,
+          stockedAt: String(r.createdAt ?? new Date().toISOString()),
+          visitedAt: r.visitedAt ? String(r.visitedAt) : undefined,
+        };
+      });
       setStocks(restored);
     }).catch(() => {});
   }, []);
