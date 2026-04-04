@@ -35,11 +35,13 @@ export async function signUp(email: string, password: string, nickname: string) 
   });
   const result = await client.send(command);
 
-  // 開発中: メール確認をスキップして自動確認
-  await client.send(new AdminConfirmSignUpCommand({
-    UserPoolId: getUserPoolId(),
-    Username: email,
-  }));
+  // 開発環境のみ: メール確認をスキップして自動確認
+  if (process.env.NODE_ENV !== 'production') {
+    await client.send(new AdminConfirmSignUpCommand({
+      UserPoolId: getUserPoolId(),
+      Username: email,
+    }));
+  }
 
   return result;
 }
@@ -182,7 +184,7 @@ export async function getUserById(userId: string) {
 export async function isNicknameTaken(nickname: string, excludeUserId?: string): Promise<boolean> {
   const command = new ListUsersCommand({
     UserPoolId: getUserPoolId(),
-    Filter: `nickname = "${nickname.replace(/"/g, '')}"`,
+    Filter: `nickname = "${nickname.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\s]/g, '')}"`,
     Limit: 10,
   });
   try {

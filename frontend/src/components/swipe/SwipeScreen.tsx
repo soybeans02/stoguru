@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { FilterOverlay } from './FilterOverlay';
 import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
@@ -117,6 +117,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
+  const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // カード再フィルタ（共通ロジック）
   const refilter = useCallback(() => {
@@ -143,21 +144,10 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     if (filtered.length > 0) {
       setShuffling(true);
       createShuffleSound();
-      setTimeout(() => setShuffling(false), 1500);
+      if (shuffleTimer.current) clearTimeout(shuffleTimer.current);
+      shuffleTimer.current = setTimeout(() => setShuffling(false), 1500);
     }
   }, [refilter]);
-
-  // スワイプ等によるstockedIds/nopedIds変更時は静かに再フィルタ
-  const prevStockedRef = useRef(stockedIds);
-  const prevNopedRef = useRef(nopedIds);
-  useEffect(() => {
-    // stockedIds/nopedIds変更時のみ（フィルター変更時はapplyFilterで処理）
-    if (prevStockedRef.current !== stockedIds || prevNopedRef.current !== nopedIds) {
-      prevStockedRef.current = stockedIds;
-      prevNopedRef.current = nopedIds;
-      // スワイプで1枚消えただけなのでcurrentIndexはリセットしない
-    }
-  }, [stockedIds, nopedIds]);
 
   const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {

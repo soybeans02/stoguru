@@ -6,7 +6,9 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
-import { deleteAllUserData } from '../services/dynamo';
+import { deleteAllUserData, saveStats } from '../services/dynamo';
+import { invalidateTokenCache } from '../middleware/auth';
+import { stats, userActivity } from '../state';
 
 const router = Router();
 const cognito = new CognitoIdentityProviderClient({ region: 'ap-northeast-1' });
@@ -84,8 +86,6 @@ router.get('/users', requireAdmin, async (_req: Request, res: Response) => {
 
 // リクエスト統計取得（閲覧時にDBにも保存）
 router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
-  const { stats } = require('../index');
-  const { saveStats } = require('../services/dynamo');
   const result = {
     total: stats.total,
     startedAt: stats.startedAt,
@@ -101,8 +101,7 @@ router.get('/stats', requireAdmin, async (_req: Request, res: Response) => {
 
 // ユーザーアクティビティ（最終オンライン）
 router.get('/activity', requireAdmin, (_req: Request, res: Response) => {
-  const { userActivity } = require('../index');
-  const list = Object.entries(userActivity as Record<string, { lastSeen: number; nickname?: string }>)
+  const list = Object.entries(userActivity)
     .map(([userId, data]) => ({
       userId,
       nickname: data.nickname ?? '不明',
@@ -122,6 +121,7 @@ router.post('/users/:userId/disable', requireAdmin, async (req: Request, res: Re
     const user = await getUserById(uid);
     if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
     await adminDisableUser(user.username);
+    invalidateTokenCache(); // 全キャッシュクリア（disable対象のトークンが不明なため）
     res.json({ message: 'ユーザーを無効化しました' });
   } catch (err) {
     console.error(err);

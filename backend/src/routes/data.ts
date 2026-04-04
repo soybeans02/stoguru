@@ -12,7 +12,7 @@ import {
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
-import { validate, restaurantSchema, messageSchema, shareSchema } from '../validators';
+import { validate, restaurantSchema, settingsSchema, messageSchema, shareSchema } from '../validators';
 
 const router = Router();
 
@@ -27,7 +27,7 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
   const id = req.params.id as string;
   const v = validate(restaurantSchema, { id, ...req.body });
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
-  await putRestaurant(req.user!.userId, { id, ...req.body });
+  await putRestaurant(req.user!.userId, v.data as Partial<Restaurant> & { id: string });
   res.json({ ok: true });
 });
 
@@ -45,10 +45,16 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
     res.status(400).json({ error: 'restaurants 配列が必要です（上限500件）' });
     return;
   }
-  for (const r of restaurants) {
-    await putRestaurant(req.user!.userId, r);
+  // バリデーション + 並列バッチ処理（10件ずつ）
+  const validated = restaurants.map((r) => validate(restaurantSchema, r));
+  const valid = validated.filter((v) => v.success).map((v) => (v as { success: true; data: Record<string, unknown> }).data);
+  const BATCH = 10;
+  for (let i = 0; i < valid.length; i += BATCH) {
+    await Promise.all(valid.slice(i, i + BATCH).map((r) =>
+      putRestaurant(req.user!.userId, r as Partial<Restaurant> & { id: string })
+    ));
   }
-  res.json({ synced: restaurants.length });
+  res.json({ synced: valid.length });
 });
 
 // ─── ユーザー設定 ───
@@ -59,7 +65,9 @@ router.get('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => {
-  await putUserSettings(req.user!.userId, req.body);
+  const v = validate(settingsSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  await putUserSettings(req.user!.userId, v.data);
   res.json({ ok: true });
 });
 

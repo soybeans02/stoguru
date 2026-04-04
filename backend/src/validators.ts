@@ -43,6 +43,7 @@ export const updateNicknameSchema = z.object({
 
 export const changeEmailSchema = z.object({
   newEmail: z.string().email('有効なメールアドレスを入力してください').max(254),
+  currentPassword: z.string().min(1, '現在のパスワードは必須です').max(128),
 });
 
 // ─── レストラン ───
@@ -53,6 +54,18 @@ export const restaurantSchema = z.object({
   address: z.string().max(200).default(''),
   lat: z.union([z.number(), z.null()]).optional().transform(v => v ?? undefined),
   lng: z.union([z.number(), z.null()]).optional().transform(v => v ?? undefined),
+  genre: z.string().max(50).optional(),
+  scene: z.array(z.string().max(50)).max(10).optional(),
+  priceRange: z.string().max(50).optional(),
+  distance: z.string().max(50).optional(),
+  influencer: z.object({
+    name: z.string().max(100).default(''),
+    handle: z.string().max(100).default(''),
+    platform: z.enum(['tiktok', 'instagram', 'youtube']).default('tiktok'),
+  }).optional(),
+  videoUrl: z.string().max(500).optional(),
+  photoEmoji: z.string().max(10).optional(),
+  pinned: z.boolean().optional(),
   categoryIds: z.array(z.string().max(50)).max(20).default([]),
   influencerIds: z.array(z.string().max(50)).max(20).default([]),
   sourceVideos: z.array(z.object({
@@ -62,12 +75,24 @@ export const restaurantSchema = z.object({
   genreTags: z.array(z.string().max(30)).max(20).default([]),
   notes: z.string().max(1000).default(''),
   landmarkMemo: z.string().max(200).optional(),
-  review: z.any().nullable().optional(),
+  review: z.object({
+    text: z.string().max(2000).default(''),
+    rating: z.number().min(0).max(5).optional(),
+    reviewedAt: z.string().optional(),
+  }).nullable().optional(),
   status: z.enum(['wishlist', 'visited']).default('wishlist'),
   visitedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-}).passthrough();
+});
+
+// ─── ユーザー設定 ───
+
+export const settingsSchema = z.object({
+  influencers: z.array(z.string().max(100)).max(50).default([]),
+  categories: z.array(z.string().max(50)).max(50).default([]),
+  isPrivate: z.boolean().optional(),
+}).passthrough(); // 将来のフィールド拡張に対応しつつサイズは制限
 
 // ─── メッセージ ───
 

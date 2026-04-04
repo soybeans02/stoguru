@@ -233,7 +233,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     return [...set].sort();
   }, [stocks]);
 
-  const filtered = stocks
+  const filtered = useMemo(() => stocks
     .filter((s) => {
       if (filter === 'unvisited') return !s.visited;
       if (filter === 'visited') return s.visited;
@@ -257,7 +257,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       }
       // 追加順（デフォルト）: stockedAtの降順（新しい順）
       return new Date(b.stockedAt).getTime() - new Date(a.stockedAt).getTime();
-    });
+    }), [stocks, filter, search, selectedGenre, sortMode, userPosition]);
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white">

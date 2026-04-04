@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGPS } from './hooks/useGPS';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -81,93 +81,62 @@ function MainApp() {
       videoUrl: r.videoUrl,
       photoEmoji: r.photoEmoji,
       status: 'wishlist',
-    }).catch(() => {});
+    }).catch((e) => console.warn('Failed to stock:', e));
   }, []);
 
   const handleNope = useCallback(() => {}, []);
 
   const handleMarkVisited = useCallback((id: string) => {
-    const stock = stocks.find((s) => s.id === id);
-    setStocks((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, visited: true, visitedAt: new Date().toISOString() } : s
-      ),
-    );
-    // バックエンドも更新（ローカルstateから直接）
-    if (stock) {
-      api.putRestaurant({
-        id,
-        name: stock.name,
-        address: stock.address,
-        lat: stock.lat,
-        lng: stock.lng,
-        genre: stock.genre,
-        scene: stock.scene,
-        priceRange: stock.priceRange,
-        distance: stock.distance,
-        influencer: stock.influencer,
-        videoUrl: stock.videoUrl,
-        photoEmoji: stock.photoEmoji,
-        pinned: stock.pinned,
-        status: 'visited',
-        visitedAt: new Date().toISOString(),
-      }).catch(() => {});
-    }
-  }, [stocks]);
+    const now = new Date().toISOString();
+    setStocks((prev) => {
+      const stock = prev.find((s) => s.id === id);
+      if (stock) {
+        api.putRestaurant({
+          id, name: stock.name, address: stock.address, lat: stock.lat, lng: stock.lng,
+          genre: stock.genre, scene: stock.scene, priceRange: stock.priceRange, distance: stock.distance,
+          influencer: stock.influencer, videoUrl: stock.videoUrl, photoEmoji: stock.photoEmoji,
+          pinned: stock.pinned, status: 'visited', visitedAt: now,
+        }).catch((e) => console.warn('Failed to mark visited:', e));
+      }
+      return prev.map((s) => s.id === id ? { ...s, visited: true, visitedAt: now } : s);
+    });
+  }, []);
 
   const handleUnmarkVisited = useCallback((id: string) => {
-    const stock = stocks.find((s) => s.id === id);
-    setStocks((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, visited: false, visitedAt: undefined } : s
-      ),
-    );
-    // バックエンドも更新（ローカルstateから直接）
-    if (stock) {
-      api.putRestaurant({
-        id,
-        name: stock.name,
-        address: stock.address,
-        lat: stock.lat,
-        lng: stock.lng,
-        genre: stock.genre,
-        scene: stock.scene,
-        priceRange: stock.priceRange,
-        distance: stock.distance,
-        influencer: stock.influencer,
-        videoUrl: stock.videoUrl,
-        photoEmoji: stock.photoEmoji,
-        pinned: stock.pinned,
-        status: 'wishlist',
-        visitedAt: undefined,
-      }).catch(() => {});
-    }
-  }, [stocks]);
+    setStocks((prev) => {
+      const stock = prev.find((s) => s.id === id);
+      if (stock) {
+        api.putRestaurant({
+          id, name: stock.name, address: stock.address, lat: stock.lat, lng: stock.lng,
+          genre: stock.genre, scene: stock.scene, priceRange: stock.priceRange, distance: stock.distance,
+          influencer: stock.influencer, videoUrl: stock.videoUrl, photoEmoji: stock.photoEmoji,
+          pinned: stock.pinned, status: 'wishlist', visitedAt: undefined,
+        }).catch((e) => console.warn('Failed to unmark visited:', e));
+      }
+      return prev.map((s) => s.id === id ? { ...s, visited: false, visitedAt: undefined } : s);
+    });
+  }, []);
 
   const handleRemoveStock = useCallback((id: string) => {
     setStocks((prev) => prev.filter((s) => s.id !== id));
-    api.deleteRestaurant(id).catch(() => {});
+    api.deleteRestaurant(id).catch((e) => console.warn('Failed to delete:', e));
   }, []);
 
   const handleTogglePin = useCallback((id: string) => {
-    setStocks((prev) =>
-      prev.map((s) => s.id === id ? { ...s, pinned: !s.pinned } : s)
-    );
-    // バックエンドにもpinned状態を保存
-    const stock = stocks.find((s) => s.id === id);
-    if (stock) {
-      api.putRestaurant({
-        id,
-        name: stock.name,
-        address: stock.address,
-        lat: stock.lat,
-        lng: stock.lng,
-        genre: stock.genre,
-        status: stock.visited ? 'visited' : 'wishlist',
-        pinned: !stock.pinned,
-      }).catch(() => {});
-    }
-  }, [stocks]);
+    setStocks((prev) => {
+      const stock = prev.find((s) => s.id === id);
+      if (stock) {
+        api.putRestaurant({
+          id, name: stock.name, address: stock.address, lat: stock.lat, lng: stock.lng,
+          genre: stock.genre, status: stock.visited ? 'visited' : 'wishlist',
+          pinned: !stock.pinned,
+        }).catch((e) => console.warn('Failed to toggle pin:', e));
+      }
+      return prev.map((s) => s.id === id ? { ...s, pinned: !s.pinned } : s);
+    });
+  }, []);
+
+  const stockedIds = useMemo(() => stocks.map(s => s.id), [stocks]);
 
   const handleShowOnMap = useCallback((lat: number, lng: number) => {
     setPanTo({ lat, lng });
@@ -178,7 +147,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stocks.map(s => s.id)} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stockedIds} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}

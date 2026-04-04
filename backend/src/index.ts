@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import dataRouter from './routes/data';
 import adminRouter from './routes/admin';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
+import { stats, userActivity } from './state';
 // rate limiter uses `any` for keyGenerator to avoid Express type conflicts
 
 dotenv.config({ override: true });
@@ -97,16 +98,7 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// ─── リクエスト統計 ───
-export const stats = {
-  total: 0,
-  byEndpoint: {} as Record<string, number>,
-  byHour: {} as Record<string, number>,
-  startedAt: new Date().toISOString(),
-};
-
-// ─── ユーザーアクティビティ ───
-export const userActivity: Record<string, { lastSeen: number; nickname?: string }> = {};
+// stats と userActivity は ./state.ts から import
 
 app.use('/api', (req, _res, next) => {
   stats.total++;
@@ -147,6 +139,12 @@ app.use('/api/admin', adminRouter);
 // ─── ヘルスチェック ───
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+// ─── グローバルエラーハンドラ ───
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'サーバーエラーが発生しました' });
 });
 
 // 起動時にDBから統計を復元

@@ -130,7 +130,9 @@ export async function deleteFollowRequest(targetId: string, requesterId: string)
 // ─── 通知 ───
 
 export async function createNotification(userId: string, type: NotificationType, fromUserId: string, fromNickname: string, content?: string) {
-  const item: Record<string, unknown> = { userId, createdAt: Date.now(), type, fromUserId, fromNickname, read: false };
+  // createdAtにランダムサフィックスを付与してミリ秒衝突を回避
+  const ts = Date.now() + Math.random() * 0.999;
+  const item: Record<string, unknown> = { userId, createdAt: ts, type, fromUserId, fromNickname, read: false };
   if (content) item.content = content.slice(0, 50);
   await db.send(new PutCommand({
     TableName: TABLE.notifications,
@@ -150,7 +152,8 @@ export async function getNotifications(userId: string, limit = 20): Promise<Noti
 }
 
 export async function markNotificationsRead(userId: string) {
-  const items = await getNotifications(userId);
+  // 全件取得（上限1000件）して未読を一括更新
+  const items = await getNotifications(userId, 1000);
   const unread = items.filter((item) => !item.read);
   if (unread.length === 0) return;
 
@@ -190,18 +193,34 @@ export async function loadStats(): Promise<Record<string, unknown> | null> {
 }
 
 export async function saveActivity(data: Record<string, { lastSeen: number; nickname?: string }>) {
-  await db.send(new PutCommand({
-    TableName: TABLE.stats,
-    Item: { pk: 'user_activity', data, updatedAt: Date.now() },
-  }));
+  // ユーザーごとに分割して保存（400KBリミット回避）
+  const entries = Object.entries(data);
+  const chunks = chunkArray(entries, 25);
+  for (const chunk of chunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.stats]: chunk.map(([userId, d]) => ({
+          PutRequest: {
+            Item: { pk: `activity#${userId}`, lastSeen: d.lastSeen, nickname: d.nickname, updatedAt: Date.now() },
+          },
+        })),
+      },
+    }));
+  }
 }
 
 export async function loadActivity(): Promise<Record<string, { lastSeen: number; nickname?: string }> | null> {
-  const result = await db.send(new GetCommand({
+  // 旧形式（単一レコード）から読み込み
+  // 新形式はper-user保存だが、読み込みはメモリ上のuserActivityから行うため
+  // 起動時は旧形式のフォールバックのみ
+  const legacy = await db.send(new GetCommand({
     TableName: TABLE.stats,
     Key: { pk: 'user_activity' },
   }));
-  return (result.Item?.data as Record<string, { lastSeen: number; nickname?: string }>) ?? null;
+  if (legacy.Item?.data) {
+    return legacy.Item.data as Record<string, { lastSeen: number; nickname?: string }>;
+  }
+  return null;
 }
 
 // ─── メッセージ ───
@@ -298,7 +317,8 @@ export async function markConversationRead(pk: string, userId: string, user1: st
   await db.send(new UpdateCommand({
     TableName: TABLE.conversations,
     Key: { pk },
-    UpdateExpression: `SET ${field} = :ts`,
+    UpdateExpression: 'SET #f = :ts',
+    ExpressionAttributeNames: { '#f': field },
     ExpressionAttributeValues: { ':ts': Date.now() },
   }));
 }
@@ -359,6 +379,51 @@ export async function deleteAllUserData(userId: string) {
       },
     }));
   }
+
+  // 通知削除
+  const notifications = await getNotifications(userId, 1000);
+  const notifChunks = chunkArray(notifications, 25);
+  for (const chunk of notifChunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.notifications]: chunk.map((n) => ({
+          DeleteRequest: { Key: { userId, createdAt: n.createdAt } },
+        })),
+      },
+    }));
+  }
+
+  // 会話のメッセージ削除
+  const convs = await getUserConversations(userId).catch(() => []);
+  for (const conv of convs) {
+    const pk = conv.pk as string;
+    const msgs = await getMessages(pk, 1000);
+    const msgChunks = chunkArray(msgs, 25);
+    for (const chunk of msgChunks) {
+      await db.send(new BatchWriteCommand({
+        RequestItems: {
+          [TABLE.messages]: chunk.map((m) => ({
+            DeleteRequest: { Key: { conversationId: pk, createdAt: (m as Record<string, unknown>).createdAt as number } },
+          })),
+        },
+      }));
+    }
+    // 会話自体を削除
+    await db.send(new DeleteCommand({ TableName: TABLE.conversations, Key: { pk } }));
+  }
+
+  // シェア削除
+  const shares = await getSharesByUser(userId, 1000);
+  const shareChunks = chunkArray(shares, 25);
+  for (const chunk of shareChunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.shares]: chunk.map((s) => ({
+          DeleteRequest: { Key: { userId, createdAt: s.createdAt } },
+        })),
+      },
+    }));
+  }
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -405,10 +470,16 @@ async function getSharesByUser(userId: string, limit = 20) {
 }
 
 export async function getSharesFeed(followeeIds: string[], limit = 50) {
-  const all = await Promise.all(
-    followeeIds.map((id) => getSharesByUser(id, 20))
-  );
-  return all.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  // 並列クエリ数を制限（最大50人分、10件ずつバッチ処理）
+  const capped = followeeIds.slice(0, 50);
+  const results: Awaited<ReturnType<typeof getSharesByUser>>[] = [];
+  const BATCH = 10;
+  for (let i = 0; i < capped.length; i += BATCH) {
+    const batch = capped.slice(i, i + BATCH);
+    const batchResults = await Promise.all(batch.map((id) => getSharesByUser(id, 20)));
+    results.push(...batchResults);
+  }
+  return results.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
 }
 
 export async function deleteShare(userId: string, createdAt: number) {

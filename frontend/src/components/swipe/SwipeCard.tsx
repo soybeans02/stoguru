@@ -14,20 +14,23 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<'left' | 'right' | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const SWIPE_THRESHOLD = 80;
 
   useEffect(() => {
     if (flyOut && !exiting) {
       setExiting(flyOut);
-      setTimeout(() => onSwipeComplete(flyOut), 300);
+      exitTimer.current = setTimeout(() => onSwipeComplete(flyOut), 300);
     }
+    return () => { if (exitTimer.current) clearTimeout(exitTimer.current); };
   }, [flyOut, exiting, onSwipeComplete]);
 
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
     setDragging(false);
     setExiting(null);
+    if (exitTimer.current) { clearTimeout(exitTimer.current); exitTimer.current = null; }
   }, [restaurant.id]);
 
   const handleStart = useCallback((clientX: number, clientY: number) => {
@@ -50,7 +53,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     if (Math.abs(offset.x) > SWIPE_THRESHOLD) {
       const dir = offset.x > 0 ? 'right' : 'left';
       setExiting(dir);
-      setTimeout(() => onSwipeComplete(dir), 300);
+      exitTimer.current = setTimeout(() => onSwipeComplete(dir), 300);
     } else {
       setOffset({ x: 0, y: 0 });
     }

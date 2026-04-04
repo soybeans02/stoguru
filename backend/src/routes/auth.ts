@@ -109,11 +109,15 @@ router.put('/email', requireAuth, async (req: AuthRequest, res: Response) => {
   const v = validate(changeEmailSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   try {
+    // パスワード検証（トークン窃取時のメール変更を防止）
+    await signIn(req.user!.email, v.data.currentPassword);
     await changeEmail(req.user!.userId, v.data.newEmail);
     res.json({ message: 'メールアドレスを変更しました', email: v.data.newEmail });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'メールアドレス変更に失敗しました';
-    if (msg.includes('already exists') || msg.includes('AliasExistsException')) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('NotAuthorized') || msg.includes('Incorrect')) {
+      res.status(401).json({ error: 'パスワードが正しくありません' });
+    } else if (msg.includes('already exists') || msg.includes('AliasExistsException')) {
       res.status(409).json({ error: 'このメールアドレスは既に使われています' });
     } else {
       res.status(500).json({ error: 'メールアドレス変更に失敗しました' });

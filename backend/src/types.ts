@@ -8,10 +8,25 @@ export interface Restaurant {
   address?: string;
   lat?: number;
   lng?: number;
+  genre?: string;
+  scene?: string[];
+  priceRange?: string;
+  distance?: string;
+  influencer?: { name: string; handle: string; platform: string };
+  videoUrl?: string;
+  photoEmoji?: string;
+  pinned?: boolean;
+  categoryIds?: string[];
+  influencerIds?: string[];
+  sourceVideos?: { url: string; platform: string }[];
+  genreTags?: string[];
+  notes?: string;
+  landmarkMemo?: string;
+  review?: { text: string; rating?: number; reviewedAt?: string } | null;
   status?: string;
-  review?: string;
+  visitedAt?: string | null;
+  createdAt?: string;
   updatedAt: number;
-  [key: string]: unknown; // allow additional fields from client
 }
 
 export interface UserSettings {
@@ -20,7 +35,6 @@ export interface UserSettings {
   categories: string[];
   isPrivate?: boolean;
   updatedAt?: number;
-  [key: string]: unknown;
 }
 
 export interface Follow {

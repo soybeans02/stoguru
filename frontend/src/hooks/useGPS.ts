@@ -36,9 +36,11 @@ export function useGPS() {
     }
   }, []);
 
+  const compassListenerAdded = useRef(false);
+
   // ユーザータップから呼ぶコンパス許可リクエスト（iOS 13+対応）
   const requestCompass = useCallback(async () => {
-    if (compassGranted) return;
+    if (compassGranted || compassListenerAdded.current) return;
 
     const needsPermission = typeof (DeviceOrientationEvent as any).requestPermission === 'function';
     if (needsPermission) {
@@ -46,7 +48,10 @@ export function useGPS() {
         const state = await (DeviceOrientationEvent as any).requestPermission();
         if (state === 'granted') {
           setCompassGranted(true);
-          window.addEventListener('deviceorientation', orientationHandler, true);
+          if (!compassListenerAdded.current) {
+            compassListenerAdded.current = true;
+            window.addEventListener('deviceorientation', orientationHandler, true);
+          }
         }
       } catch {
         // ユーザーが拒否
@@ -54,18 +59,25 @@ export function useGPS() {
     } else {
       // Android / 許可不要ブラウザ
       setCompassGranted(true);
-      window.addEventListener('deviceorientation', orientationHandler, true);
+      if (!compassListenerAdded.current) {
+        compassListenerAdded.current = true;
+        window.addEventListener('deviceorientation', orientationHandler, true);
+      }
     }
   }, [compassGranted, orientationHandler]);
 
   // Android等はマウント時に自動でリスン開始（許可不要）
   useEffect(() => {
     const needsPermission = typeof (DeviceOrientationEvent as any).requestPermission === 'function';
-    if (!needsPermission) {
+    if (!needsPermission && !compassListenerAdded.current) {
       setCompassGranted(true);
+      compassListenerAdded.current = true;
       window.addEventListener('deviceorientation', orientationHandler, true);
     }
-    return () => window.removeEventListener('deviceorientation', orientationHandler, true);
+    return () => {
+      window.removeEventListener('deviceorientation', orientationHandler, true);
+      compassListenerAdded.current = false;
+    };
   }, [orientationHandler]);
 
   const startWatch = useCallback(() => {

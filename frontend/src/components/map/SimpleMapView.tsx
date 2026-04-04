@@ -29,10 +29,15 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
   const [zoom, setZoom] = useState(15);
   const initialCenterSet = useRef(false);
   const didPanTo = useRef(false);
+  const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
   const onLoad = useCallback((m: google.maps.Map) => {
     setMap(m);
-    m.addListener('zoom_changed', () => setZoom(m.getZoom() ?? 15));
+    // 既存のリスナーがあれば削除
+    if (zoomListenerRef.current) {
+      google.maps.event.removeListener(zoomListenerRef.current);
+    }
+    zoomListenerRef.current = m.addListener('zoom_changed', () => setZoom(m.getZoom() ?? 15));
   }, []);
 
   // Pan to location (from stock screen "マップ" button)
@@ -79,7 +84,8 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
   } : undefined, [isLoaded]);
 
-  const headingIcon = useMemo(() => (isLoaded && userPosition?.heading != null) ? {
+  const anchorOrigin = useMemo(() => isLoaded ? new google.maps.Point(0, 0) : undefined, [isLoaded]);
+  const headingIcon = useMemo(() => (isLoaded && userPosition?.heading != null && anchorOrigin) ? {
     path: 'M0,0 L-18,-45 A50,50 0 0,1 18,-45 Z',
     fillColor: '#4285F4',
     fillOpacity: 0.25,
@@ -88,8 +94,8 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     strokeWeight: 1,
     scale: 1,
     rotation: userPosition.heading,
-    anchor: new google.maps.Point(0, 0),
-  } : undefined, [isLoaded, userPosition?.heading]);
+    anchor: anchorOrigin,
+  } : undefined, [isLoaded, userPosition?.heading, anchorOrigin]);
 
   const blueDotIcon = useMemo(() => isLoaded ? {
     path: google.maps.SymbolPath.CIRCLE,
@@ -100,23 +106,22 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     scale: 8,
   } : undefined, [isLoaded]);
 
-  const stockPinIcon = useMemo(() => (visited: boolean) => isLoaded ? {
+  const anchorPin = useMemo(() => isLoaded ? new google.maps.Point(12, 24) : undefined, [isLoaded]);
+  const stockPinVisited = useMemo(() => isLoaded && anchorPin ? {
     path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9zm0 12.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 5.25 12 5.25 15.75 6.93 15.75 9 14.07 12.75 12 12.75z',
-    fillColor: visited ? '#22c55e' : '#ef4444',
-    fillOpacity: 1,
-    strokeColor: '#fff',
-    strokeWeight: 1.5,
-    scale: 1.1,
-    anchor: new google.maps.Point(12, 24),
-  } : undefined, [isLoaded]);
-
-  const stockDotIcon = useMemo(() => (visited: boolean) => isLoaded ? {
+    fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.1, anchor: anchorPin,
+  } : undefined, [isLoaded, anchorPin]);
+  const stockPinUnvisited = useMemo(() => isLoaded && anchorPin ? {
+    path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9zm0 12.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 5.25 12 5.25 15.75 6.93 15.75 9 14.07 12.75 12 12.75z',
+    fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.1, anchor: anchorPin,
+  } : undefined, [isLoaded, anchorPin]);
+  const stockDotVisited = useMemo(() => isLoaded ? {
     path: google.maps.SymbolPath.CIRCLE,
-    fillColor: visited ? '#22c55e' : '#ef4444',
-    fillOpacity: 1,
-    strokeColor: '#fff',
-    strokeWeight: 1.5,
-    scale: 6,
+    fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 6,
+  } : undefined, [isLoaded]);
+  const stockDotUnvisited = useMemo(() => isLoaded ? {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 6,
   } : undefined, [isLoaded]);
 
   if (!isLoaded) {
@@ -157,7 +162,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
           <Marker
             key={s.id}
             position={{ lat: s.lat, lng: s.lng }}
-            icon={zoom >= 14 ? stockPinIcon(s.visited) : stockDotIcon(s.visited)}
+            icon={zoom >= 14 ? (s.visited ? stockPinVisited : stockPinUnvisited) : (s.visited ? stockDotVisited : stockDotUnvisited)}
             onClick={() => setSelectedPin(s)}
             onUnmount={(marker) => marker.setMap(null)}
           />

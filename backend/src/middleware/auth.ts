@@ -35,6 +35,15 @@ function cleanupCache() {
   }
 }
 
+// トークンキャッシュ無効化（admin disableなどで使用）
+export function invalidateTokenCache(token?: string) {
+  if (token) {
+    TOKEN_CACHE.delete(token);
+  } else {
+    TOKEN_CACHE.clear();
+  }
+}
+
 // Use RequestHandler so Express accepts this directly without `as any`
 export const requireAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
