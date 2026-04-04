@@ -3,6 +3,12 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export interface StockedRestaurant extends SwipeRestaurant {
   visited: boolean;
   stockedAt: string;
@@ -11,6 +17,7 @@ export interface StockedRestaurant extends SwipeRestaurant {
 }
 
 type Filter = 'all' | 'unvisited' | 'visited';
+type SortMode = 'added' | 'distance';
 
 interface Props {
   stocks: StockedRestaurant[];
@@ -26,6 +33,7 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [genreOpen, setGenreOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('added');
   const visitedCount = stocks.filter((s) => s.visited).length;
 
   // ストック内のジャンル一覧
@@ -48,7 +56,17 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
       return true;
     })
     .filter((s) => !selectedGenre || s.genre === selectedGenre)
-    .sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
+    .sort((a, b) => {
+      // ピン留め優先
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      if (sortMode === 'distance' && userPosition) {
+        const distA = distanceMetres(userPosition.lat, userPosition.lng, a.lat, a.lng);
+        const distB = distanceMetres(userPosition.lat, userPosition.lng, b.lat, b.lng);
+        return distA - distB;
+      }
+      // 追加順（デフォルト）: stockedAtの降順（新しい順）
+      return new Date(b.stockedAt).getTime() - new Date(a.stockedAt).getTime();
+    });
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white">
@@ -68,8 +86,8 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
         />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-4">
+      {/* Filter tabs + sort */}
+      <div className="flex gap-2 mb-4 items-center">
         {([['all', '全て'], ['unvisited', '未訪問'], ['visited', '行った']] as const).map(([key, label]) => (
           <button
             key={key}
@@ -92,6 +110,14 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${genreOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         )}
+        <div className="flex-1" />
+        <button
+          onClick={() => setSortMode(sortMode === 'added' ? 'distance' : 'added')}
+          className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-50 text-gray-400 border border-gray-100 flex items-center gap-1"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+          {sortMode === 'added' ? '追加順' : '距離順'}
+        </button>
       </div>
       {genreOpen && genres.length > 0 && (
         <div className="flex gap-1.5 mb-4 flex-wrap">
@@ -161,9 +187,9 @@ export function StockScreen({ stocks, onMarkVisited, onRemoveStock, onTogglePin,
                 {s.photoEmoji}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900 truncate">{s.name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><span className="truncate">{s.name}</span><span className="text-[10px] font-normal text-gray-300 flex-shrink-0">{formatDate(s.stockedAt)}</span></h3>
                 <p className="text-[11px] text-gray-400 mb-2 truncate">
-                  {userPosition ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng)) : s.distance} · {s.genre}
+                  {userPosition ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng)) : s.distance}{s.genre ? ` · ${s.genre}` : ''}
                 </p>
                 <div className="flex gap-2 mt-1">
                   <button
