@@ -41,6 +41,10 @@ export const updateNicknameSchema = z.object({
   nickname: z.string().min(1, 'ニックネームは必須です').max(50, 'ニックネームは50文字以内にしてください').trim(),
 });
 
+export const changeEmailSchema = z.object({
+  newEmail: z.string().email('有効なメールアドレスを入力してください').max(254),
+});
+
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({

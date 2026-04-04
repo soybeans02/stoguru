@@ -18,6 +18,15 @@ html, body {
   overflow: hidden;
 }
 
+/* Bottom sheet animation */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
 /* Safe area for bottom nav on notched devices */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);

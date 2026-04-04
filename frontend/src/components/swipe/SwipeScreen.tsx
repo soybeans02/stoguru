@@ -130,7 +130,6 @@ export function SwipeScreen({ onStock, onNope, userPosition }: Props) {
             </span>
           )}
         </button>
-        <div className="ml-auto text-xs text-gray-400">梅田</div>
       </div>
 
       {/* Card area */}

@@ -214,6 +214,21 @@ export async function updateNickname(userId: string, nickname: string) {
   }));
 }
 
+// ─── メールアドレス変更 ───
+
+export async function changeEmail(userId: string, newEmail: string) {
+  const user = await getUserById(userId);
+  if (!user?.username) throw new Error('ユーザーが見つかりません');
+  await client.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: getUserPoolId(),
+    Username: user.username,
+    UserAttributes: [
+      { Name: 'email', Value: newEmail },
+      { Name: 'email_verified', Value: 'true' },
+    ],
+  }));
+}
+
 // ─── パスワードリセット ───
 
 export async function forgotPassword(email: string) {

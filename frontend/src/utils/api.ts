@@ -89,6 +89,18 @@ export async function updateNickname(nickname: string): Promise<{ nickname: stri
   return data;
 }
 
+// ─── メールアドレス変更 ───
+
+export async function changeEmail(newEmail: string): Promise<{ email: string }> {
+  const res = await fetch(`${BASE}/auth/email`, {
+    method: 'PUT', headers: headers(),
+    body: JSON.stringify({ newEmail }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'メールアドレス変更に失敗しました');
+  return data;
+}
+
 // ─── パスワード変更 ───
 
 export async function changePassword(oldPassword: string, newPassword: string) {
