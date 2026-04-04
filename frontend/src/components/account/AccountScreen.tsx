@@ -12,13 +12,13 @@ type ListPanel = null | 'stocks' | 'visited' | 'following';
 
 export function AccountScreen({ stocks }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
-  const [profileIcon, setProfileIcon] = useState('🍕');
+  const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [panel, setPanel] = useState<Panel>(null);
   const [listPanel, setListPanel] = useState<ListPanel>(null);
-  const [followingCount, setFollowingCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
   const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
 
   const stockCount = stocks.length;
@@ -26,11 +26,15 @@ export function AccountScreen({ stocks }: Props) {
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
-      if (s.profileIcon) setProfileIcon(s.profileIcon);
+      if (s.profileIcon) {
+        setProfileIcon(s.profileIcon);
+        localStorage.setItem('cache:profileIcon', s.profileIcon);
+      }
     }).catch(() => {});
     api.getFollowing().then((f) => {
       setFollowingCount(f.length);
       setFollowingList(f);
+      localStorage.setItem('cache:followingCount', String(f.length));
     }).catch(() => {});
   }, []);
 
@@ -52,6 +56,7 @@ export function AccountScreen({ stocks }: Props) {
   async function handleSelectIcon(icon: string) {
     setProfileIcon(icon);
     setIconPickerOpen(false);
+    localStorage.setItem('cache:profileIcon', icon);
     try {
       await api.putSettings({ profileIcon: icon });
     } catch {}
