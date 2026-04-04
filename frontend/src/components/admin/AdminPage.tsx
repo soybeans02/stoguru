@@ -206,15 +206,15 @@ export function AdminPage() {
 
   // Dashboard
   return (
-    <div className="min-h-svh bg-white text-gray-900">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+    <div className="h-svh flex flex-col bg-white text-gray-900">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
         <span className="font-bold text-sm">Admin</span>
         <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">
           ログアウト
         </button>
       </header>
 
-      <div className="p-4 space-y-8 max-w-xl mx-auto">
+      <div className="p-4 space-y-8 max-w-xl mx-auto overflow-y-auto flex-1">
         {/* Stats */}
         {stats && <StatsSection stats={stats} userCount={users.length} />}
 
