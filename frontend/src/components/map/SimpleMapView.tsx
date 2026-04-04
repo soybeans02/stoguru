@@ -28,6 +28,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
   const [labelsOn, setLabelsOn] = useState(true);
   const [zoom, setZoom] = useState(15);
   const initialCenterSet = useRef(false);
+  const didPanTo = useRef(false);
 
   const onLoad = useCallback((m: google.maps.Map) => {
     setMap(m);
@@ -39,6 +40,8 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     if (map && panTo) {
       map.panTo(panTo);
       map.setZoom(17);
+      didPanTo.current = true;
+      initialCenterSet.current = true; // 現在地パンをスキップ
       onPanComplete();
     }
   }, [map, panTo, onPanComplete]);
@@ -59,13 +62,13 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
     }
   }, [map, labelsOn]);
 
-  // Set initial center to user position (once only, skip if panTo is active)
+  // Set initial center to user position (once only, skip if panTo was used)
   useEffect(() => {
-    if (map && userPosition && !initialCenterSet.current && !panTo) {
+    if (map && userPosition && !initialCenterSet.current) {
       initialCenterSet.current = true;
       map.panTo(userPosition);
     }
-  }, [map, userPosition, panTo]);
+  }, [map, userPosition]);
 
   const center = defaultCenter;
 
