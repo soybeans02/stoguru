@@ -16,7 +16,7 @@ const defaultCenter = { lat: 34.7025, lng: 135.4959 }; // 梅田
 
 export function SimpleMapView({ stocks, panTo, onPanComplete }: Props) {
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY ?? '',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { FilterOverlay } from './FilterOverlay';
 import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
@@ -45,8 +45,7 @@ export function SwipeScreen({ onStock, onNope }: Props) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [swipeAnim, setSwipeAnim] = useState<'left' | 'right' | null>(null);
-  const animTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
 
   // フィルタ適用
   useEffect(() => {
@@ -63,32 +62,30 @@ export function SwipeScreen({ onStock, onNope }: Props) {
     setCurrentIndex(0);
   }, [selectedScenes, selectedGenres]);
 
-  const handleSwipe = useCallback(
+  // カードからのスワイプ完了コールバック（ドラッグ/ボタン両方）
+  const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {
       const current = cards[currentIndex];
       if (!current) return;
 
-      // 効果音
       createSwipeSound(direction === 'right' ? 'like' : 'nope');
 
-      // アニメーション
-      setSwipeAnim(direction);
-      if (animTimeout.current) clearTimeout(animTimeout.current);
-      animTimeout.current = setTimeout(() => {
-        setSwipeAnim(null);
-        if (direction === 'right') {
-          onStock(current);
-        } else {
-          onNope?.();
-        }
-        setCurrentIndex((i) => i + 1);
-      }, 300);
+      if (direction === 'right') {
+        onStock(current);
+      } else {
+        onNope?.();
+      }
+
+      setButtonFlyOut(null);
+      setCurrentIndex((i) => i + 1);
     },
-    [cards, currentIndex, onStock],
+    [cards, currentIndex, onStock, onNope],
   );
 
+  // ボタン押下
   const handleButtonSwipe = (direction: 'left' | 'right') => {
-    handleSwipe(direction);
+    if (buttonFlyOut) return; // 連打防止
+    setButtonFlyOut(direction);
   };
 
   const current = cards[currentIndex];
@@ -134,47 +131,42 @@ export function SwipeScreen({ onStock, onNope }: Props) {
         ) : (
           <>
             <div className="relative w-full max-w-[300px] h-[340px] flex-shrink-0">
-              {next && <SwipeCard restaurant={next} onSwipe={() => {}} active={false} />}
+              {next && (
+                <SwipeCard
+                  key={`next-${next.id}`}
+                  restaurant={next}
+                  onSwipeComplete={() => {}}
+                  active={false}
+                />
+              )}
               {current && (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    transform:
-                      swipeAnim === 'left'
-                        ? 'translateX(-120%) rotate(-20deg)'
-                        : swipeAnim === 'right'
-                          ? 'translateX(120%) rotate(20deg)'
-                          : 'none',
-                    transition: swipeAnim ? 'transform 0.3s ease-out' : 'none',
-                  }}
-                >
-                  <SwipeCard
-                    restaurant={current}
-                    onSwipe={handleSwipe}
-                    active={!swipeAnim}
-                  />
-                </div>
+                <SwipeCard
+                  key={`card-${current.id}`}
+                  restaurant={current}
+                  onSwipeComplete={handleSwipeComplete}
+                  active={!buttonFlyOut || true}
+                  flyOut={buttonFlyOut}
+                />
               )}
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center gap-8 py-2 flex-shrink-0">
+            <div className="flex items-center gap-14 pt-10 pb-4 flex-shrink-0">
               <button
                 onClick={() => handleButtonSwipe('left')}
-                className="w-14 h-14 rounded-full bg-red-50 border-2 border-red-300 flex items-center justify-center text-red-500 text-2xl shadow-md active:scale-90 transition-transform"
+                disabled={!!buttonFlyOut}
+                className="w-14 h-14 rounded-full bg-red-50 border-2 border-red-300 flex items-center justify-center text-red-500 text-2xl shadow-md active:scale-90 transition-transform disabled:opacity-50"
               >
                 ✕
               </button>
               <button
                 onClick={() => handleButtonSwipe('right')}
-                className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-300 flex items-center justify-center text-green-500 text-2xl shadow-md active:scale-90 transition-transform"
+                disabled={!!buttonFlyOut}
+                className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-300 flex items-center justify-center text-green-500 text-2xl shadow-md active:scale-90 transition-transform disabled:opacity-50"
               >
                 ○
               </button>
             </div>
-            <p className="text-[11px] text-gray-400 pb-1 flex-shrink-0 tracking-wider">
-              ← シュッ ・ ポワン →
-            </p>
           </>
         )}
       </div>
