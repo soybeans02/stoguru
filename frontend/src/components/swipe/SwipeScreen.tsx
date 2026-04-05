@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { FilterOverlay } from './FilterOverlay';
 import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
@@ -108,16 +108,32 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
 }
 
 export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds }: Props) {
-  const [cards, setCards] = useState<SwipeRestaurant[]>([...MOCK_RESTAURANTS]);
+  const [cards, setCards] = useState<SwipeRestaurant[]>(() => {
+    try {
+      const saved = localStorage.getItem('nopedIds');
+      const noped = saved ? new Set(JSON.parse(saved)) : new Set();
+      return MOCK_RESTAURANTS.filter((r) => !noped.has(r.id));
+    } catch { return [...MOCK_RESTAURANTS]; }
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
-  const [nopedIds, setNopedIds] = useState<Set<string>>(new Set());
+  const [nopedIds, setNopedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('nopedIds');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
   const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // nopedIdsをlocalStorageに永続化
+  useEffect(() => {
+    localStorage.setItem('nopedIds', JSON.stringify([...nopedIds]));
+  }, [nopedIds]);
 
   // カード再フィルタ（共通ロジック）
   const refilter = useCallback(() => {
