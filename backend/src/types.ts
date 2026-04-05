@@ -55,8 +55,11 @@ export interface InfluencerProfile {
   displayName: string;
   bio?: string;
   instagramHandle?: string;
+  instagramUrl?: string;
   tiktokHandle?: string;
+  tiktokUrl?: string;
   youtubeHandle?: string;
+  youtubeUrl?: string;
   profilePhotoUrl?: string;
   genres: string[];
   isVerified: boolean;

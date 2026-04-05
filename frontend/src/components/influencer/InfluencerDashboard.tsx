@@ -7,8 +7,11 @@ interface InfluencerProfile {
   displayName: string;
   bio?: string;
   instagramHandle?: string;
+  instagramUrl?: string;
   tiktokHandle?: string;
+  tiktokUrl?: string;
   youtubeHandle?: string;
+  youtubeUrl?: string;
   profilePhotoUrl?: string;
   genres: string[];
   isVerified: boolean;
@@ -47,8 +50,11 @@ export function InfluencerDashboard({ onBack }: Props) {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [instagramHandle, setInstagramHandle] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
   const [tiktokHandle, setTiktokHandle] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
   const [youtubeHandle, setYoutubeHandle] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [genreInput, setGenreInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -76,8 +82,11 @@ export function InfluencerDashboard({ onBack }: Props) {
     setDisplayName(profile.displayName);
     setBio(profile.bio ?? '');
     setInstagramHandle(profile.instagramHandle ?? '');
+    setInstagramUrl(profile.instagramUrl ?? '');
     setTiktokHandle(profile.tiktokHandle ?? '');
+    setTiktokUrl(profile.tiktokUrl ?? '');
     setYoutubeHandle(profile.youtubeHandle ?? '');
+    setYoutubeUrl(profile.youtubeUrl ?? '');
     setGenres(profile.genres ?? []);
     setEditingProfile(true);
   }
@@ -90,8 +99,11 @@ export function InfluencerDashboard({ onBack }: Props) {
         displayName,
         bio: bio || undefined,
         instagramHandle: instagramHandle || undefined,
+        instagramUrl: instagramUrl || undefined,
         tiktokHandle: tiktokHandle || undefined,
+        tiktokUrl: tiktokUrl || undefined,
         youtubeHandle: youtubeHandle || undefined,
+        youtubeUrl: youtubeUrl || undefined,
         genres,
       });
       await loadData();
@@ -173,19 +185,40 @@ export function InfluencerDashboard({ onBack }: Props) {
           {/* Handles */}
           <div className="flex flex-wrap gap-2 mb-3">
             {profile.instagramHandle && (
-              <span className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100">
-                IG: @{profile.instagramHandle}
-              </span>
+              profile.instagramUrl ? (
+                <a href={profile.instagramUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100 hover:bg-pink-50 transition-colors">
+                  IG: @{profile.instagramHandle}
+                </a>
+              ) : (
+                <span className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100">
+                  IG: @{profile.instagramHandle}
+                </span>
+              )
             )}
             {profile.tiktokHandle && (
-              <span className="text-xs bg-white px-2.5 py-1 rounded-full text-gray-700 border border-gray-200">
-                TikTok: @{profile.tiktokHandle}
-              </span>
+              profile.tiktokUrl ? (
+                <a href={profile.tiktokUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs bg-white px-2.5 py-1 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+                  TikTok: @{profile.tiktokHandle}
+                </a>
+              ) : (
+                <span className="text-xs bg-white px-2.5 py-1 rounded-full text-gray-700 border border-gray-200">
+                  TikTok: @{profile.tiktokHandle}
+                </span>
+              )
             )}
             {profile.youtubeHandle && (
-              <span className="text-xs bg-white px-2.5 py-1 rounded-full text-red-500 border border-red-100">
-                YT: @{profile.youtubeHandle}
-              </span>
+              profile.youtubeUrl ? (
+                <a href={profile.youtubeUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs bg-white px-2.5 py-1 rounded-full text-red-500 border border-red-100 hover:bg-red-50 transition-colors">
+                  YT: @{profile.youtubeHandle}
+                </a>
+              ) : (
+                <span className="text-xs bg-white px-2.5 py-1 rounded-full text-red-500 border border-red-100">
+                  YT: @{profile.youtubeHandle}
+                </span>
+              )
             )}
           </div>
 
@@ -217,20 +250,26 @@ export function InfluencerDashboard({ onBack }: Props) {
               className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm resize-none" />
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Instagram</label>
-              <input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} maxLength={100} placeholder="username"
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <label className="block text-xs text-gray-400">Instagram</label>
+              <input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+                className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
+              <input value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} maxLength={500} placeholder="https://www.instagram.com/suimy/"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">TikTok</label>
-              <input value={tiktokHandle} onChange={e => setTiktokHandle(e.target.value)} maxLength={100} placeholder="username"
+            <div className="space-y-2">
+              <label className="block text-xs text-gray-400">TikTok</label>
+              <input value={tiktokHandle} onChange={e => setTiktokHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+                className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
+              <input value={tiktokUrl} onChange={e => setTiktokUrl(e.target.value)} maxLength={500} placeholder="https://www.tiktok.com/@suimy"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">YouTube</label>
-              <input value={youtubeHandle} onChange={e => setYoutubeHandle(e.target.value)} maxLength={100} placeholder="channel"
+            <div className="space-y-2">
+              <label className="block text-xs text-gray-400">YouTube</label>
+              <input value={youtubeHandle} onChange={e => setYoutubeHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+                className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
+              <input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} maxLength={500} placeholder="https://www.youtube.com/@suimy"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
             </div>
           </div>

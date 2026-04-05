@@ -305,7 +305,7 @@ export async function deletePhoto(key: string) {
 
 // ─── インフルエンサー ───
 
-export async function registerInfluencer(data: { displayName: string; bio?: string; instagramHandle?: string; tiktokHandle?: string; youtubeHandle?: string; genres?: string[] }) {
+export async function registerInfluencer(data: { displayName: string; bio?: string; instagramHandle?: string; instagramUrl?: string; tiktokHandle?: string; tiktokUrl?: string; youtubeHandle?: string; youtubeUrl?: string; genres?: string[] }) {
   const res = await fetchWithRetry(`${BASE}/influencer/register`, {
     method: 'POST', headers: headers(), body: JSON.stringify(data),
   });
@@ -322,7 +322,7 @@ export async function getInfluencerProfile() {
   return res.json();
 }
 
-export async function updateInfluencerProfile(data: { displayName: string; bio?: string; instagramHandle?: string; tiktokHandle?: string; youtubeHandle?: string; genres?: string[] }) {
+export async function updateInfluencerProfile(data: { displayName: string; bio?: string; instagramHandle?: string; instagramUrl?: string; tiktokHandle?: string; tiktokUrl?: string; youtubeHandle?: string; youtubeUrl?: string; genres?: string[] }) {
   const res = await fetchWithRetry(`${BASE}/influencer/profile`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(data),
   });
