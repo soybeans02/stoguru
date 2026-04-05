@@ -12,8 +12,8 @@ interface Props {
   panTo: { lat: number; lng: number } | null;
   onPanComplete: () => void;
   userPosition: GPSPosition | null;
-  compassGranted: boolean;
-  requestCompass: () => void;
+  compassGranted?: boolean;
+  requestCompass?: () => void;
 }
 
 const defaultCenter: [number, number] = [135.4959, 34.7025]; // [lng, lat] 梅田
@@ -156,6 +156,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 10, 9, 16, 13],
           'text-anchor': 'center',
+          'symbol-z-elevate': true,
         },
         paint: { 'text-color': t.labelColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5 } },
       { id: 'transit-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'transit_stop_label',
@@ -163,6 +164,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
           'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': 10,
+          'symbol-z-elevate': true,
         },
         paint: { 'text-color': t.transitColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5, 'text-opacity': 0.8 } },
       { id: 'poi-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'poi_label',
@@ -173,28 +175,46 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 18, 11],
           'text-anchor': 'center', 'text-max-width': 8, 'text-allow-overlap': false,
+          'symbol-z-elevate': true,
         },
         paint: { 'text-color': t.poiColor, 'text-halo-color': t.poiHalo, 'text-halo-width': 2, 'text-opacity': 0.8 } },
+      // 高ズーム時: 建物名ラベル（飲食店・ショップは除外）
+      { id: 'building-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'poi_label',
+        minzoom: 14.5,
+        filter: ['match', ['get', 'class'], ['commercial', 'lodging', 'public_facility', 'general', 'motorist', 'parking', 'parking_garage'], true, false],
+        layout: {
+          'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+          'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 14.5, 9, 18, 12],
+          'text-anchor': 'center', 'text-max-width': 7, 'text-allow-overlap': false,
+          'text-optional': true,
+          'symbol-z-elevate': true,
+        },
+        paint: { 'text-color': t.poiColor, 'text-halo-color': t.poiHalo, 'text-halo-width': 1.5, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 14.5, 0, 15, 0.8] } },
     ],
   } as mapboxgl.StyleSpecification;
 }
 
 function applyThemeColors(map: mapboxgl.Map, t: Theme) {
   if (!map.isStyleLoaded()) return;
-  map.setPaintProperty('background', 'background-color', t.background);
-  map.setPaintProperty('water', 'fill-color', t.water);
-  map.setPaintProperty('park', 'fill-color', t.park);
-  map.setPaintProperty('building-flat', 'fill-color', t.buildingFlat);
-  map.setPaintProperty('road-casing', 'line-color', t.roadCasing);
-  map.setPaintProperty('road', 'line-color', t.road);
-  map.setPaintProperty('rail', 'line-color', t.rail);
-  map.setPaintProperty('building-3d', 'fill-extrusion-color', t.building3d);
-  map.setPaintProperty('place-label', 'text-color', t.labelColor);
-  map.setPaintProperty('place-label', 'text-halo-color', t.labelHalo);
-  map.setPaintProperty('transit-label', 'text-color', t.transitColor);
-  map.setPaintProperty('transit-label', 'text-halo-color', t.labelHalo);
-  map.setPaintProperty('poi-label', 'text-color', t.poiColor);
-  map.setPaintProperty('poi-label', 'text-halo-color', t.poiHalo);
+  try {
+    map.setPaintProperty('background', 'background-color', t.background);
+    map.setPaintProperty('water', 'fill-color', t.water);
+    map.setPaintProperty('park', 'fill-color', t.park);
+    map.setPaintProperty('building-flat', 'fill-color', t.buildingFlat);
+    map.setPaintProperty('road-casing', 'line-color', t.roadCasing);
+    map.setPaintProperty('road', 'line-color', t.road);
+    map.setPaintProperty('rail', 'line-color', t.rail);
+    map.setPaintProperty('building-3d', 'fill-extrusion-color', t.building3d);
+    map.setPaintProperty('place-label', 'text-color', t.labelColor);
+    map.setPaintProperty('place-label', 'text-halo-color', t.labelHalo);
+    map.setPaintProperty('transit-label', 'text-color', t.transitColor);
+    map.setPaintProperty('transit-label', 'text-halo-color', t.labelHalo);
+    map.setPaintProperty('poi-label', 'text-color', t.poiColor);
+    map.setPaintProperty('poi-label', 'text-halo-color', t.poiHalo);
+    map.setPaintProperty('building-label', 'text-color', t.poiColor);
+    map.setPaintProperty('building-label', 'text-halo-color', t.poiHalo);
+  } catch {}
 }
 
 // ティアドロップ型ピン画像をCanvasで生成 → ImageData返却（Mapbox addImage互換）
@@ -237,16 +257,17 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
   return { width: w, height: h, data: new Uint8Array(imgData.data.buffer) };
 }
 
-const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label'];
+const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
-export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition, compassGranted, requestCompass }: Props) {
+export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const [labelsOn, setLabelsOn] = useState(true);
-  const [is3D, setIs3D] = useState(true);
+  const [, setLabelsOn] = useState(true);
+  const [, setIs3D] = useState(true);
   const [, setThemeLabel] = useState(() => getBlendedTheme().label);
-  const [mapMode, setMapMode] = useState<'standard' | '3d' | 'simple'>('3d');
+  const [mapMode, setMapMode] = useState<'standard' | '3d'>('3d');
+  const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
@@ -444,8 +465,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     setLabelsOn(show);
   }, []);
 
-  // Switch map mode
-  const handleSwitchMode = useCallback((mode: 'standard' | '3d' | 'simple') => {
+  // Switch map mode (2D / 3D)
+  const handleSwitchMode = useCallback((mode: 'standard' | '3d') => {
     const map = mapRef.current;
     if (!map) return;
 
@@ -453,19 +474,21 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'visible'); } catch {}
       setIs3D(true);
-      handleToggleLabels(true);
-    } else if (mode === 'standard') {
+    } else {
       map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'none'); } catch {}
       setIs3D(false);
-      handleToggleLabels(true);
-    } else if (mode === 'simple') {
-      handleToggleLabels(false);
     }
 
     setMapMode(mode);
-    setModePickerOpen(false);
-  }, [handleToggleLabels]);
+  }, []);
+
+  // Toggle simple mode (labels on/off, independent of 2D/3D)
+  const handleToggleSimple = useCallback(() => {
+    const next = !simpleMode;
+    setSimpleMode(next);
+    handleToggleLabels(!next);
+  }, [simpleMode, handleToggleLabels]);
 
   return (
     <div className="flex-1 relative">
@@ -488,34 +511,59 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       {modePickerOpen && (
         <>
           <div className="absolute inset-0 z-20" onClick={() => setModePickerOpen(false)} />
-          <div className="absolute top-16 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
+          <div className="absolute top-16 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl min-w-[220px]">
             <p className="text-white text-sm font-bold text-center mb-3">地図モード</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               {([
-                { id: 'standard', label: '2D', color: '#f5f5f5', icon: '🗺️' },
-                { id: '3d', label: '3D', color: '#e0e0e0', icon: '🏙️' },
-                { id: 'simple', label: 'シンプル', color: '#f0f0f0', icon: '◻️' },
-              ] as const).map((m) => (
+                { id: 'standard' as const, label: '2D',
+                  thumb: `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/135.4959,34.7025,14,0,0/120x80@2x?access_token=${mapboxgl.accessToken}` },
+                { id: '3d' as const, label: '3D',
+                  thumb: `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/135.4959,34.7025,15,50,-15/120x80@2x?access_token=${mapboxgl.accessToken}` },
+              ]).map((m) => (
                 <button
                   key={m.id}
                   onClick={() => handleSwitchMode(m.id)}
                   className="flex flex-col items-center gap-1.5"
                 >
                   <div
-                    className={`w-16 h-16 rounded-xl flex items-center justify-center text-2xl transition-all ${
+                    className={`w-[88px] h-[60px] rounded-xl overflow-hidden transition-all ${
                       mapMode === m.id
                         ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
                         : 'ring-1 ring-white/20'
                     }`}
-                    style={{ backgroundColor: m.color }}
                   >
-                    {m.icon}
+                    <img src={m.thumb} alt={m.label} className="w-full h-full object-cover" />
                   </div>
-                  <span className={`text-[10px] font-medium ${mapMode === m.id ? 'text-blue-400' : 'text-gray-400'}`}>
+                  <span className={`text-[11px] font-medium ${mapMode === m.id ? 'text-blue-400' : 'text-gray-400'}`}>
                     {m.label}
                   </span>
                 </button>
               ))}
+            </div>
+            <div className="border-t border-white/10 pt-3">
+              <button
+                onClick={handleToggleSimple}
+                className="flex items-center gap-2.5 w-full"
+              >
+                <div
+                  className={`w-10 h-10 rounded-lg overflow-hidden transition-all ${
+                    simpleMode
+                      ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                      : 'ring-1 ring-white/20'
+                  }`}
+                >
+                  <img
+                    src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/135.4959,34.7025,12,0,0/60x60@2x?access_token=${mapboxgl.accessToken}`}
+                    alt="シンプル" className="w-full h-full object-cover opacity-60"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className={`text-xs font-medium ${simpleMode ? 'text-blue-400' : 'text-gray-400'}`}>
+                    シンプル
+                  </span>
+                  <p className="text-[9px] text-gray-500">ラベルを非表示</p>
+                </div>
+              </button>
             </div>
           </div>
         </>

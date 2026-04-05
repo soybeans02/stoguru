@@ -11,8 +11,8 @@ interface Props {
   panTo: { lat: number; lng: number } | null;
   onPanComplete: () => void;
   userPosition: GPSPosition | null;
-  compassGranted: boolean;
-  requestCompass: () => void;
+  compassGranted?: boolean;
+  requestCompass?: () => void;
 }
 
 const containerStyle = { width: '100%', height: '100%' };
