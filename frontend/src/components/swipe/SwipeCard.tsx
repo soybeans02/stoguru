@@ -17,16 +17,18 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const offsetRef = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSwipeRef = useRef(onSwipeComplete);
+  onSwipeRef.current = onSwipeComplete;
 
   const SWIPE_THRESHOLD = 80;
 
   useEffect(() => {
     if (flyOut && !exiting) {
       setExiting(flyOut);
-      exitTimer.current = setTimeout(() => onSwipeComplete(flyOut), 300);
+      exitTimer.current = setTimeout(() => onSwipeRef.current(flyOut), 300);
     }
     return () => { if (exitTimer.current) clearTimeout(exitTimer.current); };
-  }, [flyOut, exiting, onSwipeComplete]);
+  }, [flyOut, exiting]);
 
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
@@ -63,22 +65,28 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     if (Math.abs(ox) > SWIPE_THRESHOLD) {
       const dir = ox > 0 ? 'right' : 'left';
       setExiting(dir);
-      exitTimer.current = setTimeout(() => onSwipeComplete(dir), 300);
+      exitTimer.current = setTimeout(() => onSwipeRef.current(dir), 300);
     } else {
       setOffset({ x: 0, y: 0 });
       offsetRef.current = { x: 0, y: 0 };
     }
-  }, [onSwipeComplete]);
+  }, []);
 
-  const onTouchStart = (e: React.TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
-  const onTouchMove = (e: React.TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  const onTouchStart = (e: React.TouchEvent) => {
+    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  const onTouchEnd = () => handleEnd();
   const onMouseDown = (e: React.MouseEvent) => handleStart(e.clientX, e.clientY);
   const onMouseMove = (e: React.MouseEvent) => handleMove(e.clientX, e.clientY);
 
   useEffect(() => {
     const up = () => handleEnd();
     window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
+    window.addEventListener('touchend', up, { passive: true });
     return () => {
       window.removeEventListener('mouseup', up);
       window.removeEventListener('touchend', up);
@@ -125,6 +133,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       onMouseMove={onMouseMove}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
         {/* Swipe overlay labels */}
