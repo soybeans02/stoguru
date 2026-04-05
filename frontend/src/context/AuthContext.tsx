@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { setRefreshTokenFn } from '../utils/api';
 
-const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/auth';
+const API = (import.meta.env.VITE_API_URL ?? '/api') + '/auth';
 
 interface User {
   userId: string;
