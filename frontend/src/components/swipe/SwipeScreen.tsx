@@ -268,7 +268,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
             <p className="text-gray-800 font-semibold text-base mb-1">全部見たよ</p>
             <p className="text-gray-400 text-xs mb-6">また後でチェックしてね</p>
             <button
-              onClick={() => setCurrentIndex(0)}
+              onClick={() => refilter()}
               className="px-6 py-2.5 bg-gray-900 text-white rounded-full text-xs font-medium"
             >
               もう一度見る
