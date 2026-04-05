@@ -1,21 +1,22 @@
 import { SCENES, GENRES } from '../../data/mockRestaurants';
 
-export const PRICE_RANGES = [
-  { id: '~1000', label: '~\u00A51,000' },
-  { id: '1000~3000', label: '\u00A51,000~3,000' },
-  { id: '3000~5000', label: '\u00A53,000~5,000' },
-  { id: '5000~', label: '\u00A55,000~' },
-] as const;
+/** 500円刻みの選択肢 */
+export const PRICE_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 7500, 10000] as const;
 
-export type PriceRangeId = (typeof PRICE_RANGES)[number]['id'];
+function formatYen(v: number): string {
+  if (v === 0) return '下限なし';
+  if (v >= 10000) return '上限なし';
+  return `¥${v.toLocaleString()}`;
+}
 
 interface Props {
   selectedScenes: string[];
   selectedGenres: string[];
-  selectedPriceRanges?: string[];
+  priceMin?: number;
+  priceMax?: number;
   onScenesChange: (scenes: string[]) => void;
   onGenresChange: (genres: string[]) => void;
-  onPriceRangesChange?: (priceRanges: string[]) => void;
+  onPriceChange?: (min: number, max: number) => void;
   onClose: () => void;
   onApply?: () => void;
 }
@@ -23,10 +24,11 @@ interface Props {
 export function FilterOverlay({
   selectedScenes,
   selectedGenres,
-  selectedPriceRanges = [],
+  priceMin = 0,
+  priceMax = 10000,
   onScenesChange,
   onGenresChange,
-  onPriceRangesChange,
+  onPriceChange,
   onClose,
   onApply,
 }: Props) {
@@ -46,20 +48,24 @@ export function FilterOverlay({
     );
   }
 
-  function togglePriceRange(id: string) {
-    if (!onPriceRangesChange) return;
-    onPriceRangesChange(
-      selectedPriceRanges.includes(id)
-        ? selectedPriceRanges.filter((p) => p !== id)
-        : [...selectedPriceRanges, id],
-    );
+  function handleMinChange(v: number) {
+    if (!onPriceChange) return;
+    onPriceChange(v, v > priceMax ? v : priceMax);
+  }
+
+  function handleMaxChange(v: number) {
+    if (!onPriceChange) return;
+    onPriceChange(v < priceMin ? v : priceMin, v);
   }
 
   function clearAll() {
     onScenesChange([]);
     onGenresChange([]);
-    onPriceRangesChange?.([]);
+    onPriceChange?.(0, 10000);
   }
+
+  const minSteps = PRICE_STEPS.filter((v) => v < priceMax || v === 0);
+  const maxSteps = PRICE_STEPS.filter((v) => v > priceMin || v >= 10000);
 
   return (
     <div className="absolute inset-0 z-50 bg-white flex flex-col">
@@ -108,23 +114,42 @@ export function FilterOverlay({
           ))}
         </div>
 
-        {/* Price Range */}
+        {/* Price Range - min/max selectors */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {PRICE_RANGES.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => togglePriceRange(p.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                selectedPriceRanges.includes(p.id)
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-1 block">下限</label>
+            <select
+              value={priceMin}
+              onChange={(e) => handleMinChange(Number(e.target.value))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
             >
-              {p.label}
-            </button>
-          ))}
+              {minSteps.map((v) => (
+                <option key={v} value={v}>{formatYen(v)}</option>
+              ))}
+            </select>
+          </div>
+          <span className="text-gray-300 mt-4">〜</span>
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
+            <select
+              value={priceMax}
+              onChange={(e) => handleMaxChange(Number(e.target.value))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
+            >
+              {maxSteps.map((v) => (
+                <option key={v} value={v}>{formatYen(v)}</option>
+              ))}
+            </select>
+          </div>
         </div>
+        {(priceMin > 0 || priceMax < 10000) && (
+          <p className="text-xs text-gray-500 -mt-4 mb-6">
+            {priceMin > 0 ? `¥${priceMin.toLocaleString()}` : ''}
+            {priceMin > 0 && priceMax < 10000 ? ' 〜 ' : ''}
+            {priceMax < 10000 ? `¥${priceMax.toLocaleString()}` : priceMin > 0 ? ' 〜' : ''}
+          </p>
+        )}
       </div>
 
       {/* Footer */}

@@ -119,7 +119,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(10000);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
   const [nopedIds, setNopedIds] = useState<Set<string>>(() => {
     try {
@@ -149,22 +150,16 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     if (selectedGenres.length > 0) {
       filtered = filtered.filter((r) => selectedGenres.includes(r.genre));
     }
-    if (selectedPriceRanges.length > 0) {
+    if (priceMin > 0 || priceMax < 10000) {
       filtered = filtered.filter((r) => {
         const price = parseInt(r.priceRange.replace(/[^0-9]/g, '')) || 0;
-        return selectedPriceRanges.some((id) => {
-          if (id === '~1000') return price <= 1000;
-          if (id === '1000~3000') return price >= 1000 && price <= 3000;
-          if (id === '3000~5000') return price >= 3000 && price <= 5000;
-          if (id === '5000~') return price >= 5000;
-          return false;
-        });
+        return price >= priceMin && price <= priceMax;
       });
     }
     setCards(filtered);
     setCurrentIndex(0);
     return filtered;
-  }, [stockedIds, nopedIds, selectedScenes, selectedGenres, selectedPriceRanges]);
+  }, [stockedIds, nopedIds, selectedScenes, selectedGenres, priceMin, priceMax]);
 
   // 「この条件で探す」ボタンから呼ばれる
   const applyFilter = useCallback(() => {
@@ -226,7 +221,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const next = cards[currentIndex + 1];
   const isFinished = currentIndex >= cards.length;
 
-  const filterCount = selectedScenes.length + selectedGenres.length + selectedPriceRanges.length;
+  const priceActive = priceMin > 0 || priceMax < 10000 ? 1 : 0;
+  const filterCount = selectedScenes.length + selectedGenres.length + priceActive;
 
   return (
     <div className="flex-1 flex flex-col items-center relative bg-white">
@@ -344,10 +340,11 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
         <FilterOverlay
           selectedScenes={selectedScenes}
           selectedGenres={selectedGenres}
-          selectedPriceRanges={selectedPriceRanges}
+          priceMin={priceMin}
+          priceMax={priceMax}
           onScenesChange={setSelectedScenes}
           onGenresChange={setSelectedGenres}
-          onPriceRangesChange={setSelectedPriceRanges}
+          onPriceChange={(min, max) => { setPriceMin(min); setPriceMax(max); }}
           onClose={() => setFilterOpen(false)}
           onApply={applyFilter}
         />

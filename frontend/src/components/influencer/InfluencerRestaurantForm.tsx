@@ -25,10 +25,12 @@ const GENRE_OPTIONS = [
   '中華', '韓国料理', 'カフェ', '居酒屋', 'バー', 'スイーツ', 'その他',
 ];
 
-const PRICE_OPTIONS = [
-  '~500円', '~1,000円', '~1,500円', '~2,000円', '~2,500円',
-  '~3,000円', '~4,000円', '~5,000円', '~7,000円', '~10,000円', '10,000円~',
-];
+const PRICE_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 7500, 10000] as const;
+function formatYen(v: number): string {
+  if (v === 0) return '下限なし';
+  if (v >= 10000) return '上限なし';
+  return `¥${v.toLocaleString()}`;
+}
 
 interface PlacePrediction {
   place_id: string;
@@ -52,10 +54,19 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [lng, setLng] = useState<number | undefined>(editing?.lng);
   const [placeId, setPlaceId] = useState(editing?.placeId ?? '');
   const [genres, setGenres] = useState<string[]>(editing?.genres ?? []);
-  const [priceRange, setPriceRange] = useState(editing?.priceRange ?? '');
+  const [priceMin, setPriceMin] = useState(() => {
+    const p = editing?.priceRange ?? '';
+    const nums = p.match(/\d[\d,]*/g)?.map(s => parseInt(s.replace(/,/g, ''))) ?? [];
+    return nums[0] || 0;
+  });
+  const [priceMax, setPriceMax] = useState(() => {
+    const p = editing?.priceRange ?? '';
+    const nums = p.match(/\d[\d,]*/g)?.map(s => parseInt(s.replace(/,/g, ''))) ?? [];
+    if (p.includes('~') && nums.length === 1 && !p.startsWith('~')) return 10000;
+    return nums[1] || nums[0] || 10000;
+  });
   const [photoUrls, setPhotoUrls] = useState<string[]>(editing?.photoUrls ?? []);
   const [videoUrl, setVideoUrl] = useState(editing?.videoUrl ?? '');
-  const [instagramUrl, setInstagramUrl] = useState(editing?.instagramUrl ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -182,9 +193,12 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
     if (lat !== undefined) data.lat = lat;
     if (lng !== undefined) data.lng = lng;
     if (placeId) data.placeId = placeId;
-    if (priceRange) data.priceRange = priceRange;
+    if (priceMin > 0 || priceMax < 10000) {
+      const minStr = priceMin > 0 ? `¥${priceMin.toLocaleString()}` : '';
+      const maxStr = priceMax < 10000 ? `¥${priceMax.toLocaleString()}` : '';
+      data.priceRange = minStr && maxStr ? `${minStr}〜${maxStr}` : minStr ? `${minStr}〜` : `〜${maxStr}`;
+    }
     if (videoUrl.trim()) data.videoUrl = videoUrl.trim();
-    if (instagramUrl.trim()) data.instagramUrl = instagramUrl.trim();
     if (description.trim()) data.description = description.trim();
 
     try {
@@ -280,42 +294,50 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
             </div>
           </div>
 
-          {/* Price Range (500 yen increments) */}
+          {/* Price Range (min/max selectors) */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">価格帯</label>
-            <div className="flex flex-wrap gap-2">
-              {PRICE_OPTIONS.map(p => {
-                const selected = priceRange === p;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPriceRange(selected ? '' : p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      selected
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-400 mb-1 block">下限</label>
+                <select
+                  value={priceMin}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setPriceMin(v);
+                    if (v > priceMax) setPriceMax(v);
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
+                >
+                  {PRICE_STEPS.filter((v) => v < priceMax || v === 0).map((v) => (
+                    <option key={v} value={v}>{formatYen(v)}</option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-gray-300 mt-4">〜</span>
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
+                <select
+                  value={priceMax}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setPriceMax(v);
+                    if (v < priceMin) setPriceMin(v);
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
+                >
+                  {PRICE_STEPS.filter((v) => v > priceMin || v >= 10000).map((v) => (
+                    <option key={v} value={v}>{formatYen(v)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           {/* Photos */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">写真（最大10枚）</label>
-            <PhotoUpload photos={photoUrls} onChange={setPhotoUrls} maxPhotos={10} />
-          </div>
-
-          {/* Instagram URL */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Instagram URL</label>
-            <input value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} maxLength={500}
-              placeholder="https://www.instagram.com/p/..."
-              className="w-full rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
+            <label className="block text-xs text-gray-400 mb-1">写真（最大5枚）</label>
+            <PhotoUpload photos={photoUrls} onChange={setPhotoUrls} maxPhotos={5} />
           </div>
 
           {/* Video URL */}

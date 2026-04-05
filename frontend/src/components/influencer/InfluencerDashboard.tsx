@@ -396,9 +396,24 @@ export function InfluencerDashboard({ onBack }: Props) {
                   </div>
                 )}
                 {profile && (
-                  <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm">
+                  <a
+                    href={profile.instagramUrl || profile.tiktokUrl || profile.youtubeUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm"
+                  >
                     @{profile.instagramHandle || profile.displayName}
-                  </div>
+                  </a>
+                )}
+                {(previewRestaurant.videoUrl || previewRestaurant.instagramUrl) && (
+                  <a
+                    href={previewRestaurant.videoUrl || previewRestaurant.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                  </a>
                 )}
                 {/* Close button */}
                 <button
