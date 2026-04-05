@@ -1,10 +1,21 @@
 import { SCENES, GENRES } from '../../data/mockRestaurants';
 
+export const PRICE_RANGES = [
+  { id: '~1000', label: '~\u00A51,000' },
+  { id: '1000~3000', label: '\u00A51,000~3,000' },
+  { id: '3000~5000', label: '\u00A53,000~5,000' },
+  { id: '5000~', label: '\u00A55,000~' },
+] as const;
+
+export type PriceRangeId = (typeof PRICE_RANGES)[number]['id'];
+
 interface Props {
   selectedScenes: string[];
   selectedGenres: string[];
+  selectedPriceRanges?: string[];
   onScenesChange: (scenes: string[]) => void;
   onGenresChange: (genres: string[]) => void;
+  onPriceRangesChange?: (priceRanges: string[]) => void;
   onClose: () => void;
   onApply?: () => void;
 }
@@ -12,8 +23,10 @@ interface Props {
 export function FilterOverlay({
   selectedScenes,
   selectedGenres,
+  selectedPriceRanges = [],
   onScenesChange,
   onGenresChange,
+  onPriceRangesChange,
   onClose,
   onApply,
 }: Props) {
@@ -33,9 +46,19 @@ export function FilterOverlay({
     );
   }
 
+  function togglePriceRange(id: string) {
+    if (!onPriceRangesChange) return;
+    onPriceRangesChange(
+      selectedPriceRanges.includes(id)
+        ? selectedPriceRanges.filter((p) => p !== id)
+        : [...selectedPriceRanges, id],
+    );
+  }
+
   function clearAll() {
     onScenesChange([]);
     onGenresChange([]);
+    onPriceRangesChange?.([]);
   }
 
   return (
@@ -69,7 +92,7 @@ export function FilterOverlay({
 
         {/* Genre */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ジャンル</h3>
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-8">
           {GENRES.map((g) => (
             <button
               key={g}
@@ -81,6 +104,24 @@ export function FilterOverlay({
               }`}
             >
               {g}
+            </button>
+          ))}
+        </div>
+
+        {/* Price Range */}
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
+        <div className="flex flex-wrap gap-2 mb-6">
+          {PRICE_RANGES.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => togglePriceRange(p.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                selectedPriceRanges.includes(p.id)
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {p.label}
             </button>
           ))}
         </div>

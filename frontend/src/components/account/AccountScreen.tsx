@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDarkMode } from '../../hooks/useDarkMode';
 import * as api from '../../utils/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
@@ -13,6 +14,7 @@ type ListPanel = null | 'stocks' | 'visited' | 'following';
 
 export function AccountScreen({ stocks }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
@@ -74,12 +76,12 @@ export function AccountScreen({ stocks }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none px-5 py-6 bg-white">
+    <div className="flex-1 overflow-y-auto overscroll-none px-5 py-6 bg-white dark:bg-gray-900">
       {/* Avatar */}
       <div className="flex flex-col items-center mb-8">
         <button
           onClick={() => setIconPickerOpen(!iconPickerOpen)}
-          className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-4xl mb-3 relative"
+          className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-4xl mb-3 relative"
         >
           {profileIcon}
           <span className="absolute -bottom-0.5 -right-0.5 bg-gray-900 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">+</span>
@@ -117,7 +119,7 @@ export function AccountScreen({ stocks }: Props) {
         ) : (
           <button
             onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
-            className="text-lg font-bold text-gray-900 flex items-center gap-1"
+            className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1"
           >
             {user?.nickname ?? 'ユーザー'}
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
@@ -127,17 +129,17 @@ export function AccountScreen({ stocks }: Props) {
       </div>
 
       {/* Stats */}
-      <div className="flex justify-center gap-10 mb-8 pb-6 border-b border-gray-100">
+      <div className="flex justify-center gap-10 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
         <button onClick={() => setListPanel('stocks')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{stockCount}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stockCount}</p>
           <p className="text-[10px] text-gray-400">保存</p>
         </button>
         <button onClick={() => setListPanel('visited')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{visitedCount}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{visitedCount}</p>
           <p className="text-[10px] text-gray-400">行った</p>
         </button>
         <button onClick={() => setListPanel('following')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{followingCount}</p>
           <p className="text-[10px] text-gray-400">フォロー</p>
         </button>
       </div>
@@ -159,6 +161,21 @@ export function AccountScreen({ stocks }: Props) {
             インフルエンサー登録
           </button>
         )}
+      </div>
+
+      {/* Settings */}
+      <div className="space-y-0 mb-6">
+        <div className="w-full flex items-center justify-between py-3.5 border-b border-gray-100 dark:border-gray-800">
+          <span className="text-sm text-gray-700 dark:text-gray-300">ダークモード</span>
+          <button
+            onClick={toggleDarkMode}
+            className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200'}`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white dark:bg-gray-900 transition-transform ${isDark ? 'translate-x-5' : ''}`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Menu */}

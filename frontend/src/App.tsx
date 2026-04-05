@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGPS } from './hooks/useGPS';
+import { OnboardingScreen } from './components/onboarding/OnboardingScreen';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { SwipeScreen } from './components/swipe/SwipeScreen';
@@ -19,7 +20,7 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-colors ${active ? 'text-gray-900' : 'text-gray-300'}`}
+      className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-colors ${active ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-gray-500'}`}
     >
       {children}
       <span className="text-[10px] font-medium">{label}</span>
@@ -146,7 +147,7 @@ function MainApp() {
   }, []);
 
   return (
-    <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
+    <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stockedIds} />}
@@ -177,7 +178,7 @@ function MainApp() {
       </main>
 
       {/* Bottom navigation */}
-      <nav className="flex items-center justify-around bg-white border-t border-gray-100 h-14 flex-shrink-0 safe-area-bottom">
+      <nav className="flex items-center justify-around bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 h-14 flex-shrink-0 safe-area-bottom">
         <TabButton active={tab === 'home'} onClick={() => setTab('home')} label="ホーム">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'home' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
         </TabButton>
@@ -197,16 +198,31 @@ function MainApp() {
 
 export default function App() {
   const { user, loading } = useAuth();
+  const [onboardingDone, setOnboardingDone] = useState(() =>
+    localStorage.getItem('onboarding_done') === '1'
+  );
+
+  const handleOnboardingComplete = useCallback((selectedScenes: string[]) => {
+    localStorage.setItem('onboarding_done', '1');
+    if (selectedScenes.length > 0) {
+      localStorage.setItem('onboarding_scenes', JSON.stringify(selectedScenes));
+    }
+    setOnboardingDone(true);
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-svh flex items-center justify-center bg-gray-50">
-        <p className="text-gray-400">読み込み中...</p>
+      <div className="min-h-svh flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-400 dark:text-gray-500">読み込み中...</p>
       </div>
     );
   }
 
   if (!user) return <AuthScreen />;
+
+  if (!onboardingDone) {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+  }
 
   return <ErrorBoundary><MainApp /></ErrorBoundary>;
 }
