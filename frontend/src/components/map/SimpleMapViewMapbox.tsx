@@ -582,15 +582,26 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </span>
       </div>
 
-      {/* 現在地ボタン */}
-      {userPosition && (
-        <button
-          onClick={() => mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16, duration: 800 })}
-          className="absolute bottom-28 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center z-10"
-        >
-          <span className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm" />
-        </button>
-      )}
+      {/* 現在地ボタン — ズームコントロールの上 */}
+      <button
+        onClick={() => {
+          if (userPosition) {
+            mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16, duration: 800 });
+          } else {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => mapRef.current?.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, duration: 800 }),
+              () => {},
+              { enableHighAccuracy: true },
+            );
+          }
+        }}
+        className="absolute bottom-[100px] right-[10px] w-[29px] h-[29px] bg-white rounded-lg shadow flex items-center justify-center z-10"
+        style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.15)' }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translate(-1px, 1px)' }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
+      </button>
 
     </div>
   );
