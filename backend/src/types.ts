@@ -71,7 +71,8 @@ export interface InfluencerRestaurant {
   address?: string;
   lat?: number;
   lng?: number;
-  genre?: string;
+  placeId?: string;
+  genres: string[];
   priceRange?: string;
   photoUrls: string[];
   videoUrl?: string;

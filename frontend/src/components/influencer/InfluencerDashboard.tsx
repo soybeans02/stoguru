@@ -21,7 +21,8 @@ interface InfluencerRestaurant {
   address?: string;
   lat?: number;
   lng?: number;
-  genre?: string;
+  placeId?: string;
+  genres?: string[];
   priceRange?: string;
   photoUrls: string[];
   videoUrl?: string;
@@ -289,7 +290,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                   <h3 className="text-sm font-bold text-gray-900 truncate">{r.name}</h3>
                   {r.address && <p className="text-xs text-gray-400 mt-0.5 truncate">{r.address}</p>}
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {r.genre && <span className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{r.genre}</span>}
+                    {r.genres?.map(g => <span key={g} className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{g}</span>)}
                     {r.priceRange && <span className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{r.priceRange}</span>}
                   </div>
                   {r.description && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{r.description}</p>}
