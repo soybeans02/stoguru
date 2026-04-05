@@ -16,27 +16,31 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const startPos = useRef({ x: 0, y: 0 });
   const offsetRef = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
-  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flyOutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSwipeRef = useRef(onSwipeComplete);
   onSwipeRef.current = onSwipeComplete;
 
   const SWIPE_THRESHOLD = 80;
 
+  // Button-triggered fly out
   useEffect(() => {
     if (flyOut && !exiting) {
       setExiting(flyOut);
-      exitTimer.current = setTimeout(() => onSwipeRef.current(flyOut), 300);
+      flyOutTimer.current = setTimeout(() => onSwipeRef.current(flyOut), 300);
     }
-    return () => { if (exitTimer.current) clearTimeout(exitTimer.current); };
+    return () => { if (flyOutTimer.current) clearTimeout(flyOutTimer.current); };
   }, [flyOut, exiting]);
 
+  // Reset on card change
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
     offsetRef.current = { x: 0, y: 0 };
     setDragging(false);
     draggingRef.current = false;
     setExiting(null);
-    if (exitTimer.current) { clearTimeout(exitTimer.current); exitTimer.current = null; }
+    if (flyOutTimer.current) { clearTimeout(flyOutTimer.current); flyOutTimer.current = null; }
+    if (swipeTimer.current) { clearTimeout(swipeTimer.current); swipeTimer.current = null; }
   }, [restaurant.id]);
 
   const handleStart = useCallback((clientX: number, clientY: number) => {
@@ -65,7 +69,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     if (Math.abs(ox) > SWIPE_THRESHOLD) {
       const dir = ox > 0 ? 'right' : 'left';
       setExiting(dir);
-      exitTimer.current = setTimeout(() => onSwipeRef.current(dir), 300);
+      swipeTimer.current = setTimeout(() => onSwipeRef.current(dir), 300);
     } else {
       setOffset({ x: 0, y: 0 });
       offsetRef.current = { x: 0, y: 0 };
