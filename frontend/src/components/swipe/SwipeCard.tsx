@@ -115,12 +115,6 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     opacity = 0.6;
   }
 
-  const platformLabel = {
-    tiktok: 'TikTok',
-    instagram: 'Instagram',
-    youtube: 'YouTube',
-  }[restaurant.influencer.platform];
-
   return (
     <div
       className="absolute inset-0 select-none"
