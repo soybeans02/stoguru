@@ -49,9 +49,9 @@ const themes: Record<string, Theme> = {
     label: '🌇 夕方',
     background: '#c8886a', water: '#6888a8', park: '#6a8858',
     buildingFlat: '#b87860', roadCasing: '#a87058', road: '#d8a888',
-    rail: '#987060', building3d: '#b07058', labelColor: '#3a2018',
-    labelHalo: '#d8a080', transitColor: '#3a2018', poiColor: '#4a2820',
-    poiHalo: 'rgba(216,160,128,0.9)',
+    rail: '#987060', building3d: '#b07058', labelColor: '#f0e8e0',
+    labelHalo: '#5a3828', transitColor: '#f0e8e0', poiColor: '#e8ddd5',
+    poiHalo: 'rgba(90,56,40,0.9)',
   },
   night: {
     label: '🌙 夜',
