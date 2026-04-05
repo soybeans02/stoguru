@@ -510,17 +510,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </button>
       )}
 
-      {/* Compass button */}
-      {!compassGranted && (
-        <div className="absolute bottom-4 right-4">
-          <button
-            onClick={requestCompass}
-            className="bg-blue-500 text-white backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm"
-          >
-            方向を表示
-          </button>
-        </div>
-      )}
     </div>
   );
 }
