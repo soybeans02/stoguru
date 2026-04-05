@@ -322,25 +322,49 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         paint: { 'circle-radius': 5, 'circle-color': '#3b82f6' } });
 
       // クリックハンドラ
-      const handleClick = (e: mapboxgl.MapMouseEvent & { features?: GeoJSON.Feature[] }, offset: number) => {
+      const handleClick = (e: mapboxgl.MapMouseEvent & { features?: GeoJSON.Feature[] }, offset: number | [number, number]) => {
         if (!e.features?.length) return;
         const f = e.features[0];
         const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
         const p = f.properties!;
         const uPos = userPosRef.current;
         const dist = uPos ? formatDistance(distanceMetres(uPos.lat, uPos.lng, coords[1], coords[0])) : p.distance;
+        const dark = ['evening', 'night'].includes(getTimeThemeName());
+        const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
+        const border = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)';
+        const nameColor = dark ? '#f0f0f0' : '#111';
+        const metaColor = dark ? '#888' : '#9ca3af';
+        const tagBg = dark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
+        const tagColor = dark ? '#aaa' : '#6b7280';
+        const btnVidBg = dark ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
+        const btnVidColor = dark ? '#ddd' : '#555';
+        const emojiBg = dark ? 'rgba(255,255,255,0.08)' : '#f9fafb';
+        const scenes = (() => { try { return JSON.parse(p.scene || '[]'); } catch { return []; } })();
+        const sceneTags = (Array.isArray(scenes) ? scenes : []).slice(0, 2)
+          .map((s: string) => `<span style="background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px">${s}</span>`).join('');
+
         popupRef.current?.remove();
-        popupRef.current = new mapboxgl.Popup({ offset, closeButton: true, maxWidth: '220px' })
+        popupRef.current = new mapboxgl.Popup({ offset, closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
           .setLngLat(coords)
-          .setHTML(`<div style="font-family:system-ui,sans-serif;padding:2px">
-            <p style="font-weight:700;font-size:13px;color:#111;margin:0">${p.name}</p>
-            <p style="font-size:11px;color:#9ca3af;margin:4px 0">${dist} · ${p.genre}</p>
-            ${p.visited ? '<span style="display:inline-block;background:#22c55e;color:#fff;font-size:10px;padding:1px 6px;border-radius:4px">visited</span>' : ''}
-            ${p.videoUrl ? `<a href="${p.videoUrl}" target="_blank" rel="noopener" style="display:block;font-size:11px;color:#6b7280;font-weight:500;margin-top:6px;text-decoration:none">動画を見る →</a>` : ''}
-          </div>`).addTo(map);
+          .setHTML(`
+            <div style="font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>
+                <div style="min-width:0;flex:1">
+                  <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+                  <div style="font-size:10px;color:${metaColor};margin-top:1px">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
+                </div>
+              </div>
+              ${sceneTags ? `<div style="display:flex;gap:4px;margin-top:8px">${sceneTags}</div>` : ''}
+              <div style="display:flex;gap:6px;margin-top:10px">
+                ${p.videoUrl ? `<a href="${p.videoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block">▶ 動画</a>` : ''}
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block">ナビ</a>
+              </div>
+            </div>
+          `).addTo(map);
       };
-      map.on('click', 'stocks-circle', (e) => handleClick(e, 12));
-      map.on('click', 'stocks-pin', (e) => handleClick(e, 25));
+      map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
+      map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -40]));
       ['stocks-circle', 'stocks-pin'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
@@ -357,7 +381,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             properties: {
               id: r.id, name: r.name, genre: r.genre || '',
               visited: r.visited ? 1 : 0, distance: r.distance || '',
-              videoUrl: r.videoUrl || '',
+              videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+              scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
             },
           })),
         });
@@ -496,6 +521,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         .mapboxgl-ctrl-logo { width: 60px !important; height: 16px !important; }
         .mapboxgl-ctrl-attrib { font-size: 8px !important; padding: 1px 4px !important; }
         .mapboxgl-ctrl-attrib a { font-size: 8px !important; }
+        .stoguru-popup .mapboxgl-popup-content { background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+        .stoguru-popup .mapboxgl-popup-tip { display: none !important; }
       `}</style>
       <div ref={containerRef} className="w-full h-full" />
 
