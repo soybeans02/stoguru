@@ -32,12 +32,7 @@ router.post('/register', requireAuth, async (req: AuthRequest, res: Response) =>
   const now = Date.now();
   await putInfluencerProfile(userId, {
     influencerId: userId,
-    displayName: v.data.displayName,
-    bio: v.data.bio,
-    instagramHandle: v.data.instagramHandle,
-    tiktokHandle: v.data.tiktokHandle,
-    youtubeHandle: v.data.youtubeHandle,
-    genres: v.data.genres,
+    ...v.data,
     isVerified: false,
     createdAt: now,
     updatedAt: now,
@@ -67,13 +62,9 @@ router.put('/profile', requireAuth, requireInfluencer, async (req: AuthRequest, 
   await putInfluencerProfile(req.user!.userId, {
     ...existing,
     influencerId: req.user!.userId,
-    displayName: v.data.displayName,
-    bio: v.data.bio,
-    instagramHandle: v.data.instagramHandle,
-    tiktokHandle: v.data.tiktokHandle,
-    youtubeHandle: v.data.youtubeHandle,
-    genres: v.data.genres,
+    ...v.data,
     createdAt: existing?.createdAt ?? Date.now(),
+    updatedAt: Date.now(),
   });
 
   res.json({ ok: true });
@@ -124,8 +115,11 @@ router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) =
     displayName: profile.displayName,
     bio: profile.bio,
     instagramHandle: profile.instagramHandle,
+    instagramUrl: profile.instagramUrl,
     tiktokHandle: profile.tiktokHandle,
+    tiktokUrl: profile.tiktokUrl,
     youtubeHandle: profile.youtubeHandle,
+    youtubeUrl: profile.youtubeUrl,
     profilePhotoUrl: profile.profilePhotoUrl,
     genres: profile.genres,
     isVerified: profile.isVerified,
