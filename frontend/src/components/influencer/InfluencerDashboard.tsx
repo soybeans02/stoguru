@@ -45,6 +45,7 @@ export function InfluencerDashboard({ onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [restaurantForm, setRestaurantForm] = useState<{ open: boolean; editing?: InfluencerRestaurant }>({ open: false });
+  const [previewRestaurant, setPreviewRestaurant] = useState<InfluencerRestaurant | null>(null);
 
   // Profile edit state
   const [displayName, setDisplayName] = useState('');
@@ -322,52 +323,112 @@ export function InfluencerDashboard({ onBack }: Props) {
           <p className="text-gray-300 text-xs">おすすめのレストランを追加しましょう</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2">
           {restaurants.map(r => (
-            <div key={r.restaurantId} className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-gray-900 truncate">{r.name}</h3>
-                  {r.address && <p className="text-xs text-gray-400 mt-0.5 truncate">{r.address}</p>}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {r.genres?.map(g => <span key={g} className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{g}</span>)}
-                    {r.priceRange && <span className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{r.priceRange}</span>}
+            <div key={r.restaurantId} className="bg-white rounded-xl overflow-hidden shadow border border-gray-100 flex flex-col">
+              {/* Photo area — matches SwipeCard */}
+              <div className="w-full aspect-square bg-gray-100 relative overflow-hidden">
+                {r.photoUrls && r.photoUrls.length > 0 ? (
+                  <img src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-3xl opacity-30">🍽️</span>
                   </div>
-                  {r.instagramUrl && (
-                    <a href={r.instagramUrl} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 mt-2 text-xs text-pink-500 hover:text-pink-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                      Instagramで見る
-                    </a>
-                  )}
-                  {r.description && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{r.description}</p>}
-                </div>
-                <div className="flex gap-1 ml-2 flex-shrink-0">
+                )}
+                {/* Preview / Edit / Delete overlay */}
+                <div className="absolute top-1 right-1 flex gap-1">
+                  <button
+                    onClick={() => setPreviewRestaurant(r)}
+                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
+                    title="プレビュー"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
                   <button
                     onClick={() => setRestaurantForm({ open: true, editing: r })}
-                    className="p-1.5 text-gray-400 hover:text-gray-600"
+                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
                   </button>
                   <button
                     onClick={() => handleDeleteRestaurant(r.restaurantId)}
-                    className="p-1.5 text-gray-400 hover:text-red-500"
+                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>
                 </div>
+                {r.photoUrls && r.photoUrls.length > 1 && (
+                  <div className="absolute bottom-1 right-1 bg-black/60 text-white px-1.5 py-0.5 rounded-full text-[9px] backdrop-blur-sm">
+                    +{r.photoUrls.length - 1}
+                  </div>
+                )}
               </div>
 
-              {/* Photos */}
-              {r.photoUrls && r.photoUrls.length > 0 && (
-                <div className="flex gap-2 mt-3 overflow-x-auto">
-                  {r.photoUrls.map((url, i) => (
-                    <img key={i} src={url} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                  ))}
-                </div>
-              )}
+              {/* Info */}
+              <div className="px-2 py-1.5">
+                <h3 className="text-[11px] font-bold text-gray-900 truncate">{r.name}</h3>
+                {r.priceRange && <p className="text-[10px] text-gray-400 truncate">{r.priceRange}</p>}
+                {r.genres && r.genres.length > 0 && (
+                  <div className="flex gap-0.5 flex-wrap mt-0.5">
+                    {r.genres.slice(0, 2).map(g => (
+                      <span key={g} className="bg-gray-100 text-gray-500 px-1 py-0 rounded text-[9px]">{g}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Preview Modal — full-size SwipeCard style */}
+      {previewRestaurant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setPreviewRestaurant(null)}>
+          <div className="relative w-full max-w-[320px] h-[460px]" onClick={e => e.stopPropagation()}>
+            <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex flex-col">
+              {/* Photo area */}
+              <div className="w-full h-[68%] bg-gray-100 relative overflow-hidden flex-shrink-0">
+                {previewRestaurant.photoUrls && previewRestaurant.photoUrls.length > 0 ? (
+                  <img src={previewRestaurant.photoUrls[0]} alt={previewRestaurant.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-7xl opacity-30">🍽️</span>
+                  </div>
+                )}
+                {profile && (
+                  <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm">
+                    @{profile.instagramHandle || profile.displayName}
+                  </div>
+                )}
+                {/* Close button */}
+                <button
+                  onClick={() => setPreviewRestaurant(null)}
+                  className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-sm rounded-full text-white hover:bg-black/60 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              </div>
+              {/* Info area */}
+              <div className="px-4 py-3 flex-1 overflow-hidden">
+                <h3 className="text-base font-bold text-gray-900 mb-0.5">{previewRestaurant.name}</h3>
+                <p className="text-xs text-gray-400 mb-2.5">
+                  {[previewRestaurant.address, previewRestaurant.priceRange].filter(Boolean).join(' · ')}
+                </p>
+                <div className="flex gap-1.5 flex-wrap mb-2.5">
+                  {previewRestaurant.genres?.map(g => (
+                    <span key={g} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[11px]">{g}</span>
+                  ))}
+                </div>
+                {previewRestaurant.description && <p className="text-xs text-gray-500 mb-2 line-clamp-2">{previewRestaurant.description}</p>}
+                {previewRestaurant.instagramUrl && (
+                  <a href={previewRestaurant.instagramUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-pink-500 hover:text-pink-600 font-medium">
+                    Instagramで見る →
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

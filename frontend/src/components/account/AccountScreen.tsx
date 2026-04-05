@@ -21,7 +21,7 @@ export function AccountScreen({ stocks }: Props) {
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
   const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
-  const [userRole, setUserRole] = useState<'user' | 'influencer'>('user');
+  const [userRole, setUserRole] = useState<'user' | 'influencer'>(() => (localStorage.getItem('cache:userRole') as 'user' | 'influencer') || 'user');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
   const stockCount = stocks.length;
@@ -33,7 +33,10 @@ export function AccountScreen({ stocks }: Props) {
         setProfileIcon(s.profileIcon);
         localStorage.setItem('cache:profileIcon', s.profileIcon);
       }
-      if (s.role === 'influencer') setUserRole('influencer');
+      if (s.role === 'influencer') {
+        setUserRole('influencer');
+        localStorage.setItem('cache:userRole', 'influencer');
+      }
     }).catch(() => {});
     api.getFollowing().then((f) => {
       setFollowingCount(f.length);
@@ -144,7 +147,7 @@ export function AccountScreen({ stocks }: Props) {
         {userRole === 'influencer' ? (
           <button
             onClick={() => setShowInfluencerDashboard(true)}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+            className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             インフルエンサー管理
           </button>
@@ -183,7 +186,7 @@ export function AccountScreen({ stocks }: Props) {
       {panel === 'influencerRegister' && (
         <InfluencerRegisterPanel
           onClose={() => setPanel(null)}
-          onRegistered={() => { setUserRole('influencer'); setPanel(null); }}
+          onRegistered={() => { setUserRole('influencer'); localStorage.setItem('cache:userRole', 'influencer'); setPanel(null); }}
         />
       )}
 
