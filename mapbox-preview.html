@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Zenly風マップ プレビュー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, sans-serif; background: #0a0a0a; }
+    #map { width: 100vw; height: 100vh; }
+    .mapboxgl-ctrl-attrib { display: none !important; }
+
+    /* キャンペーンピン（ぐるぐる回る） */
+    @keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,180,0,.5); } 50% { transform: scale(1.15); box-shadow: 0 0 12px 4px rgba(255,180,0,.3); } }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .pin-campaign {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .pin-campaign .pin-head {
+      background: linear-gradient(135deg, #ff6b6b, #ffa500, #ffdd00);
+      width: 32px; height: 32px;
+      box-shadow: 0 2px 8px rgba(255,150,0,.5);
+      font-size: 14px;
+    }
+    .pin-campaign .pin-emoji { animation: spin 3s linear infinite; display: inline-block; }
+    .pin-campaign::after { border-top: 14px solid #ffa500; }
+
+    /* ティアドロップ型ピン共通 */
+    .pin-teardrop {
+      width: 30px; height: 40px; position: relative;
+      display: flex; align-items: flex-start; justify-content: center;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+      transition: transform .15s; cursor: pointer;
+    }
+    .pin-teardrop:hover { transform: scale(1.15) translateY(-2px); }
+    .pin-teardrop .pin-head {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 3px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; position: relative; z-index: 1;
+    }
+    .pin-teardrop::after {
+      content: ''; position: absolute; bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+    }
+
+    /* 保存ピン（赤） */
+    .pin-saved { }
+    .pin-saved .pin-head { background: #ff5a5a; }
+    .pin-saved::after { border-top: 14px solid #ff5a5a; }
+
+    /* 行ったピン（緑） */
+    .pin-visited { }
+    .pin-visited .pin-head { background: #4ade80; }
+    .pin-visited::after { border-top: 14px solid #4ade80; }
+
+    /* ユーザー位置 */
+    .pin-user {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #3b82f6; border: 3px solid #fff;
+      box-shadow: 0 0 10px rgba(59,130,246,.5);
+      animation: pulse-blue 2s ease-in-out infinite;
+    }
+    @keyframes pulse-blue { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.4); } 50% { box-shadow: 0 0 12px 6px rgba(59,130,246,.2); } }
+
+    /* インフルエンサーピン */
+    .pin-influencer .pin-head {
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      width: 32px; height: 32px; font-size: 14px; color: #fff; font-weight: 700;
+    }
+    .pin-influencer::after { border-top: 14px solid #a855f7; }
+
+    /* 縮小時：丸だけ（三角を隠す） */
+    .pin-dot::after { display: none !important; }
+
+    /* 凡例 */
+    .legend {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,.92); backdrop-filter: blur(12px);
+      border-radius: 16px; padding: 10px 20px;
+      display: flex; gap: 16px; align-items: center;
+      font-size: 12px; color: #333; font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,.1);
+    }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div style="position:fixed; top:16px; right:16px; z-index:10; display:flex; flex-direction:column; gap:8px;">
+    <button id="toggle3d" onclick="toggle3D()" style="
+      background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
+      border:none; border-radius:12px; padding:10px 16px;
+      font-size:13px; font-weight:600; color:#333;
+      box-shadow:0 4px 20px rgba(0,0,0,.1); cursor:pointer;
+    ">3D → 2D</button>
+    <button id="toggleLabels" onclick="toggleLabels()" style="
+      background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
+      border:none; border-radius:12px; padding:10px 16px;
+      font-size:13px; font-weight:600; color:#333;
+      box-shadow:0 4px 20px rgba(0,0,0,.1); cursor:pointer;
+    ">ラベル非表示</button>
+    <button id="toggleTheme" onclick="cycleTheme()" style="
+      background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
+      border:none; border-radius:12px; padding:10px 16px;
+      font-size:13px; font-weight:600; color:#333;
+      box-shadow:0 4px 20px rgba(0,0,0,.1); cursor:pointer;
+    "></button>
+  </div>
+  <div class="legend">
+    <span><span class="legend-dot" style="background:#ff5a5a"></span>保存</span>
+    <span><span class="legend-dot" style="background:#4ade80"></span>行った</span>
+    <span><span class="legend-dot" style="background:linear-gradient(135deg,#a855f7,#ec4899)"></span>インフルエンサー</span>
+    <span><span class="legend-dot" style="background:linear-gradient(135deg,#ff6b6b,#ffdd00)"></span>キャンペーン</span>
+    <span><span class="legend-dot" style="background:#3b82f6"></span>現在地</span>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN';
+
+    // 時間帯別カラーテーマ（Zenlyコピー）
+    const themes = {
+      morning: { label: '🌅 朝', // 6:00-10:00
+        background: '#f5f5f5', water: '#aadaff', park: '#c8e6c9',
+        buildingFlat: '#e8e8e8', roadCasing: '#e0e0e0', road: '#ffffff',
+        rail: '#bdbdbd', building3d: '#e0e0e0', labelColor: '#333333',
+        labelHalo: '#ffffff', transitColor: '#333333', poiColor: '#333333',
+        poiHalo: 'rgba(255,255,255,0.9)',
+      },
+      day: { label: '☀️ 昼', // 10:00-17:00
+        background: '#f5f5f5', water: '#aadaff', park: '#c8e6c9',
+        buildingFlat: '#e8e8e8', roadCasing: '#e0e0e0', road: '#ffffff',
+        rail: '#bdbdbd', building3d: '#e0e0e0', labelColor: '#333333',
+        labelHalo: '#ffffff', transitColor: '#333333', poiColor: '#333333',
+        poiHalo: 'rgba(255,255,255,0.9)',
+      },
+      evening: { label: '🌇 夕方', // 17:00-20:00
+        background: '#ede8e0', water: '#90c4e8', park: '#a8d5aa',
+        buildingFlat: '#ddd8d0', roadCasing: '#d0ccc5', road: '#f8f5f0',
+        rail: '#b0a8a0', building3d: '#d5d0c8', labelColor: '#333333',
+        labelHalo: '#ede8e0', transitColor: '#333333', poiColor: '#333333',
+        poiHalo: 'rgba(237,232,224,0.9)',
+      },
+      night: { label: '🌙 夜', // 20:00-6:00
+        background: '#1d2c4d', water: '#17263c', park: '#1b3a2a',
+        buildingFlat: '#243b5c', roadCasing: '#2a4470', road: '#3a5a8a',
+        rail: '#3a5070', building3d: '#2a4060', labelColor: '#99aabb',
+        labelHalo: '#1d2c4d', transitColor: '#8ab4f8', poiColor: '#8899aa',
+        poiHalo: 'rgba(29,44,77,0.9)',
+      },
+    };
+
+    function getTimeTheme() {
+      const h = new Date().getHours();
+      if (h >= 6 && h < 10) return 'morning';
+      if (h >= 10 && h < 17) return 'day';
+      if (h >= 17 && h < 20) return 'evening';
+      return 'night';
+    }
+
+    // 色補間ユーティリティ
+    function hexToRgb(hex) {
+      const m = hex.match(/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+      return m ? [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)] : [0,0,0];
+    }
+    function rgbToHex([r,g,b]) {
+      return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+    }
+    function lerpColor(a, b, t) {
+      const ra = hexToRgb(a), rb = hexToRgb(b);
+      return rgbToHex(ra.map((v,i) => v + (rb[i] - v) * t));
+    }
+    function lerpTheme(themeA, themeB, t) {
+      const result = { label: t < 0.5 ? themeA.label : themeB.label };
+      const keys = ['background','water','park','buildingFlat','roadCasing','road',
+        'rail','building3d','labelColor','labelHalo','transitColor','poiColor'];
+      keys.forEach(k => { result[k] = lerpColor(themeA[k], themeB[k], t); });
+      // poiHaloはrgba文字列なのでhex側から生成
+      result.poiHalo = `rgba(${hexToRgb(result.background).join(',')},0.9)`;
+      return result;
+    }
+
+    // 時間帯グラデーション：境界付近で滑らかに補間
+    // 各境界の前後1時間でブレンド
+    function getBlendedTheme() {
+      const now = new Date();
+      const h = now.getHours() + now.getMinutes() / 60;
+      // 境界: 6(night→morning), 10(morning→day), 17(day→evening), 20(evening→night)
+      const transitions = [
+        { at: 6, from: 'night', to: 'morning' },
+        { at: 10, from: 'morning', to: 'day' },
+        { at: 17, from: 'day', to: 'evening' },
+        { at: 20, from: 'evening', to: 'night' },
+      ];
+      const blend = 1; // ブレンド幅（前後1時間）
+      for (const tr of transitions) {
+        const diff = h - tr.at;
+        if (diff >= -blend && diff <= blend) {
+          const t = (diff + blend) / (blend * 2); // 0→1
+          return lerpTheme(themes[tr.from], themes[tr.to], t);
+        }
+      }
+      // 境界外：固定テーマ
+      return themes[getTimeTheme()];
+    }
+
+    let currentTheme = getTimeTheme();
+    let manualTheme = false;
+
+    function getTheme() {
+      if (manualTheme) return themes[currentTheme];
+      return getBlendedTheme();
+    }
+
+    function buildStyle(t) {
+      return {
+        version: 8,
+        name: 'Stoguru Zenly',
+        sources: {
+          'mapbox-streets': {
+            type: 'vector',
+            url: 'mapbox://mapbox.mapbox-streets-v8',
+          },
+        },
+        glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+        layers: [
+          { id: 'background', type: 'background', paint: { 'background-color': t.background } },
+          { id: 'water', type: 'fill', source: 'mapbox-streets', 'source-layer': 'water',
+            paint: { 'fill-color': t.water, 'fill-opacity': 1 } },
+          { id: 'park', type: 'fill', source: 'mapbox-streets', 'source-layer': 'landuse',
+            filter: ['in', 'class', 'park', 'grass', 'cemetery', 'garden'],
+            paint: { 'fill-color': t.park, 'fill-opacity': 0.8 } },
+          { id: 'building-flat', type: 'fill', source: 'mapbox-streets', 'source-layer': 'building',
+            paint: { 'fill-color': t.buildingFlat, 'fill-opacity': 0.7 } },
+          { id: 'building-outline', type: 'line', source: 'mapbox-streets', 'source-layer': 'building',
+            paint: { 'line-color': '#b8b0a5', 'line-width': 0.7, 'line-opacity': 0.8 } },
+          { id: 'road-casing', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
+            filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'],
+            paint: { 'line-color': t.roadCasing, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 14, 6, 16, 10, 20, 22] },
+            layout: { 'line-cap': 'round', 'line-join': 'round' } },
+          { id: 'road', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
+            filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'],
+            paint: { 'line-color': t.road, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 14, 4, 16, 7, 20, 18] },
+            layout: { 'line-cap': 'round', 'line-join': 'round' } },
+          { id: 'rail', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
+            filter: ['==', 'class', 'major_rail'],
+            paint: { 'line-color': t.rail, 'line-width': 2, 'line-dasharray': [3, 3] } },
+          { id: 'building-3d', type: 'fill-extrusion', source: 'mapbox-streets', 'source-layer': 'building',
+            minzoom: 13,
+            filter: ['>=', ['get', 'height'], 100],
+            paint: {
+              'fill-extrusion-color': t.building3d,
+              'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 13, 0, 15.5, ['get', 'height']],
+              'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 13, 0, 15.5, ['get', 'min_height']],
+              'fill-extrusion-opacity': 1,
+            } },
+          { id: 'place-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'place_label',
+            filter: ['in', 'class', 'city', 'town', 'suburb', 'neighbourhood'],
+            layout: {
+              'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+              'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+              'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 16, 16],
+              'text-anchor': 'center',
+            },
+            paint: { 'text-color': t.labelColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5 } },
+          { id: 'transit-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'transit_stop_label',
+            layout: {
+              'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+              'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+              'text-size': 12,
+            },
+            paint: { 'text-color': t.transitColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5 } },
+          { id: 'poi-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'poi_label',
+            minzoom: 14,
+            filter: ['all',
+              ['in', 'class', 'landmark', 'place_of_worship', 'park_like', 'college', 'hospital'],
+            ],
+            layout: {
+              'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+              'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+              'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 18, 13],
+              'text-anchor': 'center',
+              'text-max-width': 8,
+              'text-allow-overlap': false,
+              'symbol-z-elevate': true,
+            },
+            paint: { 'text-color': t.poiColor, 'text-halo-color': t.poiHalo, 'text-halo-width': 2 } },
+        ],
+      };
+    }
+
+    const t = getTheme();
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: buildStyle(t),
+      center: [135.4959, 34.7025],
+      zoom: 15.5,
+      pitch: 50,
+      bearing: -15,
+      attributionControl: false,
+    });
+
+    map.on('load', () => {
+      // 保存ピン（未訪問）
+      const saved = [
+        { lnglat: [135.4980, 34.7040], emoji: '🍝', name: 'トラットリア梅田' },
+        { lnglat: [135.5010, 34.7055], emoji: '🍜', name: '麺屋 極' },
+        { lnglat: [135.4935, 34.7060], emoji: '🍛', name: 'スパイスカレー TADA' },
+        { lnglat: [135.5025, 34.7015], emoji: '🍔', name: 'BURGER STAND' },
+      ];
+      function makePin(cls, emoji) {
+        const wrap = document.createElement('div');
+        wrap.className = 'pin-teardrop ' + cls;
+        const head = document.createElement('div');
+        head.className = 'pin-head';
+        head.textContent = emoji;
+        wrap.appendChild(head);
+        return wrap;
+      }
+
+      saved.forEach(s => {
+        const el = makePin('pin-saved', s.emoji);
+        new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(s.lnglat)
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<b>${s.name}</b>`))
+          .addTo(map);
+      });
+
+      // 行ったピン
+      const visited = [
+        { lnglat: [135.4950, 34.7020], emoji: '🍣', name: '鮨 なかむら' },
+        { lnglat: [135.5000, 34.7030], emoji: '☕', name: 'Café MUGI' },
+      ];
+      visited.forEach(s => {
+        const el = makePin('pin-visited', s.emoji);
+        new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(s.lnglat)
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<b>${s.name}</b><br><span style="color:#22c55e;font-size:11px">✓ visited</span>`))
+          .addTo(map);
+      });
+
+      // キャンペーンピン（ぐるぐる）
+      const campaignEl = makePin('pin-campaign', '');
+      const campaignEmoji = document.createElement('span');
+      campaignEmoji.className = 'pin-emoji';
+      campaignEmoji.textContent = '🔥';
+      campaignEl.querySelector('.pin-head').textContent = '';
+      campaignEl.querySelector('.pin-head').appendChild(campaignEmoji);
+      new mapboxgl.Marker({ element: campaignEl, anchor: 'bottom' }).setLngLat([135.4970, 34.7045])
+        .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML('<b>🔥 焼肉ホルモン 龍</b><br><span style="color:#f59e0b;font-size:11px">キャンペーン中！20%OFF</span>'))
+        .addTo(map);
+
+      // インフルエンサーピン
+      const influencerEl = makePin('pin-influencer', 'S');
+      new mapboxgl.Marker({ element: influencerEl, anchor: 'bottom' }).setLngLat([135.4990, 34.7050])
+        .setPopup(new mapboxgl.Popup({ offset: 30 }).setHTML('<b>@suimy のおすすめ</b><br><span style="font-size:11px;color:#a855f7">韓国料理 ソウル食堂</span>'))
+        .addTo(map);
+
+      // 現在地
+      const user = document.createElement('div');
+      user.className = 'pin-user';
+      new mapboxgl.Marker({ element: user }).setLngLat([135.4965, 34.7035]).addTo(map);
+
+      // ズームでピンサイズ変更（縮小→小さい丸、拡大→ティアドロップ）
+      const allPins = document.querySelectorAll('.pin-teardrop');
+      function updatePinSize() {
+        const z = map.getZoom();
+        allPins.forEach(wrap => {
+          const head = wrap.querySelector('.pin-head');
+          if (z < 14) {
+            wrap.style.width = '10px'; wrap.style.height = '10px';
+            head.style.width = '10px'; head.style.height = '10px';
+            head.style.fontSize = '0px'; head.style.borderWidth = '2px';
+            wrap.style.filter = 'none';
+            // 三角を隠す
+            wrap.classList.add('pin-dot');
+          } else if (z < 15.5) {
+            wrap.style.width = '18px'; wrap.style.height = '18px';
+            head.style.width = '18px'; head.style.height = '18px';
+            head.style.fontSize = '0px'; head.style.borderWidth = '2px';
+            wrap.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,.2))';
+            wrap.classList.add('pin-dot');
+          } else {
+            wrap.style.width = ''; wrap.style.height = '';
+            head.style.width = ''; head.style.height = '';
+            head.style.fontSize = ''; head.style.borderWidth = '';
+            wrap.style.filter = '';
+            wrap.classList.remove('pin-dot');
+          }
+        });
+      }
+      map.on('zoom', updatePinSize);
+      updatePinSize();
+    });
+
+    // 初期ラベル
+    document.getElementById('toggleTheme').textContent = getTheme().label;
+
+    function cycleTheme() {
+      manualTheme = true;
+      const order = ['morning', 'day', 'evening', 'night'];
+      const idx = order.indexOf(currentTheme);
+      applyTheme(order[(idx + 1) % order.length]);
+    }
+
+    // 自動グラデーション更新（1分ごと）
+    setInterval(() => {
+      if (manualTheme) return;
+      const t = getBlendedTheme();
+      applyThemeColors(t);
+    }, 60000);
+
+    function applyThemeColors(t) {
+      if (!map.isStyleLoaded()) return;
+      map.setPaintProperty('background', 'background-color', t.background);
+      map.setPaintProperty('water', 'fill-color', t.water);
+      map.setPaintProperty('park', 'fill-color', t.park);
+      map.setPaintProperty('building-flat', 'fill-color', t.buildingFlat);
+      map.setPaintProperty('road-casing', 'line-color', t.roadCasing);
+      map.setPaintProperty('road', 'line-color', t.road);
+      map.setPaintProperty('rail', 'line-color', t.rail);
+      map.setPaintProperty('building-3d', 'fill-extrusion-color', t.building3d);
+      map.setPaintProperty('place-label', 'text-color', t.labelColor);
+      map.setPaintProperty('place-label', 'text-halo-color', t.labelHalo);
+      map.setPaintProperty('transit-label', 'text-color', t.transitColor);
+      map.setPaintProperty('transit-label', 'text-halo-color', t.labelHalo);
+      map.setPaintProperty('poi-label', 'text-color', t.poiColor);
+      map.setPaintProperty('poi-label', 'text-halo-color', t.poiHalo);
+      document.getElementById('toggleTheme').textContent = t.label;
+    }
+
+    // テーマ切り替え（ペイントプロパティだけ差し替え）
+    function applyTheme(name) {
+      currentTheme = name;
+      const t = getTheme();
+      map.setPaintProperty('background', 'background-color', t.background);
+      map.setPaintProperty('water', 'fill-color', t.water);
+      map.setPaintProperty('park', 'fill-color', t.park);
+      map.setPaintProperty('building-flat', 'fill-color', t.buildingFlat);
+      map.setPaintProperty('road-casing', 'line-color', t.roadCasing);
+      map.setPaintProperty('road', 'line-color', t.road);
+      map.setPaintProperty('rail', 'line-color', t.rail);
+      map.setPaintProperty('building-3d', 'fill-extrusion-color', t.building3d);
+      map.setPaintProperty('place-label', 'text-color', t.labelColor);
+      map.setPaintProperty('place-label', 'text-halo-color', t.labelHalo);
+      map.setPaintProperty('transit-label', 'text-color', t.transitColor);
+      map.setPaintProperty('transit-label', 'text-halo-color', t.labelHalo);
+      map.setPaintProperty('poi-label', 'text-color', t.poiColor);
+      map.setPaintProperty('poi-label', 'text-halo-color', t.poiHalo);
+      document.body.style.background = name === 'night' ? '#0a0a1a' : '#0a0a0a';
+      document.getElementById('toggleTheme').textContent = getTheme().label;
+    }
+
+
+    let is3D = true;
+    let labelsOn = true;
+    const labelLayers = ['place-label', 'transit-label', 'poi-label'];
+
+    function toggle3D() {
+      const btn = document.getElementById('toggle3d');
+      if (is3D) {
+        // → 2D: 建物非表示、POIラベル表示
+        map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+        map.setLayoutProperty('building-3d', 'visibility', 'none');
+        if (labelsOn) map.setLayoutProperty('poi-label', 'visibility', 'visible');
+        btn.textContent = '2D → 3D';
+      } else {
+        // → 3D: 建物表示、POIラベル非表示（貫通防止）
+        map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
+        map.setLayoutProperty('building-3d', 'visibility', 'visible');
+        map.setLayoutProperty('poi-label', 'visibility', 'none');
+        btn.textContent = '3D → 2D';
+      }
+      is3D = !is3D;
+    }
+
+    function toggleLabels() {
+      const btn = document.getElementById('toggleLabels');
+      labelsOn = !labelsOn;
+      const vis = labelsOn ? 'visible' : 'none';
+      labelLayers.forEach(id => {
+        // 3DモードではPOIラベルは常に非表示
+        if (id === 'poi-label' && is3D) {
+          map.setLayoutProperty(id, 'visibility', 'none');
+        } else {
+          map.setLayoutProperty(id, 'visibility', vis);
+        }
+      });
+      btn.textContent = labelsOn ? 'ラベル非表示' : 'ラベル表示';
+    }
+  </script>
+</body>
+</html>
