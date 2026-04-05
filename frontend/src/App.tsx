@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGPS } from './hooks/useGPS';
 import { OnboardingScreen } from './components/onboarding/OnboardingScreen';
@@ -7,10 +7,13 @@ import { AuthScreen } from './components/auth/AuthScreen';
 import { SwipeScreen } from './components/swipe/SwipeScreen';
 import { StockScreen } from './components/stock/StockScreen';
 import type { StockedRestaurant } from './components/stock/StockScreen';
-import { SimpleMapView as SimpleMapViewGoogle } from './components/map/SimpleMapView';
-import { SimpleMapViewMapbox } from './components/map/SimpleMapViewMapbox';
-const SimpleMapView = import.meta.env.VITE_MAP_PROVIDER === 'mapbox' ? SimpleMapViewMapbox : SimpleMapViewGoogle;
 import { AccountScreen } from './components/account/AccountScreen';
+
+const LazyMapView = lazy(() =>
+  import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
+    ? import('./components/map/SimpleMapViewMapbox').then(m => ({ default: m.SimpleMapViewMapbox }))
+    : import('./components/map/SimpleMapView').then(m => ({ default: m.SimpleMapView }))
+);
 import type { SwipeRestaurant } from './data/mockRestaurants';
 import { MOCK_RESTAURANTS } from './data/mockRestaurants';
 import * as api from './utils/api';
@@ -163,14 +166,16 @@ function MainApp() {
           />
         )}
         {tab === 'map' && (
-          <SimpleMapView
-            stocks={stocks}
-            panTo={panTo}
-            onPanComplete={() => setPanTo(null)}
-            userPosition={position}
-            compassGranted={compassGranted}
-            requestCompass={requestCompass}
-          />
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">マップを読み込み中...</p></div>}>
+            <LazyMapView
+              stocks={stocks}
+              panTo={panTo}
+              onPanComplete={() => setPanTo(null)}
+              userPosition={position}
+              compassGranted={compassGranted}
+              requestCompass={requestCompass}
+            />
+          </Suspense>
         )}
         {tab === 'account' && (
           <AccountScreen stocks={stocks} />
