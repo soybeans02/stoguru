@@ -189,11 +189,11 @@ export function InfluencerDashboard({ onBack }: Props) {
               profile.instagramUrl ? (
                 <a href={profile.instagramUrl} target="_blank" rel="noopener noreferrer"
                   className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100 hover:bg-pink-50 transition-colors">
-                  IG: @{profile.instagramHandle}
+                  ID: @{profile.instagramHandle}
                 </a>
               ) : (
                 <span className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100">
-                  IG: @{profile.instagramHandle}
+                  ID: @{profile.instagramHandle}
                 </span>
               )
             )}
