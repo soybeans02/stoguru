@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
+import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
 
 interface Props {
   stocks: StockedRestaurant[];
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount';
+type Panel = null | 'password' | 'email' | 'deleteAccount' | 'influencerRegister';
 type ListPanel = null | 'stocks' | 'visited' | 'following';
 
 export function AccountScreen({ stocks }: Props) {
@@ -20,6 +21,8 @@ export function AccountScreen({ stocks }: Props) {
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
   const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
+  const [userRole, setUserRole] = useState<'user' | 'influencer'>('user');
+  const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
   const stockCount = stocks.length;
   const visitedCount = stocks.filter((s) => s.visited).length;
@@ -30,6 +33,7 @@ export function AccountScreen({ stocks }: Props) {
         setProfileIcon(s.profileIcon);
         localStorage.setItem('cache:profileIcon', s.profileIcon);
       }
+      if (s.role === 'influencer') setUserRole('influencer');
     }).catch(() => {});
     api.getFollowing().then((f) => {
       setFollowingCount(f.length);
@@ -60,6 +64,10 @@ export function AccountScreen({ stocks }: Props) {
     try {
       await api.putSettings({ profileIcon: icon });
     } catch {}
+  }
+
+  if (showInfluencerDashboard) {
+    return <InfluencerDashboard onBack={() => setShowInfluencerDashboard(false)} />;
   }
 
   return (
@@ -131,6 +139,25 @@ export function AccountScreen({ stocks }: Props) {
         </button>
       </div>
 
+      {/* Influencer Section */}
+      <div className="mb-6">
+        {userRole === 'influencer' ? (
+          <button
+            onClick={() => setShowInfluencerDashboard(true)}
+            className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            インフルエンサー管理
+          </button>
+        ) : (
+          <button
+            onClick={() => setPanel('influencerRegister')}
+            className="w-full py-3 bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
+          >
+            インフルエンサー登録
+          </button>
+        )}
+      </div>
+
       {/* Menu */}
       <div className="space-y-0">
         <MenuItem label="パスワード変更" onClick={() => setPanel('password')} />
@@ -152,6 +179,12 @@ export function AccountScreen({ stocks }: Props) {
       )}
       {panel === 'deleteAccount' && (
         <DeleteAccountPanel onClose={() => setPanel(null)} onDeleted={logout} />
+      )}
+      {panel === 'influencerRegister' && (
+        <InfluencerRegisterPanel
+          onClose={() => setPanel(null)}
+          onRegistered={() => { setUserRole('influencer'); setPanel(null); }}
+        />
       )}
 
       {/* List panels */}
@@ -375,6 +408,72 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
           {loading ? '...' : 'アカウントを削除する'}
         </button>
       </div>
+    </Overlay>
+  );
+}
+
+/* ─── インフルエンサー登録パネル ─── */
+
+function InfluencerRegisterPanel({ onClose, onRegistered }: { onClose: () => void; onRegistered: () => void }) {
+  const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState('');
+  const [instagramHandle, setInstagramHandle] = useState('');
+  const [tiktokHandle, setTiktokHandle] = useState('');
+  const [youtubeHandle, setYoutubeHandle] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!displayName.trim()) {
+      setError('表示名は必須です');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await api.registerInfluencer({
+        displayName: displayName.trim(),
+        bio: bio.trim() || undefined,
+        instagramHandle: instagramHandle.trim() || undefined,
+        tiktokHandle: tiktokHandle.trim() || undefined,
+        youtubeHandle: youtubeHandle.trim() || undefined,
+        genres: [],
+      });
+      onRegistered();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Overlay title="インフルエンサー登録" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-xs text-gray-500 mb-2">
+          インフルエンサーとして登録すると、おすすめレストランを公開できます。
+        </p>
+        <FormInput label="表示名 *" value={displayName} onChange={setDisplayName} placeholder="あなたの表示名" autoFocus />
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">自己紹介</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={500}
+            rows={3}
+            placeholder="自己紹介を入力..."
+            className="w-full rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm resize-none"
+          />
+        </div>
+        <FormInput label="Instagram" value={instagramHandle} onChange={setInstagramHandle} placeholder="username" />
+        <FormInput label="TikTok" value={tiktokHandle} onChange={setTiktokHandle} placeholder="username" />
+        <FormInput label="YouTube" value={youtubeHandle} onChange={setYoutubeHandle} placeholder="channel" />
+        {error && <p className="text-red-500 text-xs">{error}</p>}
+        <button type="submit" disabled={loading || !displayName.trim()} className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+          {loading ? '...' : '登録する'}
+        </button>
+      </form>
     </Overlay>
   );
 }

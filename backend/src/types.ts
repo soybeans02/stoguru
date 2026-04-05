@@ -34,6 +34,7 @@ export interface UserSettings {
   influencers: string[];
   categories: string[];
   isPrivate?: boolean;
+  role?: 'user' | 'influencer';
   updatedAt?: number;
 }
 
@@ -47,6 +48,36 @@ export interface FollowRequest {
   targetId: string;
   requesterId: string;
   createdAt: number;
+}
+
+export interface InfluencerProfile {
+  influencerId: string;
+  displayName: string;
+  bio?: string;
+  instagramHandle?: string;
+  tiktokHandle?: string;
+  youtubeHandle?: string;
+  profilePhotoUrl?: string;
+  genres: string[];
+  isVerified: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface InfluencerRestaurant {
+  influencerId: string;
+  restaurantId: string;
+  name: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  genre?: string;
+  priceRange?: string;
+  photoUrls: string[];
+  videoUrl?: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted' | 'message_request' | 'message';

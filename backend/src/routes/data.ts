@@ -12,11 +12,30 @@ import {
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
-import { validate, restaurantSchema, settingsSchema, messageSchema, shareSchema } from '../validators';
+import { validate, restaurantSchema, settingsSchema, messageSchema, shareSchema, nearbySchema } from '../validators';
+import { haversineDistance } from '../utils/geo';
 
 const router = Router();
 
 // ─── レストラン ───
+
+router.get('/restaurants/nearby', requireAuth, async (req: AuthRequest, res: Response) => {
+  const v = validate(nearbySchema, req.query);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const { lat, lng, radius } = v.data;
+
+  const items = await getRestaurants(req.user!.userId);
+  const nearby = items
+    .filter((r) => r.lat != null && r.lng != null)
+    .map((r) => {
+      const distanceMeters = haversineDistance(lat, lng, r.lat!, r.lng!);
+      return { ...r, distanceMeters };
+    })
+    .filter((r) => r.distanceMeters <= radius)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+  res.json(nearby);
+});
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const items = await getRestaurants(req.user!.userId);

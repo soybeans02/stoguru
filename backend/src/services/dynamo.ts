@@ -15,6 +15,8 @@ import type {
   FollowRequest,
   Notification,
   NotificationType,
+  InfluencerProfile,
+  InfluencerRestaurant,
 } from '../types';
 
 const rawClient = new DynamoDBClient({ region: 'ap-northeast-1' });
@@ -31,6 +33,8 @@ const TABLE = {
   conversations: 'GourmetStock_Conversations',
   messages: 'GourmetStock_Messages',
   shares: 'GourmetStock_Shares',
+  influencerProfiles: 'GourmetStock_InfluencerProfiles',
+  influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
 } as const;
 
 // ─── レストラン ───
@@ -345,6 +349,47 @@ export async function getMessages(conversationId: string, limit = 200) {
     Limit: limit,
   }));
   return result.Items ?? [];
+}
+
+// ─── インフルエンサー ───
+
+export async function putInfluencerProfile(influencerId: string, data: Partial<InfluencerProfile>) {
+  await db.send(new PutCommand({
+    TableName: TABLE.influencerProfiles,
+    Item: { influencerId, ...data, updatedAt: Date.now() },
+  }));
+}
+
+export async function getInfluencerProfile(influencerId: string): Promise<InfluencerProfile | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.influencerProfiles,
+    Key: { influencerId },
+  }));
+  return (result.Item as InfluencerProfile) ?? null;
+}
+
+export async function putInfluencerRestaurant(influencerId: string, restaurant: Partial<InfluencerRestaurant> & { restaurantId: string }) {
+  await db.send(new PutCommand({
+    TableName: TABLE.influencerRestaurants,
+    Item: { influencerId, ...restaurant, updatedAt: Date.now() },
+  }));
+}
+
+export async function getInfluencerRestaurants(influencerId: string): Promise<InfluencerRestaurant[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.influencerRestaurants,
+    KeyConditionExpression: 'influencerId = :iid',
+    ExpressionAttributeValues: { ':iid': influencerId },
+    Limit: 500,
+  }));
+  return (result.Items ?? []) as InfluencerRestaurant[];
+}
+
+export async function deleteInfluencerRestaurant(influencerId: string, restaurantId: string) {
+  await db.send(new DeleteCommand({
+    TableName: TABLE.influencerRestaurants,
+    Key: { influencerId, restaurantId },
+  }));
 }
 
 export async function deleteAllUserData(userId: string) {

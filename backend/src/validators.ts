@@ -110,6 +110,44 @@ export const shareSchema = z.object({
   comment: z.string().max(500).optional(),
 });
 
+// ─── 近隣検索 ───
+
+export const nearbySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radius: z.coerce.number().min(100).max(50000).default(3000),
+});
+
+// ─── インフルエンサー ───
+
+export const influencerRegisterSchema = z.object({
+  displayName: z.string().min(1, '表示名は必須です').max(50, '表示名は50文字以内にしてください').trim(),
+  bio: z.string().max(500, '自己紹介は500文字以内にしてください').optional(),
+  instagramHandle: z.string().max(100).optional(),
+  tiktokHandle: z.string().max(100).optional(),
+  youtubeHandle: z.string().max(100).optional(),
+  genres: z.array(z.string().max(50)).max(10, 'ジャンルは10個まで').default([]),
+});
+
+export const influencerRestaurantSchema = z.object({
+  name: z.string().min(1, '店名は必須です').max(100, '店名は100文字以内にしてください').trim(),
+  address: z.string().max(200).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  genre: z.string().max(50).optional(),
+  priceRange: z.string().max(50).optional(),
+  photoUrls: z.array(z.string().url().max(500)).max(10, '写真は10枚まで').default([]),
+  videoUrl: z.string().max(500).optional(),
+  description: z.string().max(1000).optional(),
+});
+
+// ─── 写真アップロード ───
+
+export const presignSchema = z.object({
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  filename: z.string().min(1).max(255),
+});
+
 // ─── ユーティリティ ───
 
 export function validate<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; error: string } {

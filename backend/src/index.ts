@@ -5,7 +5,9 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRouter from './routes/auth';
 import dataRouter from './routes/data';
+import uploadRouter from './routes/upload';
 import adminRouter from './routes/admin';
+import influencerRouter from './routes/influencer';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 import { stats, userActivity } from './state';
 // rate limiter uses `any` for keyGenerator to avoid Express type conflicts
@@ -133,6 +135,8 @@ app.use('/api', (req, _res, next) => {
   writeLimit(req, _res, next);
 });
 app.use('/api', dataRouter);
+app.use('/api', uploadRouter);
+app.use('/api/influencer', influencerRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 

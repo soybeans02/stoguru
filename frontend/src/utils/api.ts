@@ -50,6 +50,13 @@ export async function deleteRestaurant(id: string) {
   if (!res.ok) throw new Error('Failed to delete restaurant');
 }
 
+export async function fetchNearbyRestaurants(lat: number, lng: number, radius: number) {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), radius: String(radius) });
+  const res = await fetchWithRetry(`${BASE}/restaurants/nearby?${params}`, { headers: headers() });
+  if (!res.ok) throw new Error('Failed to fetch nearby restaurants');
+  return res.json();
+}
+
 export async function fetchSettings() {
   const res = await fetchWithRetry(`${BASE}/settings`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch settings');
@@ -265,5 +272,94 @@ export async function rejectMessageRequest(targetId: string) {
     method: 'POST', headers: headers(),
   });
   if (!res.ok) throw new Error('Failed to reject');
+}
+
+// ─── 写真アップロード ───
+
+export async function getPresignedUploadUrl(contentType: string, filename: string): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
+  const res = await fetchWithRetry(`${BASE}/upload/presign`, {
+    method: 'POST', headers: headers(),
+    body: JSON.stringify({ contentType, filename }),
+  });
+  if (!res.ok) throw new Error('プリサインドURL取得に失敗しました');
+  return res.json();
+}
+
+export async function uploadPhoto(file: File): Promise<string> {
+  const { uploadUrl, publicUrl } = await getPresignedUploadUrl(file.type, file.name);
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!uploadRes.ok) throw new Error('写真のアップロードに失敗しました');
+  return publicUrl;
+}
+
+export async function deletePhoto(key: string) {
+  const res = await fetchWithRetry(`${BASE}/upload/${encodeURIComponent(key)}`, {
+    method: 'DELETE', headers: headers(),
+  });
+  if (!res.ok) throw new Error('写真の削除に失敗しました');
+}
+
+// ─── インフルエンサー ───
+
+export async function registerInfluencer(data: { displayName: string; bio?: string; instagramHandle?: string; tiktokHandle?: string; youtubeHandle?: string; genres?: string[] }) {
+  const res = await fetchWithRetry(`${BASE}/influencer/register`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'インフルエンサー登録に失敗しました' }));
+    throw new Error(err.error || 'インフルエンサー登録に失敗しました');
+  }
+  return res.json();
+}
+
+export async function getInfluencerProfile() {
+  const res = await fetchWithRetry(`${BASE}/influencer/profile`, { headers: headers() });
+  if (!res.ok) throw new Error('プロフィール取得に失敗しました');
+  return res.json();
+}
+
+export async function updateInfluencerProfile(data: { displayName: string; bio?: string; instagramHandle?: string; tiktokHandle?: string; youtubeHandle?: string; genres?: string[] }) {
+  const res = await fetchWithRetry(`${BASE}/influencer/profile`, {
+    method: 'PUT', headers: headers(), body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('プロフィール更新に失敗しました');
+  return res.json();
+}
+
+export async function getInfluencerRestaurants() {
+  const res = await fetchWithRetry(`${BASE}/influencer/restaurants`, { headers: headers() });
+  if (!res.ok) throw new Error('レストラン一覧取得に失敗しました');
+  return res.json();
+}
+
+export async function putInfluencerRestaurant(id: string, data: Record<string, unknown>) {
+  const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}`, {
+    method: 'PUT', headers: headers(), body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('レストラン保存に失敗しました');
+  return res.json();
+}
+
+export async function deleteInfluencerRestaurant(id: string) {
+  const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}`, {
+    method: 'DELETE', headers: headers(),
+  });
+  if (!res.ok) throw new Error('レストラン削除に失敗しました');
+}
+
+export async function getPublicInfluencerProfile(id: string) {
+  const res = await fetchWithRetry(`${BASE}/influencer/${id}/public`, { headers: headers() });
+  if (!res.ok) throw new Error('プロフィール取得に失敗しました');
+  return res.json();
+}
+
+export async function getPublicInfluencerRestaurants(id: string) {
+  const res = await fetchWithRetry(`${BASE}/influencer/${id}/restaurants`, { headers: headers() });
+  if (!res.ok) throw new Error('レストラン一覧取得に失敗しました');
+  return res.json();
 }
 
