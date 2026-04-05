@@ -76,6 +76,7 @@ export interface InfluencerRestaurant {
   priceRange?: string;
   photoUrls: string[];
   videoUrl?: string;
+  instagramUrl?: string;
   description?: string;
   createdAt: number;
   updatedAt: number;

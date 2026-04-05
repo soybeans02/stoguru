@@ -26,6 +26,7 @@ interface InfluencerRestaurant {
   priceRange?: string;
   photoUrls: string[];
   videoUrl?: string;
+  instagramUrl?: string;
   description?: string;
   createdAt: number;
   updatedAt: number;
@@ -293,6 +294,13 @@ export function InfluencerDashboard({ onBack }: Props) {
                     {r.genres?.map(g => <span key={g} className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{g}</span>)}
                     {r.priceRange && <span className="text-[11px] bg-white text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">{r.priceRange}</span>}
                   </div>
+                  {r.instagramUrl && (
+                    <a href={r.instagramUrl} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-xs text-pink-500 hover:text-pink-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                      Instagramで見る
+                    </a>
+                  )}
                   {r.description && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{r.description}</p>}
                 </div>
                 <div className="flex gap-1 ml-2 flex-shrink-0">

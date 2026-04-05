@@ -14,6 +14,7 @@ interface InfluencerRestaurant {
   priceRange?: string;
   photoUrls: string[];
   videoUrl?: string;
+  instagramUrl?: string;
   description?: string;
   createdAt: number;
   updatedAt: number;
@@ -54,6 +55,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [priceRange, setPriceRange] = useState(editing?.priceRange ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(editing?.photoUrls ?? []);
   const [videoUrl, setVideoUrl] = useState(editing?.videoUrl ?? '');
+  const [instagramUrl, setInstagramUrl] = useState(editing?.instagramUrl ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -182,6 +184,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
     if (placeId) data.placeId = placeId;
     if (priceRange) data.priceRange = priceRange;
     if (videoUrl.trim()) data.videoUrl = videoUrl.trim();
+    if (instagramUrl.trim()) data.instagramUrl = instagramUrl.trim();
     if (description.trim()) data.description = description.trim();
 
     try {
@@ -305,6 +308,14 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
           <div>
             <label className="block text-xs text-gray-400 mb-1">写真（最大10枚）</label>
             <PhotoUpload photos={photoUrls} onChange={setPhotoUrls} maxPhotos={10} />
+          </div>
+
+          {/* Instagram URL */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Instagram URL</label>
+            <input value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} maxLength={500}
+              placeholder="https://www.instagram.com/p/..."
+              className="w-full rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
           </div>
 
           {/* Video URL */}
