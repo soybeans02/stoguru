@@ -198,7 +198,7 @@ function applyThemeColors(map: mapboxgl.Map, t: Theme) {
 }
 
 // ティアドロップ型ピン画像をCanvasで生成 → ImageData返却（Mapbox addImage互換）
-function createPinImage(color: string, size: number = 40): { width: number; height: number; data: Uint8ClampedArray } {
+function createPinImage(color: string, size: number = 40): { width: number; height: number; data: Uint8Array } {
   const w = size;
   const h = Math.round(size * 1.3);
   const canvas = document.createElement('canvas');
@@ -245,10 +245,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [labelsOn, setLabelsOn] = useState(true);
   const [is3D, setIs3D] = useState(true);
-  const [themeLabel, setThemeLabel] = useState(() => getBlendedTheme().label);
+  const [, setThemeLabel] = useState(() => getBlendedTheme().label);
   const initialCenterSet = useRef(false);
-  const manualThemeRef = useRef(false);
-  const currentThemeRef = useRef(getTimeThemeName());
   const mapLoadedRef = useRef(false);
 
   // Init map
@@ -301,7 +299,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         paint: { 'circle-radius': 5, 'circle-color': '#3b82f6' } });
 
       // クリックハンドラ
-      const handleClick = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapGeoJSONFeature[] }, offset: number) => {
+      const handleClick = (e: mapboxgl.MapMouseEvent & { features?: GeoJSON.Feature[] }, offset: number) => {
         if (!e.features?.length) return;
         const f = e.features[0];
         const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
@@ -364,7 +362,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
     // 自動グラデーション更新（1分ごと）
     const timer = setInterval(() => {
-      if (manualThemeRef.current || !mapRef.current) return;
+      if (!mapRef.current) return;
       const blended = getBlendedTheme();
       applyThemeColors(mapRef.current, blended);
       setThemeLabel(blended.label);
@@ -463,20 +461,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     });
     setLabelsOn(next);
   }, [labelsOn, is3D]);
-
-  // Cycle theme manually
-  const handleCycleTheme = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    manualThemeRef.current = true;
-    const order = ['morning', 'day', 'evening', 'night'];
-    const idx = order.indexOf(currentThemeRef.current);
-    const next = order[(idx + 1) % order.length];
-    currentThemeRef.current = next;
-    const t = themes[next];
-    applyThemeColors(map, t);
-    setThemeLabel(t.label);
-  }, []);
 
   return (
     <div className="flex-1 relative">
