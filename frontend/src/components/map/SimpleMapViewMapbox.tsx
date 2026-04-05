@@ -246,6 +246,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [labelsOn, setLabelsOn] = useState(true);
   const [is3D, setIs3D] = useState(true);
   const [, setThemeLabel] = useState(() => getBlendedTheme().label);
+  const [mapMode, setMapMode] = useState<'standard' | '3d' | 'simple'>('3d');
+  const [modePickerOpen, setModePickerOpen] = useState(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
 
@@ -430,37 +432,40 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     updateData(stocks, userPosition);
   }, [stocks, userPosition, updateData]);
 
-  // Toggle 3D
-  const handleToggle3D = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (is3D) {
-      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
-      map.setLayoutProperty('building-3d', 'visibility', 'none');
-      if (labelsOn) map.setLayoutProperty('poi-label', 'visibility', 'visible');
-    } else {
-      map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
-      map.setLayoutProperty('building-3d', 'visibility', 'visible');
-      map.setLayoutProperty('poi-label', 'visibility', 'none');
-    }
-    setIs3D(!is3D);
-  }, [is3D, labelsOn]);
 
   // Toggle labels
-  const handleToggleLabels = useCallback(() => {
+  const handleToggleLabels = useCallback((show: boolean) => {
     const map = mapRef.current;
     if (!map) return;
-    const next = !labelsOn;
-    const vis = next ? 'visible' : 'none';
+    const vis = show ? 'visible' : 'none';
     LABEL_LAYERS.forEach(id => {
-      if (id === 'poi-label' && is3D) {
-        map.setLayoutProperty(id, 'visibility', 'none');
-      } else {
-        map.setLayoutProperty(id, 'visibility', vis);
-      }
+      map.setLayoutProperty(id, 'visibility', vis);
     });
-    setLabelsOn(next);
-  }, [labelsOn, is3D]);
+    setLabelsOn(show);
+  }, []);
+
+  // Switch map mode
+  const handleSwitchMode = useCallback((mode: 'standard' | '3d' | 'simple') => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (mode === '3d') {
+      map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
+      try { map.setLayoutProperty('building-3d', 'visibility', 'visible'); } catch {}
+      setIs3D(true);
+      handleToggleLabels(true);
+    } else if (mode === 'standard') {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+      try { map.setLayoutProperty('building-3d', 'visibility', 'none'); } catch {}
+      setIs3D(false);
+      handleToggleLabels(true);
+    } else if (mode === 'simple') {
+      handleToggleLabels(false);
+    }
+
+    setMapMode(mode);
+    setModePickerOpen(false);
+  }, [handleToggleLabels]);
 
   return (
     <div className="flex-1 relative">
@@ -471,21 +476,50 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       `}</style>
       <div ref={containerRef} className="w-full h-full" />
 
-      {/* Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-        <button
-          onClick={handleToggle3D}
-          className="bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 text-[13px] font-semibold text-gray-700 shadow-sm"
-        >
-          {is3D ? '3D → 2D' : '2D → 3D'}
-        </button>
-        <button
-          onClick={handleToggleLabels}
-          className="bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 text-[13px] font-semibold text-gray-700 shadow-sm"
-        >
-          {labelsOn ? 'ラベル非表示' : 'ラベル表示'}
-        </button>
-      </div>
+      {/* Map mode button */}
+      <button
+        onClick={() => setModePickerOpen(!modePickerOpen)}
+        className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      </button>
+
+      {/* Map mode picker */}
+      {modePickerOpen && (
+        <>
+          <div className="absolute inset-0 z-20" onClick={() => setModePickerOpen(false)} />
+          <div className="absolute top-16 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
+            <p className="text-white text-sm font-bold text-center mb-3">地図モード</p>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { id: 'standard', label: '2D', color: '#f5f5f5', icon: '🗺️' },
+                { id: '3d', label: '3D', color: '#e0e0e0', icon: '🏙️' },
+                { id: 'simple', label: 'シンプル', color: '#f0f0f0', icon: '◻️' },
+              ] as const).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => handleSwitchMode(m.id)}
+                  className="flex flex-col items-center gap-1.5"
+                >
+                  <div
+                    className={`w-16 h-16 rounded-xl flex items-center justify-center text-2xl transition-all ${
+                      mapMode === m.id
+                        ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
+                        : 'ring-1 ring-white/20'
+                    }`}
+                    style={{ backgroundColor: m.color }}
+                  >
+                    {m.icon}
+                  </div>
+                  <span className={`text-[10px] font-medium ${mapMode === m.id ? 'text-blue-400' : 'text-gray-400'}`}>
+                    {m.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-10 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1.5 flex gap-2 text-[10px] text-gray-600 shadow-sm">
