@@ -31,11 +31,11 @@ interface Theme {
 const themes: Record<string, Theme> = {
   morning: {
     label: '🌅 朝',
-    background: '#f5f5f5', water: '#aadaff', park: '#c8e6c9',
-    buildingFlat: '#e8e8e8', roadCasing: '#e0e0e0', road: '#ffffff',
-    rail: '#bdbdbd', building3d: '#e0e0e0', labelColor: '#333333',
-    labelHalo: '#ffffff', transitColor: '#333333', poiColor: '#333333',
-    poiHalo: 'rgba(255,255,255,0.9)',
+    background: '#fff5ee', water: '#a8c8e8', park: '#b8d4a8',
+    buildingFlat: '#f0ddd0', roadCasing: '#e8d8cc', road: '#fff8f2',
+    rail: '#c8b8a8', building3d: '#e8d5c8', labelColor: '#4a3830',
+    labelHalo: '#fff5ee', transitColor: '#4a3830', poiColor: '#5a4840',
+    poiHalo: 'rgba(255,245,238,0.9)',
   },
   day: {
     label: '☀️ 昼',
@@ -47,27 +47,27 @@ const themes: Record<string, Theme> = {
   },
   evening: {
     label: '🌇 夕方',
-    background: '#ede8e0', water: '#90c4e8', park: '#a8d5aa',
-    buildingFlat: '#ddd8d0', roadCasing: '#d0ccc5', road: '#f8f5f0',
-    rail: '#b0a8a0', building3d: '#d5d0c8', labelColor: '#333333',
-    labelHalo: '#ede8e0', transitColor: '#333333', poiColor: '#333333',
-    poiHalo: 'rgba(237,232,224,0.9)',
+    background: '#c8886a', water: '#6888a8', park: '#6a8858',
+    buildingFlat: '#b87860', roadCasing: '#a87058', road: '#d8a888',
+    rail: '#987060', building3d: '#b07058', labelColor: '#3a2018',
+    labelHalo: '#d8a080', transitColor: '#3a2018', poiColor: '#4a2820',
+    poiHalo: 'rgba(216,160,128,0.9)',
   },
   night: {
     label: '🌙 夜',
     background: '#1d2c4d', water: '#17263c', park: '#1b3a2a',
     buildingFlat: '#243b5c', roadCasing: '#2a4470', road: '#3a5a8a',
-    rail: '#3a5070', building3d: '#2a4060', labelColor: '#99aabb',
-    labelHalo: '#1d2c4d', transitColor: '#8ab4f8', poiColor: '#8899aa',
-    poiHalo: 'rgba(29,44,77,0.9)',
+    rail: '#3a5070', building3d: '#2a4060', labelColor: '#c8d8e8',
+    labelHalo: '#0e1a30', transitColor: '#8ab4f8', poiColor: '#b0c0d0',
+    poiHalo: 'rgba(14,26,48,0.9)',
   },
 };
 
 function getTimeThemeName(): string {
   const h = new Date().getHours();
-  if (h >= 6 && h < 10) return 'morning';
-  if (h >= 10 && h < 17) return 'day';
-  if (h >= 17 && h < 20) return 'evening';
+  if (h >= 6 && h < 7) return 'morning';
+  if (h >= 7 && h < 17) return 'day';
+  if (h >= 17 && h < 18) return 'evening';
   return 'night';
 }
 
@@ -95,12 +95,12 @@ function getBlendedTheme(): Theme {
   const now = new Date();
   const h = now.getHours() + now.getMinutes() / 60;
   const transitions = [
-    { at: 6, from: 'night', to: 'morning' },
-    { at: 10, from: 'morning', to: 'day' },
-    { at: 17, from: 'day', to: 'evening' },
-    { at: 20, from: 'evening', to: 'night' },
+    { at: 5.5, from: 'night', to: 'morning' },
+    { at: 7, from: 'morning', to: 'day' },
+    { at: 16.5, from: 'day', to: 'evening' },
+    { at: 18, from: 'evening', to: 'night' },
   ];
-  const blend = 1;
+  const blend = 0.5;
   for (const tr of transitions) {
     const diff = h - tr.at;
     if (diff >= -blend && diff <= blend) {
