@@ -18,7 +18,7 @@ router.post('/upload/presign', requireAuth, async (req: AuthRequest, res: Respon
 
 // ─── 写真削除 ───
 
-router.delete('/upload/:key(*)', requireAuth, async (req: AuthRequest, res: Response) => {
+router.delete('/upload/*key', requireAuth, async (req: AuthRequest, res: Response) => {
   const key = req.params.key as string;
 
   // ユーザーが自分の写真のみ削除可能
