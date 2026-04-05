@@ -171,9 +171,10 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   );
 
   const handleUndo = useCallback(() => {
-    if (history.length === 0) return;
+    if (history.length === 0 || currentIndex <= 0) return;
     const last = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
+    setCurrentIndex((i) => i - 1);
     if (last.direction === 'left') {
       // ×を取り消す → nopedIdsから削除
       setNopedIds((prev) => {
@@ -185,7 +186,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       // いいねを取り消す → ストックから削除
       onRemoveStock(last.id);
     }
-  }, [history, onRemoveStock]);
+  }, [history, currentIndex, onRemoveStock]);
 
   const handleButtonSwipe = (direction: 'left' | 'right') => {
     if (buttonFlyOut) return;
@@ -275,7 +276,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
                   restaurant={current}
                   distance={getDistance(userPosition, current)}
                   onSwipeComplete={handleSwipeComplete}
-                  active={!buttonFlyOut || true}
+                  active={true}
                   flyOut={buttonFlyOut}
                 />
               )}

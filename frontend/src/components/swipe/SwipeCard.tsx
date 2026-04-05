@@ -14,6 +14,8 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<'left' | 'right' | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const SWIPE_THRESHOLD = 80;
@@ -28,7 +30,9 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
 
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
+    offsetRef.current = { x: 0, y: 0 };
     setDragging(false);
+    draggingRef.current = false;
     setExiting(null);
     if (exitTimer.current) { clearTimeout(exitTimer.current); exitTimer.current = null; }
   }, [restaurant.id]);
@@ -36,37 +40,42 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const handleStart = useCallback((clientX: number, clientY: number) => {
     if (!active || exiting) return;
     setDragging(true);
+    draggingRef.current = true;
     startPos.current = { x: clientX, y: clientY };
+    offsetRef.current = { x: 0, y: 0 };
   }, [active, exiting]);
 
   const handleMove = useCallback((clientX: number, clientY: number) => {
-    if (!dragging) return;
-    setOffset({
+    if (!draggingRef.current) return;
+    const newOffset = {
       x: clientX - startPos.current.x,
       y: clientY - startPos.current.y,
-    });
-  }, [dragging]);
+    };
+    offsetRef.current = newOffset;
+    setOffset(newOffset);
+  }, []);
 
   const handleEnd = useCallback(() => {
-    if (!dragging) return;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
     setDragging(false);
-    if (Math.abs(offset.x) > SWIPE_THRESHOLD) {
-      const dir = offset.x > 0 ? 'right' : 'left';
+    const ox = offsetRef.current.x;
+    if (Math.abs(ox) > SWIPE_THRESHOLD) {
+      const dir = ox > 0 ? 'right' : 'left';
       setExiting(dir);
       exitTimer.current = setTimeout(() => onSwipeComplete(dir), 300);
     } else {
       setOffset({ x: 0, y: 0 });
+      offsetRef.current = { x: 0, y: 0 };
     }
-  }, [dragging, offset.x, onSwipeComplete]);
+  }, [onSwipeComplete]);
 
   const onTouchStart = (e: React.TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
   const onTouchMove = (e: React.TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
-  const onTouchEnd = () => handleEnd();
   const onMouseDown = (e: React.MouseEvent) => handleStart(e.clientX, e.clientY);
   const onMouseMove = (e: React.MouseEvent) => handleMove(e.clientX, e.clientY);
 
   useEffect(() => {
-    if (!dragging) return;
     const up = () => handleEnd();
     window.addEventListener('mouseup', up);
     window.addEventListener('touchend', up);
@@ -74,7 +83,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       window.removeEventListener('mouseup', up);
       window.removeEventListener('touchend', up);
     };
-  }, [dragging, handleEnd]);
+  }, [handleEnd]);
 
   let transform: string;
   let opacity = 1;
@@ -116,7 +125,6 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       onMouseMove={onMouseMove}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
     >
       <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
         {/* Swipe overlay labels */}
