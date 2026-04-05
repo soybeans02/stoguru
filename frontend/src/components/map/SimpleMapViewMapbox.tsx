@@ -504,7 +504,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       {userPosition && (
         <button
           onClick={() => mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16, duration: 800 })}
-          className="absolute bottom-14 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center z-10"
+          className="absolute bottom-28 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center z-10"
         >
           <span className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm" />
         </button>
