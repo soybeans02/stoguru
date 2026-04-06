@@ -357,7 +357,7 @@ export async function putInfluencerRestaurant(id: string, data: Record<string, u
   return res.json();
 }
 
-export async function updateRestaurantVisibility(id: string, visibility: 'public' | 'mutual') {
+export async function updateRestaurantVisibility(id: string, visibility: 'public' | 'mutual' | 'hidden') {
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}/visibility`, {
     method: 'PATCH', headers: headers(), body: JSON.stringify({ visibility }),
   });

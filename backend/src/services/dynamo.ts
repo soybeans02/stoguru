@@ -386,6 +386,15 @@ export async function putInfluencerRestaurant(influencerId: string, restaurant: 
   }));
 }
 
+export async function updateRestaurantVisibility(influencerId: string, restaurantId: string, visibility: string) {
+  await db.send(new UpdateCommand({
+    TableName: TABLE.influencerRestaurants,
+    Key: { influencerId, restaurantId },
+    UpdateExpression: 'SET visibility = :v, updatedAt = :u',
+    ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
+  }));
+}
+
 export async function getInfluencerRestaurants(influencerId: string): Promise<InfluencerRestaurant[]> {
   const result = await db.send(new QueryCommand({
     TableName: TABLE.influencerRestaurants,

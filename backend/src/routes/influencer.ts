@@ -5,6 +5,7 @@ import {
   getUserSettings, putUserSettings,
   putInfluencerProfile, getInfluencerProfile,
   putInfluencerRestaurant, getInfluencerRestaurants, deleteInfluencerRestaurant,
+  updateRestaurantVisibility,
 } from '../services/dynamo';
 import { validate, influencerRegisterSchema, influencerRestaurantSchema } from '../validators';
 
@@ -99,15 +100,11 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
 router.patch('/restaurants/:id/visibility', requireAuth, async (req: AuthRequest, res: Response) => {
   const restaurantId = req.params.id as string;
   const { visibility } = req.body;
-  if (visibility !== 'public' && visibility !== 'mutual') {
+  if (visibility !== 'public' && visibility !== 'mutual' && visibility !== 'hidden') {
     res.status(400).json({ error: '無効な公開設定です' });
     return;
   }
-  await putInfluencerRestaurant(req.user!.userId, {
-    restaurantId,
-    influencerId: req.user!.userId,
-    visibility,
-  });
+  await updateRestaurantVisibility(req.user!.userId, restaurantId, visibility);
   res.json({ ok: true });
 });
 

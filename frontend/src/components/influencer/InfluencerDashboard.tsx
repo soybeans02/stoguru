@@ -31,7 +31,7 @@ interface InfluencerRestaurant {
   videoUrl?: string;
   instagramUrl?: string;
   description?: string;
-  visibility?: 'public' | 'mutual';
+  visibility?: 'public' | 'mutual' | 'hidden';
   createdAt: number;
   updatedAt: number;
 }
@@ -126,7 +126,8 @@ export function InfluencerDashboard({ onBack }: Props) {
   }
 
   async function handleToggleVisibility(r: InfluencerRestaurant) {
-    const newVis = (r.visibility ?? 'public') === 'public' ? 'mutual' : 'public';
+    const cycle = { public: 'mutual', mutual: 'hidden', hidden: 'public' } as const;
+    const newVis = cycle[r.visibility ?? 'public'];
     try {
       await api.updateRestaurantVisibility(r.restaurantId, newVis);
       setRestaurants(restaurants.map(x => x.restaurantId === r.restaurantId ? { ...x, visibility: newVis } : x));
@@ -386,10 +387,12 @@ export function InfluencerDashboard({ onBack }: Props) {
                   className={`mt-2 w-full py-1.5 rounded-lg text-[12px] font-bold transition-colors ${
                     (r.visibility ?? 'public') === 'public'
                       ? 'bg-green-500 text-white'
-                      : 'bg-orange-500 text-white'
+                      : (r.visibility ?? 'public') === 'mutual'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-400 text-white'
                   }`}
                 >
-                  {(r.visibility ?? 'public') === 'public' ? '公開' : '相互のみ'}
+                  {(r.visibility ?? 'public') === 'public' ? '公開' : (r.visibility === 'mutual' ? '相互のみ' : '非表示')}
                 </button>
               </div>
             </div>

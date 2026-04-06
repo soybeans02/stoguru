@@ -16,7 +16,7 @@ interface InfluencerRestaurant {
   videoUrl?: string;
   instagramUrl?: string;
   description?: string;
-  visibility?: 'public' | 'mutual';
+  visibility?: 'public' | 'mutual' | 'hidden';
   createdAt: number;
   updatedAt: number;
 }
@@ -69,7 +69,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [photoUrls, setPhotoUrls] = useState<string[]>(editing?.photoUrls ?? []);
   const [videoUrl, setVideoUrl] = useState(editing?.videoUrl ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
-  const [visibility, setVisibility] = useState<'public' | 'mutual'>(editing?.visibility ?? 'public');
+  const [visibility, setVisibility] = useState<'public' | 'mutual' | 'hidden'>(editing?.visibility ?? 'public');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -364,11 +364,15 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
             <div className="flex gap-2">
               <button type="button" onClick={() => setVisibility('public')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${visibility === 'public' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                一般公開
+                公開
               </button>
               <button type="button" onClick={() => setVisibility('mutual')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${visibility === 'mutual' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                相互フォローのみ
+                相互のみ
+              </button>
+              <button type="button" onClick={() => setVisibility('hidden')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${visibility === 'hidden' ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                非表示
               </button>
             </div>
           </div>

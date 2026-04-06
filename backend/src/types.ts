@@ -81,7 +81,7 @@ export interface InfluencerRestaurant {
   videoUrl?: string;
   instagramUrl?: string;
   description?: string;
-  visibility?: 'public' | 'mutual';
+  visibility?: 'public' | 'mutual' | 'hidden';
   createdAt: number;
   updatedAt: number;
 }
