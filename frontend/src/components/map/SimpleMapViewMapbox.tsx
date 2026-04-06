@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
-import { fetchFollowingRestaurants, getFollowing, getUserProfile } from '../../utils/api';
+import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
@@ -337,6 +337,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [followingData, setFollowingData] = useState<Record<string, unknown>[]>([]);
   const followingDataRef = useRef<Record<string, unknown>[]>([]);
   const followingLoaded = useRef(false);
+  const myPostedRef = useRef<Record<string, unknown>[]>([]);
+  const myPostedLoaded = useRef(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
 
@@ -376,6 +378,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
       // 空のGeoJSONソースとレイヤーを事前追加
       map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('my-posted', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
@@ -402,6 +405,15 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       // 拡大時: ティアドロップピン
       map.addLayer({ id: 'stocks-pin', type: 'symbol', source: 'stocks', minzoom: 15,
         layout: { 'icon-image': ['case', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
+          'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+      // 自分の投稿（紫ピン）
+      map.addLayer({ id: 'my-posted-outline', type: 'circle', source: 'my-posted', maxzoom: 15,
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 7], 'circle-color': '#ffffff' } });
+      map.addLayer({ id: 'my-posted-circle', type: 'circle', source: 'my-posted', maxzoom: 15,
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5], 'circle-color': '#a855f7' } });
+      map.addLayer({ id: 'my-posted-pin', type: 'symbol', source: 'my-posted', minzoom: 15,
+        layout: { 'icon-image': 'pin-purple',
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
       // ユーザー位置
@@ -434,9 +446,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       };
       map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
       map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -55]));
+      map.on('click', 'my-posted-circle', (e) => handleClick(e, 15));
+      map.on('click', 'my-posted-pin', (e) => handleClick(e, [0, -55]));
       map.on('click', 'following-circle', (e) => handleClick(e, 15));
       map.on('click', 'following-pin', (e) => handleClick(e, [0, -55]));
-      ['stocks-circle', 'stocks-pin', 'following-circle', 'following-pin'].forEach(id => {
+      ['stocks-circle', 'stocks-pin', 'my-posted-circle', 'my-posted-pin', 'following-circle', 'following-pin'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
       });
@@ -534,7 +548,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   userPosRef.current = userPosition;
 
   // データ更新のみ（ソース/レイヤーはon('load')で作成済み）
-  const updateData = useCallback((s: StockedRestaurant[], uPos: GPSPosition | null) => {
+  const updateData = useCallback(async (s: StockedRestaurant[], uPos: GPSPosition | null) => {
     const map = mapRef.current;
     if (!map || !mapLoadedRef.current) return;
     const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
@@ -547,9 +561,40 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           properties: {
             id: r.id, name: r.name, genre: r.genre || '',
             visited: r.visited ? 1 : 0, distance: r.distance || '',
-            videoUrl: r.videoUrl || '',
+            videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+            photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
+            scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
           },
         })),
+      });
+    }
+    // 自分の投稿レストラン（紫ピン）
+    if (!myPostedLoaded.current) {
+      myPostedLoaded.current = true;
+      try {
+        const posted = await getInfluencerRestaurants();
+        myPostedRef.current = posted;
+      } catch { /* ignore */ }
+    }
+    const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
+    if (postedSrc && myPostedRef.current.length > 0) {
+      const stockIds = new Set(s.map(r => r.id));
+      postedSrc.setData({
+        type: 'FeatureCollection',
+        features: myPostedRef.current
+          .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+          .map((r: Record<string, unknown>) => ({
+            type: 'Feature' as const,
+            geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+            properties: {
+              id: r.restaurantId, name: `${r.name}`,
+              genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+              visited: 0, distance: '',
+              videoUrl: r.videoUrl || '', photoEmoji: '',
+              photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+              scene: '[]', priceRange: r.priceRange || '',
+            },
+          })),
       });
     }
     const userSrc = map.getSource('user-location') as mapboxgl.GeoJSONSource | undefined;
@@ -610,7 +655,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
           try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
         });
-        ['stocks-outline', 'stocks-circle', 'stocks-pin'].forEach(id => {
+        ['stocks-outline', 'stocks-circle', 'stocks-pin', 'my-posted-outline', 'my-posted-circle', 'my-posted-pin'].forEach(id => {
           try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
         });
       }
@@ -653,7 +698,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     if (!map || !mapLoadedRef.current) return;
 
     // 自分のピンを非表示
-    ['stocks-outline', 'stocks-circle', 'stocks-pin'].forEach(id => {
+    ['stocks-outline', 'stocks-circle', 'stocks-pin', 'my-posted-outline', 'my-posted-circle', 'my-posted-pin'].forEach(id => {
       try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
     });
 
@@ -831,6 +876,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> 行った
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> 投稿
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
