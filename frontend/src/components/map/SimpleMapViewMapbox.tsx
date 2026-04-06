@@ -287,7 +287,7 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
 
 const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
-function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
+function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
   const dark = ['evening', 'night'].includes(getTimeThemeName());
   const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
@@ -304,7 +304,7 @@ function buildPopupHTML(p: { name: string; genre: string; distance: string; vide
   return `
     <div style="font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
       <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>
+        ${p.photoUrls ? `<img src="${p.photoUrls}" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0" />` : `<div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>`}
         <div style="min-width:0;flex:1">
           <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
           ${p.ownerNickname ? `<div style="font-size:9px;color:#a855f7;margin-top:1px;font-weight:600">@${p.ownerNickname}</div>` : ''}
@@ -426,6 +426,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           .setHTML(buildPopupHTML({
             name: p.name, genre: p.genre || '', distance: p.distance || '',
             videoUrl: p.videoUrl || '', photoEmoji: p.photoEmoji || '',
+            photoUrls: p.photoUrls || '',
             scene: Array.isArray(scenes) ? scenes : [], priceRange: p.priceRange || '',
             lat: coords[1], lng: coords[0], ownerNickname: p.ownerNickname || '',
           }, userPosRef.current))
@@ -452,6 +453,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               id: r.id, name: r.name, genre: r.genre || '',
               visited: r.visited ? 1 : 0, distance: r.distance || '',
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+              photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
               scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
             },
           })),
@@ -505,6 +507,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           .setHTML(buildPopupHTML({
             name: r.name, genre: r.genre || '', distance: r.distance || '',
             videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+            photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
             scene: r.scene || [], priceRange: r.priceRange || '',
             lat: r.lat, lng: r.lng,
           }, userPosRef.current))
@@ -671,6 +674,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             ownerNickname: (r.ownerNickname as string) || '',
             genre: r.genre || '', visited: r.status === 'visited' ? 1 : 0, distance: '',
             videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+            photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
             scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
           },
         })),
