@@ -120,7 +120,7 @@ router.get('/restaurants/following', requireAuth, async (req: AuthRequest, res: 
       const savedIds = new Set(saved.map((r) => r.restaurantId));
       const infItems = influencer
         .filter((r) => !savedIds.has(r.restaurantId) && r.visibility !== 'hidden')
-        .map((r) => ({ ...r, genre: r.genres?.[0] || '', photoEmoji: '', ownerNickname: nickname, ownerId: f.followeeId }));
+        .map((r) => ({ ...r, genre: r.genres?.[0] || '', photoEmoji: '', ownerNickname: nickname, ownerId: f.followeeId, isPosted: true }));
       return [...savedItems, ...infItems];
     })
   );

@@ -382,14 +382,14 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       // フォロー中: 丸ピン（保存=紫, 行った=緑）+ 紫枠で区別
       map.addLayer({ id: 'following-outline', type: 'circle', source: 'following', maxzoom: 15,
         layout: { visibility: 'none' },
-        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 8], 'circle-color': '#a855f7' } });
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 8], 'circle-color': '#ffffff' } });
       map.addLayer({ id: 'following-circle', type: 'circle', source: 'following', maxzoom: 15,
         layout: { visibility: 'none' },
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
-          'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
+          'circle-color': ['case', ['==', ['get', 'isPosted'], 1], '#a855f7', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
       map.addLayer({ id: 'following-pin', type: 'symbol', source: 'following', minzoom: 15,
         layout: { visibility: 'none',
-          'icon-image': ['case', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
+          'icon-image': ['case', ['==', ['get', 'isPosted'], 1], 'pin-purple', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
 
@@ -672,7 +672,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           properties: {
             id: r.id || r.restaurantId, name: `${r.name}`,
             ownerNickname: (r.ownerNickname as string) || '',
-            genre: r.genre || '', visited: r.status === 'visited' ? 1 : 0, distance: '',
+            genre: r.genre || '', visited: r.status === 'visited' ? 1 : 0,
+            isPosted: r.isPosted ? 1 : 0, distance: '',
             videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
             photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
             scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
