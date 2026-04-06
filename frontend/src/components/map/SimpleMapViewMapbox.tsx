@@ -332,6 +332,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [modePickerOpen, setModePickerOpen] = useState(false);
   const [showFollowingPicker, setShowFollowingPicker] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
+  const [followingLoading, setFollowingLoading] = useState(false);
   const [selectedFollowUser, setSelectedFollowUser] = useState<string | null>(null);
   const [followingData, setFollowingData] = useState<Record<string, unknown>[]>([]);
   const followingLoaded = useRef(false);
@@ -611,27 +612,33 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       }
       return;
     }
-    setShowFollowingPicker(p => !p);
-    if (followingUsers.length === 0) {
-      try {
-        const list = await getFollowing();
-        const users = await Promise.all(list.map(async (f) => {
-          try {
-            const p = await getUserProfile(f.followeeId);
-            return { id: f.followeeId, nickname: p.nickname || f.followeeId };
-          } catch { return { id: f.followeeId, nickname: f.followeeId }; }
-        }));
-        setFollowingUsers(users);
-      } catch {}
+    // ピッカーが閉じていたら開く（開いていたら閉じる）
+    if (showFollowingPicker) {
+      setShowFollowingPicker(false);
+      return;
     }
-    if (!followingLoaded.current) {
+    setShowFollowingPicker(true);
+    setFollowingLoading(true);
+    try {
+      const [list, data] = await Promise.all([
+        getFollowing(),
+        followingLoaded.current ? Promise.resolve(followingData) : fetchFollowingRestaurants(),
+      ]);
       followingLoaded.current = true;
-      try {
-        const data = await fetchFollowingRestaurants();
-        setFollowingData(data);
-      } catch {}
+      const users = await Promise.all(list.map(async (f) => {
+        try {
+          const p = await getUserProfile(f.followeeId);
+          return { id: f.followeeId, nickname: p.nickname || f.followeeId };
+        } catch { return { id: f.followeeId, nickname: f.followeeId }; }
+      }));
+      setFollowingUsers(users);
+      if (data !== followingData) setFollowingData(data);
+    } catch {
+      // エラー時は空のまま
+    } finally {
+      setFollowingLoading(false);
     }
-  }, [selectedFollowUser, followingUsers.length]);
+  }, [selectedFollowUser, showFollowingPicker, followingData]);
 
   // Select a following user
   const handleSelectFollowUser = useCallback((userId: string) => {
@@ -711,7 +718,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           <div className="absolute inset-0 z-20" onClick={() => setShowFollowingPicker(false)} />
           <div className="absolute top-28 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-3 shadow-xl min-w-[180px] max-h-[300px] overflow-y-auto">
             <p className="text-white text-sm font-bold text-center mb-2">マップを見る</p>
-            {followingUsers.length === 0 ? (
+            {followingLoading ? (
+              <p className="text-gray-400 text-xs text-center py-4">読み込み中...</p>
+            ) : followingUsers.length === 0 ? (
               <p className="text-gray-400 text-xs text-center py-4">フォロー中のユーザーがいません</p>
             ) : (
               followingUsers.map(u => (

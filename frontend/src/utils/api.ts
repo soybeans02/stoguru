@@ -92,7 +92,7 @@ export async function searchUsers(query: string): Promise<{ userId: string; nick
 }
 
 export async function getUserProfile(userId: string) {
-  const res = await fetch(`${BASE}/users/${userId}/profile`, { headers: headers() });
+  const res = await fetchWithRetry(`${BASE}/users/${userId}/profile`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch profile');
   return res.json();
 }
@@ -177,7 +177,7 @@ export async function unfollowUser(targetId: string) {
 }
 
 export async function getFollowing(): Promise<{ followeeId: string }[]> {
-  const res = await fetch(`${BASE}/following`, { headers: headers() });
+  const res = await fetchWithRetry(`${BASE}/following`, { headers: headers() });
   if (!res.ok) return [];
   return res.json();
 }
