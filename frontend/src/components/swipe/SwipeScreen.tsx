@@ -101,6 +101,7 @@ interface Props {
   onRemoveStock: (id: string) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
+  refreshKey?: number;
 }
 
 function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
@@ -108,7 +109,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds }: Props) {
+export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +151,21 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       })
       .finally(() => setLoading(false));
   }, [userPosition, stockedIds, nopedIds]);
+
+  // refreshKeyが変わったらフィード再取得
+  useEffect(() => {
+    if (!refreshKey || !userPosition) return;
+    fetchRestaurantFeed(userPosition.lat, userPosition.lng, 1000)
+      .then((data: SwipeRestaurant[]) => {
+        const restaurants = data.length > 0 ? data : MOCK_RESTAURANTS;
+        setAllRestaurants(restaurants);
+        const excludeIds = new Set([...stockedIds, ...nopedIds]);
+        const filtered = restaurants.filter((r) => !excludeIds.has(r.id));
+        setCards(filtered);
+        setCurrentIndex(0);
+      })
+      .catch(() => {});
+  }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 位置情報なしの場合、3秒後にモックデータにフォールバック
   useEffect(() => {

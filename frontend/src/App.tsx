@@ -37,7 +37,11 @@ function MainApp() {
     const saved = sessionStorage.getItem('activeTab') as Tab | null;
     return saved && ['home', 'stock', 'map', 'social', 'account'].includes(saved) ? saved : 'home';
   });
-  const setTab = (t: Tab) => { setTabState(t); sessionStorage.setItem('activeTab', t); };
+  const setTab = (t: Tab) => {
+    if (t === 'home' && tab !== 'home') setFeedRefreshKey(k => k + 1);
+    setTabState(t);
+    sessionStorage.setItem('activeTab', t);
+  };
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
   const [panTo, setPanTo] = useState<{ lat: number; lng: number; restaurant?: StockedRestaurant } | null>(null);
   const { position } = useGPS();
@@ -148,6 +152,8 @@ function MainApp() {
   }, []);
 
   const stockedIds = useMemo(() => stocks.map(s => s.id), [stocks]);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const refreshFeed = useCallback(() => setFeedRefreshKey(k => k + 1), []);
 
   const handleShowOnMap = useCallback((lat: number, lng: number, restaurant?: StockedRestaurant) => {
     setPanTo({ lat, lng, restaurant });
@@ -158,7 +164,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stockedIds} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}
@@ -184,7 +190,7 @@ function MainApp() {
           <SocialScreen />
         )}
         {tab === 'account' && (
-          <AccountScreen stocks={stocks} />
+          <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />
         )}
       </main>
 

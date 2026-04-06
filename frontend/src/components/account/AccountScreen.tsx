@@ -7,12 +7,13 @@ import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
 
 interface Props {
   stocks: StockedRestaurant[];
+  onRestaurantEdited?: () => void;
 }
 
 type Panel = null | 'password' | 'email' | 'deleteAccount' | 'influencerRegister';
 type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
-export function AccountScreen({ stocks }: Props) {
+export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
@@ -107,7 +108,7 @@ export function AccountScreen({ stocks }: Props) {
   }
 
   if (showInfluencerDashboard) {
-    return <InfluencerDashboard onBack={() => setShowInfluencerDashboard(false)} />;
+    return <InfluencerDashboard onBack={() => { setShowInfluencerDashboard(false); onRestaurantEdited?.(); }} />;
   }
 
   return (
