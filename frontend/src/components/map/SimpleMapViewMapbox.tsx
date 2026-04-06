@@ -63,11 +63,37 @@ const themes: Record<string, Theme> = {
   },
 };
 
+// --- 太陽位置計算（NOAA簡易版） ---
+function calcSunTimes(lat: number, lng: number, date: Date = new Date()): { sunrise: number; sunset: number } {
+  const rad = Math.PI / 180;
+  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
+  const declination = -23.45 * Math.cos(rad * (360 / 365) * (dayOfYear + 10));
+  const latRad = lat * rad;
+  const declRad = declination * rad;
+  const cosHA = (Math.sin(-0.833 * rad) - Math.sin(latRad) * Math.sin(declRad)) / (Math.cos(latRad) * Math.cos(declRad));
+  const ha = Math.acos(Math.max(-1, Math.min(1, cosHA))) / rad;
+  const solarNoon = 12 - lng / 15;  // UTC hours
+  const tzOffset = -date.getTimezoneOffset() / 60;
+  const sunrise = solarNoon - ha / 15 + tzOffset;
+  const sunset = solarNoon + ha / 15 + tzOffset;
+  return { sunrise, sunset };
+}
+
+// デフォルト: 大阪付近の概算値（GPS未取得時のフォールバック）
+let sunTimes = { sunrise: 6, sunset: 18 };
+
+function updateSunTimes(lat: number, lng: number) {
+  sunTimes = calcSunTimes(lat, lng);
+}
+
 function getTimeThemeName(): string {
   const h = new Date().getHours();
-  if (h >= 6 && h < 7) return 'morning';
-  if (h >= 7 && h < 17) return 'day';
-  if (h >= 17 && h < 18) return 'evening';
+  const { sunrise, sunset } = sunTimes;
+  const sr = Math.floor(sunrise);
+  const ss = Math.floor(sunset);
+  if (h >= sr && h < sr + 1) return 'morning';
+  if (h >= sr + 1 && h < ss) return 'day';
+  if (h >= ss && h < ss + 1) return 'evening';
   return 'night';
 }
 
@@ -94,13 +120,14 @@ function lerpTheme(themeA: Theme, themeB: Theme, t: number): Theme {
 function getBlendedTheme(): Theme {
   const now = new Date();
   const h = now.getHours() + now.getMinutes() / 60;
+  const { sunrise, sunset } = sunTimes;
+  const blend = 0.5; // 30分かけてグラデーション遷移
   const transitions = [
-    { at: 5.5, from: 'night', to: 'morning' },
-    { at: 7, from: 'morning', to: 'day' },
-    { at: 16.5, from: 'day', to: 'evening' },
-    { at: 18, from: 'evening', to: 'night' },
+    { at: sunrise - 0.5, from: 'night', to: 'morning' },
+    { at: sunrise + 0.5, from: 'morning', to: 'day' },
+    { at: sunset - 0.5, from: 'day', to: 'evening' },
+    { at: sunset + 0.5, from: 'evening', to: 'night' },
   ];
-  const blend = 0.5;
   for (const tr of transitions) {
     const diff = h - tr.at;
     if (diff >= -blend && diff <= blend) {
@@ -303,6 +330,13 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [modePickerOpen, setModePickerOpen] = useState(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
+
+  // GPS取得時に日の出/日の入り時刻を更新
+  useEffect(() => {
+    if (userPosition) {
+      updateSunTimes(userPosition.lat, userPosition.lng);
+    }
+  }, [userPosition]);
 
   // Init map
   useEffect(() => {
