@@ -29,7 +29,6 @@ export function AccountScreen({ stocks }: Props) {
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
-  const stockCount = stocks.length;
   const visitedCount = stocks.filter((s) => s.visited).length;
 
   useEffect(() => {
