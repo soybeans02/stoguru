@@ -8,6 +8,7 @@ import { SwipeScreen } from './components/swipe/SwipeScreen';
 import { StockScreen } from './components/stock/StockScreen';
 import type { StockedRestaurant } from './components/stock/StockScreen';
 import { AccountScreen } from './components/account/AccountScreen';
+import { SocialScreen } from './components/social/SocialScreen';
 
 const LazyMapView = lazy(() =>
   import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
@@ -17,7 +18,7 @@ const LazyMapView = lazy(() =>
 import type { SwipeRestaurant } from './data/mockRestaurants';
 import { MOCK_RESTAURANTS } from './data/mockRestaurants';
 import * as api from './utils/api';
-type Tab = 'home' | 'stock' | 'map' | 'account';
+type Tab = 'home' | 'stock' | 'map' | 'social' | 'account';
 
 function TabButton({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
   return (
@@ -34,7 +35,7 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
 function MainApp() {
   const [tab, setTabState] = useState<Tab>(() => {
     const saved = sessionStorage.getItem('activeTab') as Tab | null;
-    return saved && ['home', 'stock', 'map', 'account'].includes(saved) ? saved : 'home';
+    return saved && ['home', 'stock', 'map', 'social', 'account'].includes(saved) ? saved : 'home';
   });
   const setTab = (t: Tab) => { setTabState(t); sessionStorage.setItem('activeTab', t); };
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
@@ -179,6 +180,9 @@ function MainApp() {
             />
           </Suspense>
         )}
+        {tab === 'social' && (
+          <SocialScreen />
+        )}
         {tab === 'account' && (
           <AccountScreen stocks={stocks} />
         )}
@@ -194,6 +198,9 @@ function MainApp() {
         </TabButton>
         <TabButton active={tab === 'map'} onClick={() => setTab('map')} label="マップ">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'map' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+        </TabButton>
+        <TabButton active={tab === 'social'} onClick={() => setTab('social')} label="ソーシャル">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'social' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
         </TabButton>
         <TabButton active={tab === 'account'} onClick={() => setTab('account')} label="アカウント">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'account' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>

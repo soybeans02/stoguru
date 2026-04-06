@@ -176,6 +176,12 @@ export async function getFollowing(): Promise<{ followeeId: string }[]> {
   return res.json();
 }
 
+export async function getFollowers(): Promise<{ followerId: string }[]> {
+  const res = await fetch(`${BASE}/followers`, { headers: headers() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 // ─── フォローリクエスト ───
 
 export async function getFollowRequests(): Promise<{ requesterId: string; createdAt: number }[]> {

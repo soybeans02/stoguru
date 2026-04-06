@@ -205,12 +205,12 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
   if (selectedTarget) {
     const targetName = nicknames[selectedTarget] ?? '...';
     return (
-      <div className="fixed inset-0 z-50 bg-white flex flex-col">
-        <header className="flex items-center gap-3 px-4 py-3 border-b bg-white">
-          <button onClick={() => setSelectedTarget(null)} className="text-gray-500 hover:text-gray-800">
+      <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <button onClick={() => setSelectedTarget(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
             <ArrowLeft size={22} />
           </button>
-          <span className="font-semibold">{targetName}</span>
+          <span className="font-semibold text-gray-900 dark:text-white">{targetName}</span>
         </header>
 
         {/* メッセージリクエスト承認バー */}
@@ -229,7 +229,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
         )}
 
         {/* メッセージ一覧 */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-gray-50">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-gray-50 dark:bg-gray-950">
           {messages.length === 0 && canSend && (
             <p className="text-center text-gray-400 text-sm py-8">メッセージを送ってみましょう</p>
           )}
@@ -248,7 +248,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
                   <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
                     isMine
                       ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-bl-md'
                   }`}>
                     <p>{m.content}</p>
                     <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -267,13 +267,13 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
 
         {/* 入力欄 */}
         {canSend && (
-          <div className="border-t bg-white px-4 py-2 flex gap-2">
+          <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-2 flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="メッセージを入力..."
-              className="flex-1 border rounded-full px-4 py-2 text-sm outline-none focus:border-blue-400"
+              className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-full px-4 py-2 text-sm outline-none focus:border-blue-400"
             />
             <button
               onClick={handleSend}
@@ -296,12 +296,12 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
 
   // 会話一覧
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      <header className="flex items-center gap-3 px-4 py-3 border-b bg-white">
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
           <ArrowLeft size={22} />
         </button>
-        <span className="font-semibold">メッセージ</span>
+        <span className="font-semibold text-gray-900 dark:text-white">メッセージ</span>
       </header>
 
       <div className="flex-1 overflow-y-auto">
@@ -317,7 +317,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
                 <button
                   key={c.pk}
                   onClick={() => setSelectedTarget(otherId)}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 border-b border-gray-100"
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800"
                 >
                   <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 font-bold text-sm">
                     {(nicknames[otherId] ?? '?')[0]}
@@ -342,7 +342,7 @@ export function MessageView({ onClose, initialTargetId, cachedConversations, cac
             <button
               key={c.pk}
               onClick={() => setSelectedTarget(otherId)}
-              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 border-b border-gray-100 ${hasUnread ? 'bg-blue-50/30' : ''}`}
+              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 ${hasUnread ? 'bg-blue-50/30 dark:bg-blue-950/20' : ''}`}
             >
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
                 {(nicknames[otherId] ?? '?')[0]}

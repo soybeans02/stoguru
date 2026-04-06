@@ -106,6 +106,16 @@ export async function getFollowing(followerId: string): Promise<Follow[]> {
   return (result.Items ?? []) as Follow[];
 }
 
+export async function getFollowers(followeeId: string): Promise<Follow[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.follows,
+    IndexName: 'followeeId-index',
+    KeyConditionExpression: 'followeeId = :fid',
+    ExpressionAttributeValues: { ':fid': followeeId },
+  }));
+  return (result.Items ?? []) as Follow[];
+}
+
 // ─── フォローリクエスト（鍵垢用） ───
 
 export async function createFollowRequest(requesterId: string, targetId: string) {

@@ -10,7 +10,7 @@ interface Props {
 }
 
 type Panel = null | 'password' | 'email' | 'deleteAccount' | 'influencerRegister';
-type ListPanel = null | 'stocks' | 'visited' | 'following';
+type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
@@ -23,7 +23,10 @@ export function AccountScreen({ stocks }: Props) {
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
   const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
+  const [followersCount, setFollowersCount] = useState(() => Number(localStorage.getItem('cache:followersCount')) || 0);
+  const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
   const [userRole, setUserRole] = useState<'user' | 'influencer'>(() => (localStorage.getItem('cache:userRole') as 'user' | 'influencer') || 'user');
+  const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
   const stockCount = stocks.length;
@@ -40,10 +43,32 @@ export function AccountScreen({ stocks }: Props) {
         localStorage.setItem('cache:userRole', 'influencer');
       }
     }).catch(() => {});
-    api.getFollowing().then((f) => {
+    api.getPrivacySettings().then((p) => {
+      setIsPrivate(p.isPrivate);
+      localStorage.setItem('cache:isPrivate', p.isPrivate ? '1' : '0');
+    }).catch(() => {});
+    api.getFollowing().then(async (f) => {
       setFollowingCount(f.length);
-      setFollowingList(f);
       localStorage.setItem('cache:followingCount', String(f.length));
+      // ニックネームを解決
+      const withNicks = await Promise.all(f.map(async (item) => {
+        try {
+          const p = await api.getUserProfile(item.followeeId);
+          return { ...item, nickname: p.nickname };
+        } catch { return item; }
+      }));
+      setFollowingList(withNicks);
+    }).catch(() => {});
+    api.getFollowers().then(async (f) => {
+      setFollowersCount(f.length);
+      localStorage.setItem('cache:followersCount', String(f.length));
+      const withNicks = await Promise.all(f.map(async (item) => {
+        try {
+          const p = await api.getUserProfile(item.followerId);
+          return { ...item, nickname: p.nickname };
+        } catch { return item; }
+      }));
+      setFollowersList(withNicks);
     }).catch(() => {});
   }, []);
 
@@ -159,6 +184,11 @@ export function AccountScreen({ stocks }: Props) {
             <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followingCount}</p>
             <p className="text-[11px] text-gray-400">フォロー</p>
           </button>
+          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
+          <button onClick={() => setListPanel('followers')} className="text-center">
+            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followersCount}</p>
+            <p className="text-[11px] text-gray-400">フォロワー</p>
+          </button>
         </div>
       </div>
 
@@ -206,6 +236,30 @@ export function AccountScreen({ stocks }: Props) {
               >
                 <span
                   className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-[18px]' : ''}`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[8px] bg-gray-500 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div>
+                  <span className="text-[14px] text-gray-700 dark:text-gray-200">非公開アカウント</span>
+                  <p className="text-[11px] text-gray-400 mt-0.5">フォロー承認制になります</p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const next = !isPrivate;
+                  setIsPrivate(next);
+                  localStorage.setItem('cache:isPrivate', next ? '1' : '0');
+                  try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
+                }}
+                className={`relative w-11 h-[26px] rounded-full transition-colors ${isPrivate ? 'bg-gray-900 dark:bg-indigo-500' : 'bg-gray-200'}`}
+              >
+                <span
+                  className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isPrivate ? 'translate-x-[18px]' : ''}`}
                 />
               </button>
             </div>
@@ -318,6 +372,22 @@ export function AccountScreen({ stocks }: Props) {
                 <div key={f.followeeId} className="flex items-center gap-3 py-2 border-b border-gray-50">
                   <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</span>
                   <p className="text-sm text-gray-900">{f.nickname ?? f.followeeId}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Overlay>
+      )}
+      {listPanel === 'followers' && (
+        <Overlay title="フォロワー" onClose={() => setListPanel(null)}>
+          {followersList.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">まだフォロワーがいないよ</p>
+          ) : (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {followersList.map(f => (
+                <div key={f.followerId} className="flex items-center gap-3 py-2 border-b border-gray-50">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</span>
+                  <p className="text-sm text-gray-900">{f.nickname ?? f.followerId}</p>
                 </div>
               ))}
             </div>

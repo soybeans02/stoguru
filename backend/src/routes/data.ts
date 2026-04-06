@@ -182,6 +182,12 @@ router.get('/following', requireAuth, async (req: AuthRequest, res: Response) =>
   res.json(items);
 });
 
+router.get('/followers', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { getFollowers } = await import('../services/dynamo.js');
+  const items = await getFollowers(req.user!.userId);
+  res.json(items);
+});
+
 // ─── フォローリクエスト ───
 
 router.get('/follow-requests', requireAuth, async (req: AuthRequest, res: Response) => {
