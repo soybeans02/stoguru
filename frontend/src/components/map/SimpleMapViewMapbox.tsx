@@ -493,7 +493,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   useEffect(() => {
     if (mapRef.current && userPosition && !initialCenterSet.current) {
       initialCenterSet.current = true;
-      mapRef.current.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 15, duration: 1000 });
+      mapRef.current.jumpTo({ center: [userPosition.lng, userPosition.lat], zoom: 15 });
     }
   }, [userPosition]);
 
