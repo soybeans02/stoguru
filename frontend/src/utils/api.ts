@@ -36,6 +36,12 @@ export async function fetchRestaurants() {
   return res.json();
 }
 
+export async function fetchFollowingRestaurants() {
+  const res = await fetchWithRetry(`${BASE}/restaurants/following`, { headers: headers() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function putRestaurant(restaurant: Record<string, unknown>) {
   const res = await fetchWithRetry(`${BASE}/restaurants/${restaurant.id}`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(restaurant),

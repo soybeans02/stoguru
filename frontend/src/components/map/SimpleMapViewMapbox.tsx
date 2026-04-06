@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { fetchFollowingRestaurants, getFollowing, getUserProfile } from '../../utils/api';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
@@ -286,7 +287,7 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
 
 const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
-function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; scene: string[]; priceRange: string; lat: number; lng: number }, userPos: GPSPosition | null): string {
+function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
   const dark = ['evening', 'night'].includes(getTimeThemeName());
   const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
@@ -306,6 +307,7 @@ function buildPopupHTML(p: { name: string; genre: string; distance: string; vide
         <div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>
         <div style="min-width:0;flex:1">
           <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          ${p.ownerNickname ? `<div style="font-size:9px;color:#a855f7;margin-top:1px;font-weight:600">@${p.ownerNickname}</div>` : ''}
           <div style="font-size:10px;color:${metaColor};margin-top:1px">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
         </div>
       </div>
@@ -328,6 +330,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [mapMode, setMapMode] = useState<'standard' | '3d'>('3d');
   const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  const [showFollowingPicker, setShowFollowingPicker] = useState(false);
+  const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
+  const [selectedFollowUser, setSelectedFollowUser] = useState<string | null>(null);
+  const [followingData, setFollowingData] = useState<Record<string, unknown>[]>([]);
+  const followingLoaded = useRef(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
 
@@ -363,10 +370,26 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       try {
       if (!map.hasImage('pin-red')) map.addImage('pin-red', createPinImage('#ff5a5a', 40));
       if (!map.hasImage('pin-green')) map.addImage('pin-green', createPinImage('#4ade80', 40));
+      if (!map.hasImage('pin-purple')) map.addImage('pin-purple', createPinImage('#a855f7', 40));
 
       // 空のGeoJSONソースとレイヤーを事前追加
       map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+
+      // フォロー中: 丸ピン（保存=紫, 行った=緑）+ 紫枠で区別
+      map.addLayer({ id: 'following-outline', type: 'circle', source: 'following', maxzoom: 15,
+        layout: { visibility: 'none' },
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 8], 'circle-color': '#a855f7' } });
+      map.addLayer({ id: 'following-circle', type: 'circle', source: 'following', maxzoom: 15,
+        layout: { visibility: 'none' },
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
+          'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
+      map.addLayer({ id: 'following-pin', type: 'symbol', source: 'following', minzoom: 15,
+        layout: { visibility: 'none',
+          'icon-image': ['case', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
+          'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
 
       // 縮小時: 丸ピン
       map.addLayer({ id: 'stocks-outline', type: 'circle', source: 'stocks', maxzoom: 15,
@@ -402,13 +425,15 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             name: p.name, genre: p.genre || '', distance: p.distance || '',
             videoUrl: p.videoUrl || '', photoEmoji: p.photoEmoji || '',
             scene: Array.isArray(scenes) ? scenes : [], priceRange: p.priceRange || '',
-            lat: coords[1], lng: coords[0],
+            lat: coords[1], lng: coords[0], ownerNickname: p.ownerNickname || '',
           }, userPosRef.current))
           .addTo(map);
       };
       map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
       map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -55]));
-      ['stocks-circle', 'stocks-pin'].forEach(id => {
+      map.on('click', 'following-circle', (e) => handleClick(e, 15));
+      map.on('click', 'following-pin', (e) => handleClick(e, [0, -55]));
+      ['stocks-circle', 'stocks-pin', 'following-circle', 'following-pin'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
       });
@@ -569,6 +594,81 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     setMapMode(mode);
   }, []);
 
+  // Open following picker
+  const handleOpenFollowingPicker = useCallback(async () => {
+    if (selectedFollowUser) {
+      // 解除: 自分のピンに戻す
+      setSelectedFollowUser(null);
+      setShowFollowingPicker(false);
+      const map = mapRef.current;
+      if (map && mapLoadedRef.current) {
+        ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
+          try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
+        });
+        ['stocks-outline', 'stocks-circle', 'stocks-pin'].forEach(id => {
+          try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
+        });
+      }
+      return;
+    }
+    setShowFollowingPicker(p => !p);
+    if (followingUsers.length === 0) {
+      try {
+        const list = await getFollowing();
+        const users = await Promise.all(list.map(async (f) => {
+          try {
+            const p = await getUserProfile(f.followeeId);
+            return { id: f.followeeId, nickname: p.nickname || f.followeeId };
+          } catch { return { id: f.followeeId, nickname: f.followeeId }; }
+        }));
+        setFollowingUsers(users);
+      } catch {}
+    }
+    if (!followingLoaded.current) {
+      followingLoaded.current = true;
+      try {
+        const data = await fetchFollowingRestaurants();
+        setFollowingData(data);
+      } catch {}
+    }
+  }, [selectedFollowUser, followingUsers.length]);
+
+  // Select a following user
+  const handleSelectFollowUser = useCallback((userId: string) => {
+    setSelectedFollowUser(userId);
+    setShowFollowingPicker(false);
+    const map = mapRef.current;
+    if (!map || !mapLoadedRef.current) return;
+
+    // 自分のピンを非表示
+    ['stocks-outline', 'stocks-circle', 'stocks-pin'].forEach(id => {
+      try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
+    });
+
+    // 選択ユーザーのデータだけフィルタ
+    const userRestaurants = followingData.filter((r: Record<string, unknown>) => r.ownerId === userId);
+    const src = map.getSource('following') as mapboxgl.GeoJSONSource | undefined;
+    if (src) {
+      src.setData({
+        type: 'FeatureCollection',
+        features: userRestaurants.filter((r: Record<string, unknown>) => r.lat && r.lng).map((r: Record<string, unknown>) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
+          properties: {
+            id: r.id || r.restaurantId, name: `${r.name}`,
+            ownerNickname: (r.ownerNickname as string) || '',
+            genre: r.genre || '', visited: r.status === 'visited' ? 1 : 0, distance: '',
+            videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+            scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
+          },
+        })),
+      });
+    }
+    ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
+      try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
+    });
+  }, [followingData]);
+
   // Toggle simple mode (labels on/off, independent of 2D/3D)
   const handleToggleSimple = useCallback(() => {
     const next = !simpleMode;
@@ -594,6 +694,54 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
       </button>
+
+      {/* Following picker button */}
+      <button
+        onClick={handleOpenFollowingPicker}
+        className={`absolute top-16 right-4 z-10 w-10 h-10 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center transition-colors ${
+          selectedFollowUser ? 'bg-purple-500 text-white' : 'bg-white/90 text-gray-500'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+      </button>
+
+      {/* Following user picker */}
+      {showFollowingPicker && (
+        <>
+          <div className="absolute inset-0 z-20" onClick={() => setShowFollowingPicker(false)} />
+          <div className="absolute top-28 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-3 shadow-xl min-w-[180px] max-h-[300px] overflow-y-auto">
+            <p className="text-white text-sm font-bold text-center mb-2">マップを見る</p>
+            {followingUsers.length === 0 ? (
+              <p className="text-gray-400 text-xs text-center py-4">フォロー中のユーザーがいません</p>
+            ) : (
+              followingUsers.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => handleSelectFollowUser(u.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                  </div>
+                  <span className="text-white text-sm truncate">{u.nickname}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Selected user banner */}
+      {selectedFollowUser && (
+        <div className="absolute top-4 left-4 right-16 z-10 bg-purple-500/90 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center justify-between shadow-md">
+          <span className="text-white text-sm font-bold truncate">
+            {followingUsers.find(u => u.id === selectedFollowUser)?.nickname}のマップ
+          </span>
+          <button onClick={handleOpenFollowingPicker} className="text-white/80 text-xs ml-2 flex-shrink-0">
+            戻る
+          </button>
+        </div>
+      )}
 
       {/* Map mode picker */}
       {modePickerOpen && (
@@ -665,6 +813,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> 行った
         </span>
+        {selectedFollowUser && (
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-purple-500 inline-block" /> フォロー
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
         </span>

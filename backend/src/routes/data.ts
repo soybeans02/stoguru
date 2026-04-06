@@ -102,6 +102,21 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
   res.json(items);
 });
 
+// ─── フォロー中ユーザーの保存レストラン一覧 ───
+
+router.get('/restaurants/following', requireAuth, async (req: AuthRequest, res: Response) => {
+  const following = await getFollowing(req.user!.userId);
+  const allItems = await Promise.all(
+    following.map(async (f) => {
+      const items = await getRestaurants(f.followeeId);
+      const user = await getUserById(f.followeeId);
+      const nickname = user?.nickname || user?.email || f.followeeId;
+      return items.map((r) => ({ ...r, ownerNickname: nickname, ownerId: f.followeeId }));
+    })
+  );
+  res.json(allItems.flat());
+});
+
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const id = req.params.id as string;
   const v = validate(restaurantSchema, { id, ...req.body });
