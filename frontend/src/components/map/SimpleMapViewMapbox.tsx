@@ -308,7 +308,7 @@ function buildPopupHTML(p: { name: string; genre: string; distance: string; vide
         <div style="min-width:0;flex:1">
           <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
           ${p.ownerNickname ? `<div style="font-size:9px;color:#a855f7;margin-top:1px;font-weight:600">@${p.ownerNickname}</div>` : ''}
-          <div style="font-size:10px;color:${metaColor};margin-top:1px">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
+          <div style="font-size:10px;color:${metaColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
         </div>
       </div>
       ${sceneTags ? `<div style="display:flex;gap:4px;margin-top:8px">${sceneTags}</div>` : ''}
