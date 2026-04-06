@@ -335,6 +335,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [followingLoading, setFollowingLoading] = useState(false);
   const [selectedFollowUser, setSelectedFollowUser] = useState<string | null>(null);
   const [followingData, setFollowingData] = useState<Record<string, unknown>[]>([]);
+  const followingDataRef = useRef<Record<string, unknown>[]>([]);
   const followingLoaded = useRef(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
@@ -632,7 +633,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         } catch { return { id: f.followeeId, nickname: f.followeeId }; }
       }));
       setFollowingUsers(users);
-      if (data !== followingData) setFollowingData(data);
+      followingDataRef.current = data;
+      setFollowingData(data);
     } catch {
       // エラー時は空のまま
     } finally {
@@ -652,8 +654,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
     });
 
-    // 選択ユーザーのデータだけフィルタ
-    const userRestaurants = followingData.filter((r: Record<string, unknown>) => r.ownerId === userId);
+    // 選択ユーザーのデータだけフィルタ（refで最新データを参照）
+    const data = followingDataRef.current;
+    const userRestaurants = data.filter((r: Record<string, unknown>) => r.ownerId === userId);
+    console.log('[MAP] followingData total:', data.length, 'filtered for user:', userId, '→', userRestaurants.length);
+    if (userRestaurants.length > 0) console.log('[MAP] sample:', JSON.stringify(userRestaurants[0]));
     const src = map.getSource('following') as mapboxgl.GeoJSONSource | undefined;
     if (src) {
       src.setData({
@@ -674,7 +679,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
       try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
     });
-  }, [followingData]);
+  }, []);
 
   // Toggle simple mode (labels on/off, independent of 2D/3D)
   const handleToggleSimple = useCallback(() => {

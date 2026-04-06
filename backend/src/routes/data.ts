@@ -9,7 +9,7 @@ import {
   getOrCreateConversation, getConversation, updateConversationStatus,
   getUserConversations, sendMessage, getMessages, markConversationRead,
   createShare, getSharesFeed, deleteShare,
-  scanAllInfluencerRestaurants, getInfluencerProfile,
+  scanAllInfluencerRestaurants, getInfluencerProfile, getInfluencerRestaurants,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -108,10 +108,20 @@ router.get('/restaurants/following', requireAuth, async (req: AuthRequest, res: 
   const following = await getFollowing(req.user!.userId);
   const allItems = await Promise.all(
     following.map(async (f) => {
-      const items = await getRestaurants(f.followeeId);
+      const [saved, influencer] = await Promise.all([
+        getRestaurants(f.followeeId),
+        getInfluencerRestaurants(f.followeeId),
+      ]);
       const user = await getUserById(f.followeeId);
       const nickname = user?.nickname || user?.email || f.followeeId;
-      return items.map((r) => ({ ...r, ownerNickname: nickname, ownerId: f.followeeId }));
+      // 保存リスト
+      const savedItems = saved.map((r) => ({ ...r, ownerNickname: nickname, ownerId: f.followeeId }));
+      // お店編集で登録したレストラン（IDが重複しないものだけ追加）
+      const savedIds = new Set(saved.map((r) => r.restaurantId));
+      const infItems = influencer
+        .filter((r) => !savedIds.has(r.restaurantId) && r.visibility !== 'hidden')
+        .map((r) => ({ ...r, genre: r.genres?.[0] || '', photoEmoji: '', ownerNickname: nickname, ownerId: f.followeeId }));
+      return [...savedItems, ...infItems];
     })
   );
   res.json(allItems.flat());
