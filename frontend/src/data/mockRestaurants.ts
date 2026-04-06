@@ -13,6 +13,7 @@ export interface SwipeRestaurant {
     name: string;
     handle: string;
     platform: 'tiktok' | 'instagram' | 'youtube';
+    url?: string;
   };
   videoUrl: string;
   photoEmoji: string;

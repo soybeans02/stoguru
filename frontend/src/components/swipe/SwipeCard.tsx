@@ -165,11 +165,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
           )}
           <a
             href={
+              restaurant.influencer.url || (
               restaurant.influencer.platform === 'instagram'
                 ? `https://www.instagram.com/${restaurant.influencer.handle.replace('@', '')}/`
                 : restaurant.influencer.platform === 'tiktok'
                 ? `https://www.tiktok.com/@${restaurant.influencer.handle.replace('@', '')}`
-                : `https://www.youtube.com/@${restaurant.influencer.handle.replace('@', '')}`
+                : `https://www.youtube.com/@${restaurant.influencer.handle.replace('@', '')}`)
             }
             target="_blank"
             rel="noopener noreferrer"

@@ -84,6 +84,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
         name: profile?.displayName || '',
         handle: handle ? `@${handle.replace(/^@/, '')}` : '',
         platform,
+        url: profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '',
       },
       videoUrl: r.videoUrl || '',
       photoEmoji: '🍽️',
