@@ -467,7 +467,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               id: r.id, name: r.name, genre: r.genre || '',
               visited: r.visited ? 1 : 0, distance: r.distance || '',
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-              photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
+              photoUrls: (r as any).photoUrls?.[0] || '',
               scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
             },
           })),
@@ -521,7 +521,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           .setHTML(buildPopupHTML({
             name: r.name, genre: r.genre || '', distance: r.distance || '',
             videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-            photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
+            photoUrls: (r as any).photoUrls?.[0] || '',
             scene: r.scene || [], priceRange: r.priceRange || '',
             lat: r.lat, lng: r.lng,
           }, userPosRef.current))
@@ -562,7 +562,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             id: r.id, name: r.name, genre: r.genre || '',
             visited: r.visited ? 1 : 0, distance: r.distance || '',
             videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-            photoUrls: (r as Record<string, unknown>).photoUrls ? String(((r as Record<string, unknown>).photoUrls as string[])[0] || '') : '',
+            photoUrls: (r as any).photoUrls?.[0] || '',
             scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
           },
         })),
