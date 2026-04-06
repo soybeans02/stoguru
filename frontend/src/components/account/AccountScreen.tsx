@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import * as api from '../../utils/api';
@@ -16,6 +16,9 @@ export function AccountScreen({ stocks }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
+  const [profileImage, setProfileImage] = useState(() => localStorage.getItem('cache:profileImage') || '');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
@@ -36,6 +39,10 @@ export function AccountScreen({ stocks }: Props) {
       if (s.profileIcon) {
         setProfileIcon(s.profileIcon);
         localStorage.setItem('cache:profileIcon', s.profileIcon);
+      }
+      if (s.profileImage) {
+        setProfileImage(s.profileImage as string);
+        localStorage.setItem('cache:profileImage', s.profileImage as string);
       }
       if (s.role === 'influencer') {
         setUserRole('influencer');
@@ -83,16 +90,20 @@ export function AccountScreen({ stocks }: Props) {
     }
   }
 
-  const ICON_OPTIONS = ['🍕', '🍣', '🍜', '🍔', '☕', '🍰', '🥩', '🍝', '🌮', '🥟', '🍛', '🥗', '🧁', '🍤', '🍱', '🥂'];
-  const [iconPickerOpen, setIconPickerOpen] = useState(false);
-
-  async function handleSelectIcon(icon: string) {
-    setProfileIcon(icon);
-    setIconPickerOpen(false);
-    localStorage.setItem('cache:profileIcon', icon);
+  async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
+    if (file.size > 5 * 1024 * 1024) return;
+    setUploadingPhoto(true);
     try {
-      await api.putSettings({ profileIcon: icon });
+      const url = await api.uploadPhoto(file);
+      setProfileImage(url);
+      localStorage.setItem('cache:profileImage', url);
+      await api.putSettings({ profileImage: url });
     } catch {}
+    finally { setUploadingPhoto(false); }
+    e.target.value = '';
   }
 
   if (showInfluencerDashboard) {
@@ -105,32 +116,38 @@ export function AccountScreen({ stocks }: Props) {
       <div className="pt-12 pb-6 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
         {/* Avatar with gradient ring */}
         <div className="flex flex-col items-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleProfilePhotoUpload}
+          />
           <button
-            onClick={() => setIconPickerOpen(!iconPickerOpen)}
+            onClick={() => fileInputRef.current?.click()}
             className="relative"
+            disabled={uploadingPhoto}
           >
             <div className="w-[88px] h-[88px] rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 p-[3px]">
               <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
-                <div className="w-full h-full rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-4xl">
-                  {profileIcon}
-                </div>
+                {profileImage ? (
+                  <img src={profileImage} alt="" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-4xl">
+                    {profileIcon}
+                  </div>
+                )}
               </div>
             </div>
-          </button>
-
-          {iconPickerOpen && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mt-3 mb-1 grid grid-cols-8 gap-2">
-              {ICON_OPTIONS.map((icon) => (
-                <button
-                  key={icon}
-                  onClick={() => handleSelectIcon(icon)}
-                  className={`text-xl w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${profileIcon === icon ? 'bg-gray-200 dark:bg-gray-700 ring-2 ring-gray-400' : ''}`}
-                >
-                  {icon}
-                </button>
-              ))}
+            {uploadingPhoto && (
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                <span className="text-white text-xs font-medium">...</span>
+              </div>
+            )}
+            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white dark:bg-gray-700 border-2 border-white dark:border-gray-900 flex items-center justify-center shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 dark:text-gray-300"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
             </div>
-          )}
+          </button>
 
           {editingNickname ? (
             <div className="flex flex-col items-center gap-2 mt-3">
@@ -148,13 +165,9 @@ export function AccountScreen({ stocks }: Props) {
               </div>
             </div>
           ) : (
-            <button
-              onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
-              className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1 mt-3"
-            >
+            <p className="text-xl font-bold text-gray-900 dark:text-white mt-3">
               {user?.nickname ?? 'ユーザー'}
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
-            </button>
+            </p>
           )}
           <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
 

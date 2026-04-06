@@ -23,6 +23,7 @@ export async function generatePresignedUploadUrl(
     Bucket: BUCKET,
     Key: key,
     ContentType: contentType,
+    ACL: 'public-read',
   });
 
   const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 }); // 10分
