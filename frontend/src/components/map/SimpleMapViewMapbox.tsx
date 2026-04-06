@@ -142,7 +142,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
         filter: ['==', 'class', 'major_rail'],
         paint: { 'line-color': t.rail, 'line-width': 2, 'line-dasharray': [3, 3] } },
       { id: 'building-3d', type: 'fill-extrusion', source: 'mapbox-streets', 'source-layer': 'building',
-        minzoom: 13, filter: ['>=', ['get', 'height'], 100],
+        minzoom: 13, filter: ['>=', ['get', 'height'], 80],
         paint: {
           'fill-extrusion-color': t.building3d,
           'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 13, 0, 15.5, ['get', 'height']],
