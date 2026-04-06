@@ -64,7 +64,7 @@ export function InfluencerDashboard({ onBack }: Props) {
   const loadData = useCallback(async () => {
     try {
       const [p, r] = await Promise.all([
-        api.getInfluencerProfile(),
+        api.getInfluencerProfile().catch(() => null),
         api.getInfluencerRestaurants(),
       ]);
       setProfile(p);

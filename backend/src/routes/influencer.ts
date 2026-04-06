@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { requireInfluencer } from '../middleware/requireInfluencer';
+// import { requireInfluencer } from '../middleware/requireInfluencer';
 import {
   getUserSettings, putUserSettings,
   putInfluencerProfile, getInfluencerProfile,
@@ -43,7 +43,7 @@ router.post('/register', requireAuth, async (req: AuthRequest, res: Response) =>
 
 // ─── 自分のプロフィール取得 ───
 
-router.get('/profile', requireAuth, requireInfluencer, async (req: AuthRequest, res: Response) => {
+router.get('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
   const profile = await getInfluencerProfile(req.user!.userId);
   if (!profile) {
     res.status(404).json({ error: 'プロフィールが見つかりません' });
@@ -54,7 +54,7 @@ router.get('/profile', requireAuth, requireInfluencer, async (req: AuthRequest, 
 
 // ─── 自分のプロフィール更新 ───
 
-router.put('/profile', requireAuth, requireInfluencer, async (req: AuthRequest, res: Response) => {
+router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
   const v = validate(influencerRegisterSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 
@@ -72,14 +72,14 @@ router.put('/profile', requireAuth, requireInfluencer, async (req: AuthRequest, 
 
 // ─── 自分のレストラン一覧 ───
 
-router.get('/restaurants', requireAuth, requireInfluencer, async (req: AuthRequest, res: Response) => {
+router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const items = await getInfluencerRestaurants(req.user!.userId);
   res.json(items);
 });
 
 // ─── レストラン追加/更新 ───
 
-router.put('/restaurants/:id', requireAuth, requireInfluencer, async (req: AuthRequest, res: Response) => {
+router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const restaurantId = req.params.id as string;
   const v = validate(influencerRestaurantSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
@@ -96,7 +96,7 @@ router.put('/restaurants/:id', requireAuth, requireInfluencer, async (req: AuthR
 
 // ─── レストラン削除 ───
 
-router.delete('/restaurants/:id', requireAuth, requireInfluencer, async (req: AuthRequest, res: Response) => {
+router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   await deleteInfluencerRestaurant(req.user!.userId, req.params.id as string);
   res.json({ ok: true });
 });

@@ -331,7 +331,7 @@ export async function registerInfluencer(data: { displayName: string; bio?: stri
 
 export async function getInfluencerProfile() {
   const res = await fetchWithRetry(`${BASE}/influencer/profile`, { headers: headers() });
-  if (!res.ok) throw new Error('プロフィール取得に失敗しました');
+  if (!res.ok) return null;
   return res.json();
 }
 
@@ -345,7 +345,7 @@ export async function updateInfluencerProfile(data: { displayName: string; bio?:
 
 export async function getInfluencerRestaurants() {
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants`, { headers: headers() });
-  if (!res.ok) throw new Error('レストラン一覧取得に失敗しました');
+  if (!res.ok) return [];
   return res.json();
 }
 
