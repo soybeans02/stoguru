@@ -211,9 +211,6 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
               </span>
             ))}
           </div>
-          {restaurant.description && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{restaurant.description}</p>
-          )}
         </div>
       </div>
     </div>
