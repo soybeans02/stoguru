@@ -845,7 +845,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             );
           }
         }}
-        className="absolute bottom-[88px] right-[9px] w-[32px] h-[32px] bg-white rounded-lg shadow flex items-center justify-center z-10"
+        className="absolute bottom-[88px] right-[10px] w-[32px] h-[32px] bg-white rounded-lg shadow flex items-center justify-center z-10"
         style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.15)' }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translate(-1px, 1px)' }}>
