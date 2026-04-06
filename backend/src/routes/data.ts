@@ -113,7 +113,7 @@ router.get('/restaurants/following', requireAuth, async (req: AuthRequest, res: 
         getInfluencerRestaurants(f.followeeId),
       ]);
       const user = await getUserById(f.followeeId);
-      const nickname = user?.nickname || user?.email || f.followeeId;
+      const nickname = user?.nickname || f.followeeId;
       // 保存リスト
       const savedItems = saved.map((r) => ({ ...r, ownerNickname: nickname, ownerId: f.followeeId }));
       // お店編集で登録したレストラン（IDが重複しないものだけ追加）
