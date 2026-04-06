@@ -822,11 +822,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> 行った
         </span>
-        {selectedFollowUser && (
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full border-2 border-purple-500 inline-block" /> フォロー
-          </span>
-        )}
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
         </span>
