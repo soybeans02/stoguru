@@ -5,6 +5,7 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { fetchRestaurantFeed } from '../../utils/api';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
 let sharedAudioCtx: AudioContext | null = null;
@@ -108,13 +109,9 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
 }
 
 export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds }: Props) {
-  const [cards, setCards] = useState<SwipeRestaurant[]>(() => {
-    try {
-      const saved = localStorage.getItem('nopedIds');
-      const noped = saved ? new Set(JSON.parse(saved)) : new Set();
-      return MOCK_RESTAURANTS.filter((r) => !noped.has(r.id));
-    } catch { return [...MOCK_RESTAURANTS]; }
-  });
+  const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
+  const [cards, setCards] = useState<SwipeRestaurant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
@@ -131,6 +128,42 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
   const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedFetched = useRef(false);
+
+  // APIからフィード取得（位置情報が取れたら1回だけ）
+  useEffect(() => {
+    if (feedFetched.current) return;
+    if (!userPosition) return;
+    feedFetched.current = true;
+    setLoading(true);
+    fetchRestaurantFeed(userPosition.lat, userPosition.lng, 1000)
+      .then((data: SwipeRestaurant[]) => {
+        const restaurants = data.length > 0 ? data : MOCK_RESTAURANTS;
+        setAllRestaurants(restaurants);
+        const excludeIds = new Set([...stockedIds, ...nopedIds]);
+        setCards(restaurants.filter((r) => !excludeIds.has(r.id)));
+      })
+      .catch(() => {
+        setAllRestaurants(MOCK_RESTAURANTS);
+        const excludeIds = new Set([...stockedIds, ...nopedIds]);
+        setCards(MOCK_RESTAURANTS.filter((r) => !excludeIds.has(r.id)));
+      })
+      .finally(() => setLoading(false));
+  }, [userPosition, stockedIds, nopedIds]);
+
+  // 位置情報なしの場合、3秒後にモックデータにフォールバック
+  useEffect(() => {
+    if (feedFetched.current) return;
+    const timer = setTimeout(() => {
+      if (feedFetched.current) return;
+      feedFetched.current = true;
+      setAllRestaurants(MOCK_RESTAURANTS);
+      const excludeIds = new Set([...stockedIds, ...nopedIds]);
+      setCards(MOCK_RESTAURANTS.filter((r) => !excludeIds.has(r.id)));
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [stockedIds, nopedIds]);
 
   // nopedIdsをlocalStorageに永続化
   useEffect(() => {
@@ -139,7 +172,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
 
   // カード再フィルタ（共通ロジック）
   const refilter = useCallback(() => {
-    let filtered = [...MOCK_RESTAURANTS];
+    let filtered = [...allRestaurants];
     const excludeIds = new Set([...stockedIds, ...nopedIds]);
     filtered = filtered.filter((r) => !excludeIds.has(r.id));
     if (selectedScenes.length > 0) {
@@ -159,7 +192,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     setCards(filtered);
     setCurrentIndex(0);
     return filtered;
-  }, [stockedIds, nopedIds, selectedScenes, selectedGenres, priceMin, priceMax]);
+  }, [allRestaurants, stockedIds, nopedIds, selectedScenes, selectedGenres, priceMin, priceMax]);
 
   // 「この条件で探す」ボタンから呼ばれる
   const applyFilter = useCallback(() => {
@@ -244,7 +277,12 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
 
       {/* Card area */}
       <div className="flex-1 flex flex-col items-center justify-start w-full px-4 pt-4 min-h-0 overflow-hidden">
-        {shuffling ? (
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-4" />
+            <p className="text-gray-400 text-sm">近くのお店を探しています...</p>
+          </div>
+        ) : shuffling ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="relative w-[200px] h-[280px]">
               {[...Array(6)].map((_, i) => (

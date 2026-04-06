@@ -9,6 +9,7 @@ import {
   getOrCreateConversation, getConversation, updateConversationStatus,
   getUserConversations, sendMessage, getMessages, markConversationRead,
   createShare, getSharesFeed, deleteShare,
+  scanAllInfluencerRestaurants, getInfluencerProfile,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -35,6 +36,62 @@ router.get('/restaurants/nearby', requireAuth, async (req: AuthRequest, res: Res
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
   res.json(nearby);
+});
+
+// ─── スワイプ用フィード（全インフルエンサーのレストラン、半径内） ───
+
+router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Response) => {
+  const v = validate(nearbySchema, req.query);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const { lat, lng, radius } = v.data;
+
+  const allRestaurants = await scanAllInfluencerRestaurants();
+  const nearby = allRestaurants
+    .filter((r) => r.lat != null && r.lng != null)
+    .map((r) => ({
+      ...r,
+      distanceMeters: haversineDistance(lat, lng, r.lat!, r.lng!),
+    }))
+    .filter((r) => r.distanceMeters <= radius)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+  // インフルエンサープロフィールをまとめて取得
+  const influencerIds = [...new Set(nearby.map((r) => r.influencerId))];
+  const profiles = await Promise.all(influencerIds.map((id) => getInfluencerProfile(id)));
+  const profileMap = new Map(
+    profiles.filter(Boolean).map((p) => [p!.influencerId, p!]),
+  );
+
+  const feed = nearby.map((r) => {
+    const profile = profileMap.get(r.influencerId);
+    const handle = profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
+    const platform = profile?.instagramHandle ? 'instagram'
+      : profile?.tiktokHandle ? 'tiktok'
+      : profile?.youtubeHandle ? 'youtube'
+      : 'instagram';
+    return {
+      id: r.restaurantId,
+      name: r.name,
+      address: r.address || '',
+      lat: r.lat!,
+      lng: r.lng!,
+      genre: (r.genres || [])[0] || '',
+      scene: [],
+      priceRange: r.priceRange || '',
+      distance: '',
+      influencer: {
+        name: profile?.displayName || '',
+        handle: handle ? `@${handle.replace(/^@/, '')}` : '',
+        platform,
+      },
+      videoUrl: r.videoUrl || '',
+      photoEmoji: '🍽️',
+      photoUrls: r.photoUrls || [],
+      distanceMeters: r.distanceMeters,
+    };
+  });
+
+  res.json(feed);
 });
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {

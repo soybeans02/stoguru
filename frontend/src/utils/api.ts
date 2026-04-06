@@ -57,6 +57,13 @@ export async function fetchNearbyRestaurants(lat: number, lng: number, radius: n
   return res.json();
 }
 
+export async function fetchRestaurantFeed(lat: number, lng: number, radius: number = 1000) {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), radius: String(radius) });
+  const res = await fetchWithRetry(`${BASE}/restaurants/feed?${params}`, { headers: headers() });
+  if (!res.ok) throw new Error('Failed to fetch restaurant feed');
+  return res.json();
+}
+
 export async function fetchSettings() {
   const res = await fetchWithRetry(`${BASE}/settings`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch settings');

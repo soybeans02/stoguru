@@ -9,7 +9,7 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
 interface Props {
   stocks: StockedRestaurant[];
-  panTo: { lat: number; lng: number } | null;
+  panTo: { lat: number; lng: number; restaurant?: StockedRestaurant } | null;
   onPanComplete: () => void;
   userPosition: GPSPosition | null;
   compassGranted?: boolean;
@@ -124,18 +124,18 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
       { id: 'water', type: 'fill', source: 'mapbox-streets', 'source-layer': 'water',
         paint: { 'fill-color': t.water, 'fill-opacity': 1 } },
       { id: 'park', type: 'fill', source: 'mapbox-streets', 'source-layer': 'landuse',
-        filter: ['in', 'class', 'park', 'grass', 'cemetery', 'garden'],
+        filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery', 'garden'], true, false],
         paint: { 'fill-color': t.park, 'fill-opacity': 0.8 } },
       { id: 'building-flat', type: 'fill', source: 'mapbox-streets', 'source-layer': 'building',
         paint: { 'fill-color': t.buildingFlat, 'fill-opacity': 0.7 } },
       { id: 'building-outline', type: 'line', source: 'mapbox-streets', 'source-layer': 'building',
         paint: { 'line-color': '#b8b0a5', 'line-width': 0.7, 'line-opacity': 0.8 } },
       { id: 'road-casing', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
-        filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'],
+        filter: ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'], true, false],
         paint: { 'line-color': t.roadCasing, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 14, 6, 16, 10, 20, 22] },
         layout: { 'line-cap': 'round', 'line-join': 'round' } },
       { id: 'road', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
-        filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'],
+        filter: ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'street'], true, false],
         paint: { 'line-color': t.road, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 14, 4, 16, 7, 20, 18] },
         layout: { 'line-cap': 'round', 'line-join': 'round' } },
       { id: 'rail', type: 'line', source: 'mapbox-streets', 'source-layer': 'road',
@@ -150,7 +150,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
           'fill-extrusion-opacity': 1,
         } },
       { id: 'place-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'place_label',
-        filter: ['in', 'class', 'city', 'town', 'suburb', 'neighbourhood'],
+        filter: ['match', ['get', 'class'], ['city', 'town', 'suburb', 'neighbourhood'], true, false],
         layout: {
           'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
@@ -169,7 +169,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
         paint: { 'text-color': t.transitColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5, 'text-opacity': 0.8 } },
       { id: 'poi-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'poi_label',
         minzoom: 14,
-        filter: ['in', 'class', 'landmark', 'place_of_worship', 'park_like', 'college', 'hospital'],
+        filter: ['match', ['get', 'class'], ['landmark', 'place_of_worship', 'park_like', 'college', 'hospital'], true, false],
         layout: {
           'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
@@ -259,6 +259,38 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
 
 const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
+function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; scene: string[]; priceRange: string; lat: number; lng: number }, userPos: GPSPosition | null): string {
+  const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
+  const dark = ['evening', 'night'].includes(getTimeThemeName());
+  const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
+  const border = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)';
+  const nameColor = dark ? '#f0f0f0' : '#111';
+  const metaColor = dark ? '#888' : '#9ca3af';
+  const tagBg = dark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
+  const tagColor = dark ? '#aaa' : '#6b7280';
+  const btnVidBg = dark ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
+  const btnVidColor = dark ? '#ddd' : '#555';
+  const emojiBg = dark ? 'rgba(255,255,255,0.08)' : '#f9fafb';
+  const sceneTags = (p.scene || []).slice(0, 2)
+    .map((s: string) => `<span style="background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px">${s}</span>`).join('');
+  return `
+    <div style="font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:10px;color:${metaColor};margin-top:1px">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
+        </div>
+      </div>
+      ${sceneTags ? `<div style="display:flex;gap:4px;margin-top:8px">${sceneTags}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        ${p.videoUrl ? `<a href="${p.videoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block">▶ 動画</a>` : ''}
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block">ナビ</a>
+      </div>
+    </div>
+  `;
+}
+
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -327,44 +359,21 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         const f = e.features[0];
         const coords = (f.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
         const p = f.properties!;
-        const uPos = userPosRef.current;
-        const dist = uPos ? formatDistance(distanceMetres(uPos.lat, uPos.lng, coords[1], coords[0])) : p.distance;
-        const dark = ['evening', 'night'].includes(getTimeThemeName());
-        const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
-        const border = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)';
-        const nameColor = dark ? '#f0f0f0' : '#111';
-        const metaColor = dark ? '#888' : '#9ca3af';
-        const tagBg = dark ? 'rgba(255,255,255,0.08)' : '#f3f4f6';
-        const tagColor = dark ? '#aaa' : '#6b7280';
-        const btnVidBg = dark ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
-        const btnVidColor = dark ? '#ddd' : '#555';
-        const emojiBg = dark ? 'rgba(255,255,255,0.08)' : '#f9fafb';
         const scenes = (() => { try { return JSON.parse(p.scene || '[]'); } catch { return []; } })();
-        const sceneTags = (Array.isArray(scenes) ? scenes : []).slice(0, 2)
-          .map((s: string) => `<span style="background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px">${s}</span>`).join('');
 
         popupRef.current?.remove();
         popupRef.current = new mapboxgl.Popup({ offset, closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
           .setLngLat(coords)
-          .setHTML(`
-            <div style="font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>
-                <div style="min-width:0;flex:1">
-                  <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-                  <div style="font-size:10px;color:${metaColor};margin-top:1px">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
-                </div>
-              </div>
-              ${sceneTags ? `<div style="display:flex;gap:4px;margin-top:8px">${sceneTags}</div>` : ''}
-              <div style="display:flex;gap:6px;margin-top:10px">
-                ${p.videoUrl ? `<a href="${p.videoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block">▶ 動画</a>` : ''}
-                <a href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block">ナビ</a>
-              </div>
-            </div>
-          `).addTo(map);
+          .setHTML(buildPopupHTML({
+            name: p.name, genre: p.genre || '', distance: p.distance || '',
+            videoUrl: p.videoUrl || '', photoEmoji: p.photoEmoji || '',
+            scene: Array.isArray(scenes) ? scenes : [], priceRange: p.priceRange || '',
+            lat: coords[1], lng: coords[0],
+          }, userPosRef.current))
+          .addTo(map);
       };
       map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
-      map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -40]));
+      map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -55]));
       ['stocks-circle', 'stocks-pin'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
@@ -419,13 +428,31 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     return () => { clearInterval(timer); map.remove(); mapRef.current = null; mapLoadedRef.current = false; };
   }, []);
 
-  // Pan to location
+  // Pan to location + show popup
   useEffect(() => {
-    if (mapRef.current && panTo) {
-      mapRef.current.flyTo({ center: [panTo.lng, panTo.lat], zoom: 17 });
-      initialCenterSet.current = true;
-      onPanComplete();
+    const map = mapRef.current;
+    if (!map || !panTo) return;
+    map.flyTo({ center: [panTo.lng, panTo.lat], zoom: 17 });
+    initialCenterSet.current = true;
+
+    if (panTo.restaurant) {
+      const r = panTo.restaurant;
+      const showPopup = () => {
+        popupRef.current?.remove();
+        popupRef.current = new mapboxgl.Popup({ offset: [0, -55], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
+          .setLngLat([r.lng, r.lat])
+          .setHTML(buildPopupHTML({
+            name: r.name, genre: r.genre || '', distance: r.distance || '',
+            videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+            scene: r.scene || [], priceRange: r.priceRange || '',
+            lat: r.lat, lng: r.lng,
+          }, userPosRef.current))
+          .addTo(map);
+      };
+      map.once('moveend', showPopup);
     }
+
+    onPanComplete();
   }, [panTo, onPanComplete]);
 
   // Set initial center to user position

@@ -25,7 +25,7 @@ interface Props {
   onUnmarkVisited: (id: string) => void;
   onRemoveStock: (id: string) => void;
   onTogglePin: (id: string) => void;
-  onShowOnMap: (lat: number, lng: number) => void;
+  onShowOnMap: (lat: number, lng: number, restaurant?: StockedRestaurant) => void;
   userPosition: GPSPosition | null;
 }
 
@@ -46,7 +46,7 @@ function SwipeableCard({
   onRemoveStock: (id: string) => void;
   onMarkVisited: (id: string) => void;
   onUnmarkVisited: (id: string) => void;
-  onShowOnMap: (lat: number, lng: number) => void;
+  onShowOnMap: (lat: number, lng: number, restaurant?: StockedRestaurant) => void;
   userPosition: GPSPosition | null;
   openId: string | null;
   setOpenId: (id: string | null) => void;
@@ -183,7 +183,7 @@ function SwipeableCard({
           </p>
           <div className="flex gap-2 mt-1">
             <button
-              onClick={() => onShowOnMap(s.lat, s.lng)}
+              onClick={() => onShowOnMap(s.lat, s.lng, s)}
               className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
             >
               マップ

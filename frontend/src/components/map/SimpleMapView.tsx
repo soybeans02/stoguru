@@ -8,7 +8,7 @@ const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 
 interface Props {
   stocks: StockedRestaurant[];
-  panTo: { lat: number; lng: number } | null;
+  panTo: { lat: number; lng: number; restaurant?: unknown } | null;
   onPanComplete: () => void;
   userPosition: GPSPosition | null;
   compassGranted?: boolean;

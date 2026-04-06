@@ -34,7 +34,7 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
 function MainApp() {
   const [tab, setTab] = useState<Tab>('home');
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
-  const [panTo, setPanTo] = useState<{ lat: number; lng: number } | null>(null);
+  const [panTo, setPanTo] = useState<{ lat: number; lng: number; restaurant?: StockedRestaurant } | null>(null);
   const { position } = useGPS();
 
   // 起動時にバックエンドからストック復元
@@ -144,8 +144,8 @@ function MainApp() {
 
   const stockedIds = useMemo(() => stocks.map(s => s.id), [stocks]);
 
-  const handleShowOnMap = useCallback((lat: number, lng: number) => {
-    setPanTo({ lat, lng });
+  const handleShowOnMap = useCallback((lat: number, lng: number, restaurant?: StockedRestaurant) => {
+    setPanTo({ lat, lng, restaurant });
     setTab('map');
   }, []);
 

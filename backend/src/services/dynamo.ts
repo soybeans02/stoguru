@@ -7,6 +7,7 @@ import {
   DeleteCommand,
   UpdateCommand,
   BatchWriteCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type {
   Restaurant,
@@ -383,6 +384,20 @@ export async function getInfluencerRestaurants(influencerId: string): Promise<In
     Limit: 500,
   }));
   return (result.Items ?? []) as InfluencerRestaurant[];
+}
+
+export async function scanAllInfluencerRestaurants(): Promise<InfluencerRestaurant[]> {
+  const items: InfluencerRestaurant[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.influencerRestaurants,
+      ExclusiveStartKey: lastKey,
+    }));
+    items.push(...((result.Items ?? []) as InfluencerRestaurant[]));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+  return items;
 }
 
 export async function deleteInfluencerRestaurant(influencerId: string, restaurantId: string) {
