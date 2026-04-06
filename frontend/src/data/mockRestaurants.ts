@@ -17,6 +17,8 @@ export interface SwipeRestaurant {
   videoUrl: string;
   photoEmoji: string;
   photoUrls?: string[];
+  genres?: string[];
+  description?: string;
 }
 
 export const MOCK_RESTAURANTS: SwipeRestaurant[] = [

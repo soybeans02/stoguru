@@ -76,6 +76,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       lat: r.lat!,
       lng: r.lng!,
       genre: (r.genres || [])[0] || '',
+      genres: r.genres || [],
       scene: [],
       priceRange: r.priceRange || '',
       distance: '',
@@ -87,6 +88,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       videoUrl: r.videoUrl || '',
       photoEmoji: '🍽️',
       photoUrls: r.photoUrls || [],
+      description: r.description || '',
       distanceMeters: r.distanceMeters,
     };
   });

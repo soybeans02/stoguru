@@ -200,15 +200,20 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
             {distance} · {restaurant.priceRange}
           </p>
           <div className="flex gap-1.5 flex-wrap mb-2.5">
-            <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
-              {restaurant.genre}
-            </span>
+            {(restaurant.genres && restaurant.genres.length > 0 ? restaurant.genres : [restaurant.genre]).filter(Boolean).map((g) => (
+              <span key={g} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
+                {g}
+              </span>
+            ))}
             {restaurant.scene.slice(0, 2).map((s) => (
               <span key={s} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
                 {s}
               </span>
             ))}
           </div>
+          {restaurant.description && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{restaurant.description}</p>
+          )}
         </div>
       </div>
     </div>
