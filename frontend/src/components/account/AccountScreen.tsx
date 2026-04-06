@@ -76,114 +76,176 @@ export function AccountScreen({ stocks }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none px-5 py-6 bg-white dark:bg-gray-900">
-      {/* Avatar */}
-      <div className="flex flex-col items-center mb-8">
-        <button
-          onClick={() => setIconPickerOpen(!iconPickerOpen)}
-          className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-4xl mb-3 relative"
-        >
-          {profileIcon}
-          <span className="absolute -bottom-0.5 -right-0.5 bg-gray-900 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">+</span>
-        </button>
-
-        {iconPickerOpen && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-3 grid grid-cols-8 gap-2">
-            {ICON_OPTIONS.map((icon) => (
-              <button
-                key={icon}
-                onClick={() => handleSelectIcon(icon)}
-                className={`text-xl w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors ${profileIcon === icon ? 'bg-gray-200 ring-2 ring-gray-400' : ''}`}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {editingNickname ? (
-          <div className="flex flex-col items-center gap-2">
-            <input
-              value={nicknameInput}
-              onChange={(e) => setNicknameInput(e.target.value)}
-              className="text-center text-lg font-bold border-b-2 border-gray-900 outline-none bg-transparent w-40 text-gray-900"
-              autoFocus
-              maxLength={50}
-            />
-            {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
-            <div className="flex gap-2">
-              <button onClick={handleSaveNickname} className="text-xs px-3 py-1 bg-gray-900 text-white rounded-full">保存</button>
-              <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">キャンセル</button>
+    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900">
+      {/* Profile header */}
+      <div className="pt-12 pb-6 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+        {/* Avatar with gradient ring */}
+        <div className="flex flex-col items-center">
+          <button
+            onClick={() => setIconPickerOpen(!iconPickerOpen)}
+            className="relative"
+          >
+            <div className="w-[88px] h-[88px] rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 p-[3px]">
+              <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
+                <div className="w-full h-full rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-4xl">
+                  {profileIcon}
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
+          </button>
+
+          {iconPickerOpen && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mt-3 mb-1 grid grid-cols-8 gap-2">
+              {ICON_OPTIONS.map((icon) => (
+                <button
+                  key={icon}
+                  onClick={() => handleSelectIcon(icon)}
+                  className={`text-xl w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${profileIcon === icon ? 'bg-gray-200 dark:bg-gray-700 ring-2 ring-gray-400' : ''}`}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {editingNickname ? (
+            <div className="flex flex-col items-center gap-2 mt-3">
+              <input
+                value={nicknameInput}
+                onChange={(e) => setNicknameInput(e.target.value)}
+                className="text-center text-lg font-bold border-b-2 border-gray-900 dark:border-white outline-none bg-transparent w-40 text-gray-900 dark:text-white"
+                autoFocus
+                maxLength={50}
+              />
+              {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
+              <div className="flex gap-2">
+                <button onClick={handleSaveNickname} className="text-xs px-3 py-1 bg-gray-900 text-white rounded-full">保存</button>
+                <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">キャンセル</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
+              className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1 mt-3"
+            >
+              {user?.nickname ?? 'ユーザー'}
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+            </button>
+          )}
+          <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
+
+          {/* Edit profile button */}
           <button
             onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
-            className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1"
+            className="mt-4 px-8 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[13px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform"
           >
-            {user?.nickname ?? 'ユーザー'}
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+            プロフィール編集
           </button>
-        )}
-        <p className="text-xs text-gray-400 mt-1">{user?.email}</p>
-      </div>
+        </div>
 
-      {/* Stats */}
-      <div className="flex justify-center gap-10 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
-        <button onClick={() => setListPanel('stocks')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stockCount}</p>
-          <p className="text-[10px] text-gray-400">保存</p>
-        </button>
-        <button onClick={() => setListPanel('visited')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{visitedCount}</p>
-          <p className="text-[10px] text-gray-400">行った</p>
-        </button>
-        <button onClick={() => setListPanel('following')} className="text-center">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{followingCount}</p>
-          <p className="text-[10px] text-gray-400">フォロー</p>
-        </button>
-      </div>
-
-      {/* Influencer Section */}
-      <div className="mb-6">
-        {userRole === 'influencer' ? (
-          <button
-            onClick={() => setShowInfluencerDashboard(true)}
-            className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            インフルエンサー管理
+        {/* Stats */}
+        <div className="flex justify-center gap-8 mt-5">
+          <button onClick={() => setListPanel('stocks')} className="text-center">
+            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{stockCount}</p>
+            <p className="text-[11px] text-gray-400">保存</p>
           </button>
-        ) : (
-          <button
-            onClick={() => setPanel('influencerRegister')}
-            className="w-full py-3 bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
-          >
-            インフルエンサー登録
+          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
+          <button onClick={() => setListPanel('visited')} className="text-center">
+            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{visitedCount}</p>
+            <p className="text-[11px] text-gray-400">行った</p>
           </button>
-        )}
-      </div>
-
-      {/* Settings */}
-      <div className="space-y-0 mb-6">
-        <div className="w-full flex items-center justify-between py-3.5 border-b border-gray-100 dark:border-gray-800">
-          <span className="text-sm text-gray-700 dark:text-gray-300">ダークモード</span>
-          <button
-            onClick={toggleDarkMode}
-            className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200'}`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white dark:bg-gray-900 transition-transform ${isDark ? 'translate-x-5' : ''}`}
-            />
+          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
+          <button onClick={() => setListPanel('following')} className="text-center">
+            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followingCount}</p>
+            <p className="text-[11px] text-gray-400">フォロー</p>
           </button>
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="space-y-0">
-        <MenuItem label="パスワード変更" onClick={() => setPanel('password')} />
-        <MenuItem label="メールアドレス変更" onClick={() => setPanel('email')} />
-        <MenuItem label="アカウント削除" onClick={() => setPanel('deleteAccount')} danger />
-        <MenuItem label="ログアウト" onClick={logout} danger />
+      <div className="px-4 pb-8">
+        {/* Influencer banner */}
+        <div className="mt-2 mb-5">
+          {userRole === 'influencer' ? (
+            <button
+              onClick={() => setShowInfluencerDashboard(true)}
+              className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
+            >
+              <div>
+                <p className="text-[13px] font-bold text-white">お店を登録・管理する</p>
+              </div>
+              <span className="text-white/40 text-lg">›</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setPanel('influencerRegister')}
+              className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
+            >
+              <div>
+                <p className="text-[13px] font-bold text-white">インフルエンサー登録</p>
+                <p className="text-[11px] text-white/50 mt-0.5">おすすめのお店を公開する</p>
+              </div>
+              <span className="text-white/40 text-lg">›</span>
+            </button>
+          )}
+        </div>
+
+        {/* Settings section */}
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">設定</p>
+          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[8px] bg-indigo-500 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </div>
+                <span className="text-[14px] text-gray-700 dark:text-gray-200">ダークモード</span>
+              </div>
+              <button
+                onClick={toggleDarkMode}
+                className={`relative w-11 h-[26px] rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-indigo-500' : 'bg-gray-200'}`}
+              >
+                <span
+                  className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-[18px]' : ''}`}
+                />
+              </button>
+            </div>
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-amber-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
+              label="パスワード変更" onClick={() => setPanel('password')} border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-emerald-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>}
+              label="メールアドレス変更" onClick={() => setPanel('email')}
+            />
+          </div>
+        </div>
+
+        {/* Danger section */}
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">その他</p>
+          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setPanel('deleteAccount')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50"
+            >
+              <div className="w-8 h-8 rounded-[8px] bg-red-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              </div>
+              <span className="text-[14px] text-red-500">アカウント削除</span>
+            </button>
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-4 py-3.5"
+            >
+              <div className="w-8 h-8 rounded-[8px] bg-gray-900 dark:bg-gray-600 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              </div>
+              <span className="text-[14px] text-gray-700 dark:text-gray-300">ログアウト</span>
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-gray-300 dark:text-gray-600 mt-6">ストグル v1.0</p>
       </div>
 
       {/* Panels */}
@@ -266,14 +328,17 @@ export function AccountScreen({ stocks }: Props) {
   );
 }
 
-function MenuItem({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
+function MenuItemCard({ icon, label, onClick, border }: { icon: React.ReactNode; label: string; onClick: () => void; border?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center justify-between py-3.5 border-b border-gray-100 text-left ${danger ? 'text-red-500' : 'text-gray-700'}`}
+      className={`w-full flex items-center justify-between px-4 py-3.5 ${border ? 'border-b border-gray-50 dark:border-gray-700/50' : ''}`}
     >
-      <span className="text-sm">{label}</span>
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><polyline points="9 18 15 12 9 6"/></svg>
+      <div className="flex items-center gap-3">
+        {icon}
+        <span className="text-[14px] text-gray-700 dark:text-gray-200">{label}</span>
+      </div>
+      <span className="text-gray-300 dark:text-gray-600 text-base">›</span>
     </button>
   );
 }

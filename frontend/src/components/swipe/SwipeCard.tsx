@@ -133,7 +133,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+      <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-700">
         {/* Swipe overlay labels */}
         {offset.x > 30 && !exiting && (
           <div className="absolute top-4 left-4 z-20 bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-bold -rotate-12">
@@ -157,7 +157,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         )}
 
         {/* Photo area */}
-        <div className="w-full h-[68%] bg-gray-100 flex items-center justify-center relative">
+        <div className="w-full h-[68%] bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative">
           <span className="text-9xl">{restaurant.photoEmoji}</span>
           <a
             href={
@@ -191,16 +191,16 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
 
         {/* Info area */}
         <div className="px-4 py-3">
-          <h3 className="text-base font-bold text-gray-900 mb-0.5">{restaurant.name}</h3>
-          <p className="text-xs text-gray-400 mb-2.5">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-0.5">{restaurant.name}</h3>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2.5">
             {distance} · {restaurant.priceRange}
           </p>
           <div className="flex gap-1.5 flex-wrap mb-2.5">
-            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[11px]">
+            <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
               {restaurant.genre}
             </span>
             {restaurant.scene.slice(0, 2).map((s) => (
-              <span key={s} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[11px]">
+              <span key={s} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
                 {s}
               </span>
             ))}

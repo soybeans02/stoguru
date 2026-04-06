@@ -32,7 +32,11 @@ function TabButton({ active, onClick, label, children }: { active: boolean; onCl
 }
 
 function MainApp() {
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTabState] = useState<Tab>(() => {
+    const saved = sessionStorage.getItem('activeTab') as Tab | null;
+    return saved && ['home', 'stock', 'map', 'account'].includes(saved) ? saved : 'home';
+  });
+  const setTab = (t: Tab) => { setTabState(t); sessionStorage.setItem('activeTab', t); };
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
   const [panTo, setPanTo] = useState<{ lat: number; lng: number; restaurant?: StockedRestaurant } | null>(null);
   const { position } = useGPS();

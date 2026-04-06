@@ -147,23 +147,23 @@ function SwipeableCard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className={`flex gap-3 p-3.5 relative bg-white ${s.pinned ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-gray-50'}`}
+        className={`flex gap-3 p-3.5 relative ${s.pinned ? 'bg-amber-50 dark:bg-amber-950/30 ring-1 ring-amber-200 dark:ring-amber-800' : 'bg-gray-50 dark:bg-gray-900'}`}
         style={{ transform: `translateX(${translate}px)`, transition: 'transform 0.25s ease' }}
       >
         <div
           className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
-            s.visited ? 'bg-green-50' : 'bg-gray-200'
+            s.visited ? 'bg-green-50 dark:bg-green-900/30' : 'bg-gray-200 dark:bg-gray-700'
           }`}
         >
           {s.photoEmoji}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h3 className="text-sm font-semibold text-gray-900 truncate">{s.name}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">{s.name}</h3>
             {s.pinned && (
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 flex-shrink-0"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>
             )}
-            <span className="text-[12px] font-normal text-gray-300 flex-shrink-0 ml-auto">{formatDate(s.stockedAt)}</span>
+            <span className="text-[12px] font-normal text-gray-300 dark:text-gray-600 flex-shrink-0 ml-auto">{formatDate(s.stockedAt)}</span>
             {/* PC版: ピン・削除ボタン */}
             <button
               onClick={() => onTogglePin(s.id)}
@@ -184,20 +184,20 @@ function SwipeableCard({
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => onShowOnMap(s.lat, s.lng, s)}
-              className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
+              className="text-xs px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium active:scale-95 transition-transform"
             >
               マップ
             </button>
             <button
               onClick={() => window.open(s.videoUrl, '_blank')}
-              className="text-xs px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium active:scale-95 transition-transform"
+              className="text-xs px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium active:scale-95 transition-transform"
             >
               動画
             </button>
             {!s.visited && (
               <button
                 onClick={() => onMarkVisited(s.id)}
-                className="text-xs px-4 py-2 rounded-lg bg-gray-900 text-white font-medium active:scale-95 transition-transform"
+                className="text-xs px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium active:scale-95 transition-transform"
               >
                 行った
               </button>
@@ -260,9 +260,9 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     }), [stocks, filter, search, selectedGenre, sortMode, userPosition]);
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white">
-      <h1 className="text-lg font-bold text-gray-900 mb-0.5">保存</h1>
-      <p className="text-xs text-gray-400 mb-3">
+    <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white dark:bg-gray-900">
+      <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">保存</h1>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
         {stocks.length}件 · うち{visitedCount}件 行った
       </p>
 
@@ -273,7 +273,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="店名・ジャンルで検索"
-          className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-50 text-sm text-gray-900 outline-none border border-gray-100 focus:border-gray-300 placeholder:text-gray-300"
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white outline-none border border-gray-100 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-500 placeholder:text-gray-300 dark:placeholder:text-gray-600"
         />
       </div>
 
@@ -284,7 +284,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
             key={key}
             onClick={() => setFilter(key)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors ${
-              filter === key ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'
+              filter === key ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
             }`}
           >
             {label}
@@ -294,7 +294,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <button
             onClick={() => setGenreOpen(!genreOpen)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${
-              selectedGenre ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-500'
+              selectedGenre ? 'bg-gray-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
             }`}
           >
             {selectedGenre ?? '絞り込み'}
@@ -304,7 +304,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
         <div className="flex-1" />
         <button
           onClick={() => setSortMode(sortMode === 'added' ? 'distance' : 'added')}
-          className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-50 text-gray-400 border border-gray-100 flex items-center gap-1"
+          className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-50 dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700 flex items-center gap-1"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
           {sortMode === 'added' ? '追加順' : '距離順'}
@@ -315,7 +315,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           {selectedGenre && (
             <button
               onClick={() => { setSelectedGenre(null); setGenreOpen(false); }}
-              className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-100 text-gray-500"
+              className="text-[11px] px-3 py-1.5 rounded-full font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
             >
               クリア
             </button>
@@ -325,7 +325,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
               key={g}
               onClick={() => { setSelectedGenre(selectedGenre === g ? null : g); setGenreOpen(false); }}
               className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors ${
-                selectedGenre === g ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'
+                selectedGenre === g ? 'bg-gray-700 text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700'
               }`}
             >
               {g}
@@ -336,9 +336,9 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
       {stocks.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-gray-300 text-5xl font-thin mb-3">0</p>
-          <p className="text-gray-500 text-sm">まだ保存がないよ</p>
-          <p className="text-gray-400 text-xs mt-1">ホームで気になる店をスワイプしよう</p>
+          <p className="text-gray-300 dark:text-gray-600 text-5xl font-thin mb-3">0</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">まだ保存がないよ</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">ホームで気になる店をスワイプしよう</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">

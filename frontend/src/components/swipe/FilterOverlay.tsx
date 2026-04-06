@@ -68,11 +68,11 @@ export function FilterOverlay({
   const maxSteps = PRICE_STEPS.filter((v) => v > priceMin || v >= 10000);
 
   return (
-    <div className="absolute inset-0 z-50 bg-white flex flex-col">
+    <div className="absolute inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h2 className="text-base font-bold text-gray-900">絞り込み</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+        <h2 className="text-base font-bold text-gray-900 dark:text-white">絞り込み</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -87,8 +87,8 @@ export function FilterOverlay({
               onClick={() => toggleScene(s.id)}
               className={`rounded-xl py-3.5 text-center text-sm font-medium transition-all ${
                 selectedScenes.includes(s.id)
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {s.label}
@@ -105,8 +105,8 @@ export function FilterOverlay({
               onClick={() => toggleGenre(g)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 selectedGenres.includes(g)
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {g}
@@ -122,20 +122,20 @@ export function FilterOverlay({
             <select
               value={priceMin}
               onChange={(e) => handleMinChange(Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 appearance-none"
             >
               {minSteps.map((v) => (
                 <option key={v} value={v}>{formatYen(v)}</option>
               ))}
             </select>
           </div>
-          <span className="text-gray-300 mt-4">〜</span>
+          <span className="text-gray-300 dark:text-gray-600 mt-4">〜</span>
           <div className="flex-1">
             <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
             <select
               value={priceMax}
               onChange={(e) => handleMaxChange(Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 appearance-none"
             >
               {maxSteps.map((v) => (
                 <option key={v} value={v}>{formatYen(v)}</option>
@@ -153,16 +153,16 @@ export function FilterOverlay({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+      <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
         <button
           onClick={clearAll}
-          className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium"
+          className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium"
         >
           クリア
         </button>
         <button
           onClick={onApply ?? onClose}
-          className="flex-[2] py-3 rounded-xl bg-gray-900 text-white text-sm font-medium"
+          className="flex-[2] py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium"
         >
           この条件で探す
         </button>
