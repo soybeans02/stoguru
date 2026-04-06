@@ -157,8 +157,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         )}
 
         {/* Photo area */}
-        <div className="w-full h-[68%] bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative">
-          <span className="text-9xl">{restaurant.photoEmoji}</span>
+        <div className="w-full h-[68%] bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative overflow-hidden">
+          {restaurant.photoUrls && restaurant.photoUrls.length > 0 ? (
+            <img src={restaurant.photoUrls[0]} alt={restaurant.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-9xl">{restaurant.photoEmoji}</span>
+          )}
           <a
             href={
               restaurant.influencer.platform === 'instagram'

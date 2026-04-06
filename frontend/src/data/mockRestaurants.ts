@@ -15,7 +15,8 @@ export interface SwipeRestaurant {
     platform: 'tiktok' | 'instagram' | 'youtube';
   };
   videoUrl: string;
-  photoEmoji: string; // 後で実写真に差し替え
+  photoEmoji: string;
+  photoUrls?: string[];
 }
 
 export const MOCK_RESTAURANTS: SwipeRestaurant[] = [
