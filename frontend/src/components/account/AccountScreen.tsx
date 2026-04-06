@@ -208,7 +208,7 @@ export function AccountScreen({ stocks }: Props) {
               className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
             >
               <div>
-                <p className="text-[13px] font-bold text-white">お店を登録・管理する</p>
+                <p className="text-[13px] font-bold text-white">お店を編集</p>
               </div>
               <span className="text-white/40 text-lg">›</span>
             </button>

@@ -144,6 +144,7 @@ export const influencerRestaurantSchema = z.object({
   videoUrl: z.string().max(500).optional(),
   instagramUrl: z.string().max(500).optional(),
   description: z.string().max(1000).optional(),
+  visibility: z.enum(['public', 'mutual']).default('public'),
 });
 
 // ─── 写真アップロード ───

@@ -94,6 +94,23 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
   res.json({ ok: true });
 });
 
+// ─── レストラン公開設定変更 ───
+
+router.patch('/restaurants/:id/visibility', requireAuth, async (req: AuthRequest, res: Response) => {
+  const restaurantId = req.params.id as string;
+  const { visibility } = req.body;
+  if (visibility !== 'public' && visibility !== 'mutual') {
+    res.status(400).json({ error: '無効な公開設定です' });
+    return;
+  }
+  await putInfluencerRestaurant(req.user!.userId, {
+    restaurantId,
+    influencerId: req.user!.userId,
+    visibility,
+  });
+  res.json({ ok: true });
+});
+
 // ─── レストラン削除 ───
 
 router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {

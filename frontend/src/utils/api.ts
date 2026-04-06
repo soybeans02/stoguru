@@ -357,6 +357,14 @@ export async function putInfluencerRestaurant(id: string, data: Record<string, u
   return res.json();
 }
 
+export async function updateRestaurantVisibility(id: string, visibility: 'public' | 'mutual') {
+  const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}/visibility`, {
+    method: 'PATCH', headers: headers(), body: JSON.stringify({ visibility }),
+  });
+  if (!res.ok) throw new Error('公開設定の変更に失敗しました');
+  return res.json();
+}
+
 export async function deleteInfluencerRestaurant(id: string) {
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}`, {
     method: 'DELETE', headers: headers(),

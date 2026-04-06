@@ -31,6 +31,7 @@ interface InfluencerRestaurant {
   videoUrl?: string;
   instagramUrl?: string;
   description?: string;
+  visibility?: 'public' | 'mutual';
   createdAt: number;
   updatedAt: number;
 }
@@ -121,6 +122,16 @@ export function InfluencerDashboard({ onBack }: Props) {
     if (g && !genres.includes(g) && genres.length < 10) {
       setGenres([...genres, g]);
       setGenreInput('');
+    }
+  }
+
+  async function handleToggleVisibility(r: InfluencerRestaurant) {
+    const newVis = (r.visibility ?? 'public') === 'public' ? 'mutual' : 'public';
+    try {
+      await api.updateRestaurantVisibility(r.restaurantId, newVis);
+      setRestaurants(restaurants.map(x => x.restaurantId === r.restaurantId ? { ...x, visibility: newVis } : x));
+    } catch {
+      setError('公開設定の変更に失敗しました');
     }
   }
 
@@ -323,58 +334,63 @@ export function InfluencerDashboard({ onBack }: Props) {
           <p className="text-gray-300 text-xs">おすすめのレストランを追加しましょう</p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {restaurants.map(r => (
             <div key={r.restaurantId} className="bg-white rounded-xl overflow-hidden shadow border border-gray-100 flex flex-col">
-              {/* Photo area — matches SwipeCard */}
+              {/* Photo area */}
               <div className="w-full aspect-square bg-gray-100 relative overflow-hidden">
                 {r.photoUrls && r.photoUrls.length > 0 ? (
                   <img src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-3xl opacity-30">🍽️</span>
+                    <span className="text-4xl opacity-30">🍽️</span>
                   </div>
                 )}
                 {/* Preview / Edit / Delete overlay */}
-                <div className="absolute top-1 right-1 flex gap-1">
+                <div className="absolute top-1.5 right-1.5 flex gap-1">
                   <button
                     onClick={() => setPreviewRestaurant(r)}
-                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
+                    className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
                     title="プレビュー"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                   <button
                     onClick={() => setRestaurantForm({ open: true, editing: r })}
-                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
+                    className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
                   </button>
                   <button
                     onClick={() => handleDeleteRestaurant(r.restaurantId)}
-                    className="p-1 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-colors"
+                    className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>
                 </div>
-                {r.photoUrls && r.photoUrls.length > 1 && (
-                  <div className="absolute bottom-1 right-1 bg-black/60 text-white px-1.5 py-0.5 rounded-full text-[9px] backdrop-blur-sm">
-                    +{r.photoUrls.length - 1}
-                  </div>
-                )}
               </div>
 
               {/* Info */}
-              <div className="px-2 py-1.5">
-                <h3 className="text-[11px] font-bold text-gray-900 truncate">{r.name}</h3>
-                {r.priceRange && <p className="text-[10px] text-gray-400 truncate">{r.priceRange}</p>}
+              <div className="px-2.5 py-2">
+                <h3 className="text-[13px] font-bold text-gray-900 truncate">{r.name}</h3>
+                {r.priceRange && <p className="text-[11px] text-gray-400 truncate">{r.priceRange}</p>}
                 {r.genres && r.genres.length > 0 && (
-                  <div className="flex gap-0.5 flex-wrap mt-0.5">
-                    {r.genres.slice(0, 2).map(g => (
-                      <span key={g} className="bg-gray-100 text-gray-500 px-1 py-0 rounded text-[9px]">{g}</span>
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {r.genres.slice(0, 3).map(g => (
+                      <span key={g} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px]">{g}</span>
                     ))}
                   </div>
                 )}
+                <button
+                  onClick={() => handleToggleVisibility(r)}
+                  className={`mt-2 w-full py-1.5 rounded-lg text-[12px] font-bold transition-colors ${
+                    (r.visibility ?? 'public') === 'public'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-orange-500 text-white'
+                  }`}
+                >
+                  {(r.visibility ?? 'public') === 'public' ? '公開' : '相互のみ'}
+                </button>
               </div>
             </div>
           ))}
