@@ -665,7 +665,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         type: 'FeatureCollection',
         features: userRestaurants.filter((r: Record<string, unknown>) => r.lat && r.lng).map((r: Record<string, unknown>) => ({
           type: 'Feature' as const,
-          geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
+          geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
           properties: {
             id: r.id || r.restaurantId, name: `${r.name}`,
             ownerNickname: (r.ownerNickname as string) || '',
