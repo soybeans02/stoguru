@@ -170,11 +170,6 @@ export function AccountScreen({ stocks }: Props) {
 
         {/* Stats */}
         <div className="flex justify-center gap-8 mt-5">
-          <button onClick={() => setListPanel('stocks')} className="text-center">
-            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{stockCount}</p>
-            <p className="text-[11px] text-gray-400">保存</p>
-          </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
           <button onClick={() => setListPanel('visited')} className="text-center">
             <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{visitedCount}</p>
             <p className="text-[11px] text-gray-400">行った</p>
