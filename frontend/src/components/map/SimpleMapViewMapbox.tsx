@@ -487,6 +487,38 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           }],
         });
       }
+      // マップロード直後にmyPostedデータもフェッチして紫ピンを表示
+      if (!myPostedLoaded.current && !myPostedLoading.current) {
+        myPostedLoading.current = true;
+        getInfluencerRestaurants()
+          .then(posted => {
+            myPostedRef.current = posted;
+            myPostedLoaded.current = true;
+            const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
+            if (postedSrc) {
+              const stockIds = new Set(stocksRef.current.map(r => r.id));
+              postedSrc.setData({
+                type: 'FeatureCollection',
+                features: posted
+                  .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+                  .map((r: Record<string, unknown>) => ({
+                    type: 'Feature' as const,
+                    geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+                    properties: {
+                      id: r.restaurantId, name: `${r.name}`,
+                      genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+                      visited: 0, distance: '',
+                      videoUrl: r.videoUrl || '', photoEmoji: '',
+                      photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+                      scene: '[]', priceRange: r.priceRange || '',
+                    },
+                  })),
+              });
+            }
+          })
+          .catch(() => { /* ignore */ })
+          .finally(() => { myPostedLoading.current = false; });
+      }
       } catch { mapLoadedRef.current = false; }
     };
     // loaded()がtrueならすでにload済み（HMR等）→ 即実行、そうでなければイベント待ち
@@ -606,7 +638,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       } catch { /* ignore */ }
       myPostedLoading.current = false;
     }
-    // ロード完了済みの場合のみソースを更新（フェッチ中は既存データを維持）
+    // 紫ピンソース更新（ストック済みの店は除外）
     if (myPostedLoaded.current) {
       const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
       if (postedSrc) {
