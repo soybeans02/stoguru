@@ -4,7 +4,7 @@ import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { MessageView } from '../message/MessageView';
 
-type SubView = 'main' | 'search' | 'notifications' | 'following' | 'followers' | 'requests' | 'messages';
+type SubView = 'main' | 'notifications' | 'following' | 'requests' | 'messages';
 
 interface Props {
   onUnreadCount?: (count: number) => void;
@@ -57,7 +57,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   const [messageTargetId, setMessageTargetId] = useState<string | null>(null);
 
   // Counts for main view
-  const [, setFollowingCount] = useState(0);
   const [requestCount, setRequestCount] = useState(0);
 
   // initialViewが渡された場合、対応するサブビューに遷移
@@ -75,10 +74,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
   // Load counts on mount
   useEffect(() => {
-    api.getFollowing().then(f => {
-      setFollowingCount(f.length);
-      setFollowing(f);
-    }).catch(() => {});
+    api.getFollowing().then(f => setFollowing(f)).catch(() => {});
 
     api.getNotifications().then(n => {
       setNotifications(n);
@@ -230,44 +226,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   }
 
   // === Sub views ===
-  if (view === 'search') {
-    return (
-      <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
-        <Header title="ユーザー検索" onBack={() => { setView('main'); setSearchQuery(''); setSearchResults([]); }} />
-        <div className="px-4 py-3">
-          <input
-            value={searchQuery}
-            onChange={e => handleSearch(e.target.value)}
-            placeholder="ニックネームで検索..."
-            autoFocus
-            className="w-full rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
-          />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {searching && <p className="text-center text-gray-400 text-sm py-8">検索中...</p>}
-          {!searching && searchQuery && searchResults.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">見つかりませんでした</p>
-          )}
-          {searchResults.map(u => (
-            <button
-              key={u.userId}
-              onClick={() => openProfile(u.userId)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-300 flex items-center justify-center text-white font-bold text-sm">
-                {u.nickname.charAt(0)}
-              </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">{u.nickname}</span>
-            </button>
-          ))}
-        </div>
-        {profileUserId && (
-          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} onOpenMessage={openMessage} />
-        )}
-      </div>
-    );
-  }
-
   if (view === 'notifications') {
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">

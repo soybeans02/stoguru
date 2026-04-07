@@ -99,8 +99,6 @@ function MainApp() {
     }).catch((e) => console.warn('Failed to stock:', e));
   }, []);
 
-  const handleNope = useCallback(() => {}, []);
-
   const handleMarkVisited = useCallback((id: string) => {
     const now = new Date().toISOString();
     setStocks((prev) => {
@@ -165,7 +163,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} onOpenMessages={() => { setSocialInitView('messages'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} onOpenMessages={() => { setSocialInitView('messages'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}

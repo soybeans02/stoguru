@@ -324,9 +324,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const [, setLabelsOn] = useState(true);
-  const [, setIs3D] = useState(true);
-  const [, setThemeLabel] = useState(() => getBlendedTheme().label);
   const [mapMode, setMapMode] = useState<'standard' | '3d'>('3d');
   const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
@@ -364,7 +361,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     mapRef.current = map;
-    setThemeLabel(t.label);
+
 
     // マップロード完了 → レイヤー初期化
     const initLayers = () => {
@@ -489,7 +486,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           }],
         });
       }
-      } catch (err) { console.error('initLayers error:', err); mapLoadedRef.current = false; }
+      } catch { mapLoadedRef.current = false; }
     };
     // loaded()がtrueならすでにload済み（HMR等）→ 即実行、そうでなければイベント待ち
     if (map.loaded()) {
@@ -504,7 +501,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       if (!mapRef.current) return;
       const blended = getBlendedTheme();
       applyThemeColors(mapRef.current, blended);
-      setThemeLabel(blended.label);
+
     }, 60000);
 
     return () => { clearInterval(timer); map.remove(); mapRef.current = null; mapLoadedRef.current = false; };
@@ -653,7 +650,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     LABEL_LAYERS.forEach(id => {
       map.setLayoutProperty(id, 'visibility', vis);
     });
-    setLabelsOn(show);
   }, []);
 
   // Switch map mode (2D / 3D)
@@ -664,11 +660,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     if (mode === '3d') {
       map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'visible'); } catch {}
-      setIs3D(true);
     } else {
       map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'none'); } catch {}
-      setIs3D(false);
     }
 
     setMapMode(mode);

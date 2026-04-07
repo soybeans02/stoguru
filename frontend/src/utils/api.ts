@@ -86,7 +86,7 @@ export async function putSettings(settings: Record<string, unknown>) {
 // ─── ユーザー検索 ───
 
 export async function searchUsers(query: string): Promise<{ userId: string; nickname: string }[]> {
-  const res = await fetch(`${BASE}/users/search?q=${encodeURIComponent(query)}`, { headers: headers() });
+  const res = await fetchWithRetry(`${BASE}/users/search?q=${encodeURIComponent(query)}`, { headers: headers() });
   if (!res.ok) return [];
   return res.json();
 }

@@ -167,7 +167,7 @@ export function InfluencerDashboard({ onBack }: Props) {
         <button onClick={onBack} className="text-gray-400 hover:text-gray-600">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">インフルエンサー管理</h1>
+        <h1 className="text-lg font-bold text-gray-900">お店を編集</h1>
       </div>
 
       {error && (

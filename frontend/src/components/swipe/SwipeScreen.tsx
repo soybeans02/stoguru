@@ -98,7 +98,6 @@ function createShuffleSound() {
 
 interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
-  onNope?: () => void;
   onRemoveStock: (id: string) => void;
   onShowOnMap?: (lat: number, lng: number, restaurant?: any) => void;
   onOpenNotifications?: () => void;
@@ -113,7 +112,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, onOpenNotifications, onOpenMessages, userPosition, stockedIds, refreshKey }: Props) {
+export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, onOpenMessages, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [unreadNotif, setUnreadNotif] = useState(0);
@@ -126,7 +125,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, onOpe
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(10000);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | 'up' | null>(null);
-  // nopedMap: { [id]: timestamp } — 2週間経過したら自動復活
+  // nopedMap: { [id]: timestamp } — 1週間経過したら自動復活
   const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
   const [nopedMap, setNopedMap] = useState<Record<string, number>>(() => {
     try {
@@ -303,13 +302,12 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, onOpe
         onStock(current);
       } else {
         setNopedMap((prev) => ({ ...prev, [current.id]: Date.now() }));
-        onNope?.();
       }
 
       setButtonFlyOut(null);
       setCurrentIndex((i) => i + 1);
     },
-    [cards, currentIndex, onStock, onNope, onShowOnMap],
+    [cards, currentIndex, onStock, onShowOnMap],
   );
 
   const handleUndo = useCallback(() => {
@@ -318,7 +316,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, onOpe
     setHistory((h) => h.slice(0, -1));
     setCurrentIndex((i) => i - 1);
     if (last.direction === 'left') {
-      // ×を取り消す → nopedIdsから削除
+      // ×を取り消す → nopedMapから削除
       setNopedMap((prev) => {
         const next = { ...prev };
         delete next[last.id];
