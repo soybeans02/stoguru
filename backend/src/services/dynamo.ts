@@ -62,6 +62,46 @@ export async function deleteRestaurant(userId: string, restaurantId: string) {
   }));
 }
 
+export async function getUserStockRanking(limit = 30): Promise<{ userId: string; totalStocks: number }[]> {
+  // 1. インフルエンサーが投稿したレストランID → 投稿者IDのマップを作る
+  const restaurantToOwner = new Map<string, string>();
+  let lastKey1: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.influencerRestaurants,
+      ProjectionExpression: 'restaurantId, influencerId',
+      ExclusiveStartKey: lastKey1,
+    }));
+    for (const item of result.Items ?? []) {
+      restaurantToOwner.set(item.restaurantId as string, item.influencerId as string);
+    }
+    lastKey1 = result.LastEvaluatedKey;
+  } while (lastKey1);
+
+  // 2. ユーザーの保存を全スキャンし、投稿者ごとに保存回数を集計
+  const counts = new Map<string, number>();
+  let lastKey2: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.restaurants,
+      ProjectionExpression: 'restaurantId',
+      ExclusiveStartKey: lastKey2,
+    }));
+    for (const item of result.Items ?? []) {
+      const owner = restaurantToOwner.get(item.restaurantId as string);
+      if (owner) {
+        counts.set(owner, (counts.get(owner) ?? 0) + 1);
+      }
+    }
+    lastKey2 = result.LastEvaluatedKey;
+  } while (lastKey2);
+
+  return [...counts.entries()]
+    .map(([userId, totalStocks]) => ({ userId, totalStocks }))
+    .sort((a, b) => b.totalStocks - a.totalStocks)
+    .slice(0, limit);
+}
+
 // ─── ユーザー設定（インフルエンサー・カテゴリ等） ───
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {

@@ -264,6 +264,21 @@ export async function deletePhoto(key: string) {
   if (!res.ok) throw new Error('写真の削除に失敗しました');
 }
 
+// ─── ランキング ───
+
+export interface RankedUser {
+  userId: string;
+  totalStocks: number;
+  nickname: string;
+  profilePhotoUrl: string;
+}
+
+export async function getStockRanking(): Promise<RankedUser[]> {
+  const res = await fetchWithRetry(`${BASE}/ranking`, { headers: headers() });
+  if (!res.ok) throw new Error('ランキング取得に失敗しました');
+  return res.json();
+}
+
 // ─── ジャンル追加リクエスト ───
 
 export async function requestGenre(genre: string) {

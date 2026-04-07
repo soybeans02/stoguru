@@ -9,6 +9,7 @@ import {
   createShare, getSharesFeed, deleteShare,
   scanAllInfluencerRestaurants, getInfluencerProfile, getInfluencerRestaurants,
   saveGenreRequest,
+  getUserStockRanking,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -379,6 +380,22 @@ router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Respons
   }
   await saveGenreRequest(req.user!.userId, req.user!.nickname, genre);
   res.json({ ok: true });
+});
+
+// ─── 保存ランキング（投稿者別） ───
+
+router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
+  const ranking = await getUserStockRanking(30);
+  // ニックネームを解決
+  const withProfiles = await Promise.all(ranking.map(async (r) => {
+    try {
+      const profile = await getInfluencerProfile(r.userId);
+      return { ...r, nickname: profile?.displayName || '不明', profilePhotoUrl: profile?.profilePhotoUrl || '' };
+    } catch {
+      return { ...r, nickname: '不明', profilePhotoUrl: '' };
+    }
+  }));
+  res.json(withProfiles);
 });
 
 export default router;

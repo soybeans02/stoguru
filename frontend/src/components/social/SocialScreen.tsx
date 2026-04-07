@@ -53,6 +53,10 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   // Counts for main view
   const [requestCount, setRequestCount] = useState(0);
 
+  // Ranking
+  const [ranking, setRanking] = useState<api.RankedUser[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(true);
+
   // initialViewが渡された場合、対応するサブビューに遷移
   useEffect(() => {
     if (initialView === 'notifications') {
@@ -75,6 +79,10 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
       setRequestCount(r.length);
       setFollowRequests(r.map(x => ({ ...x, nickname: undefined })));
     }).catch(() => {});
+
+    api.getStockRanking().then(r => {
+      setRanking(r);
+    }).catch(() => {}).finally(() => setRankingLoading(false));
 
   }, [myId, onUnreadCount]);
 
@@ -333,19 +341,56 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
         {/* Menu cards */}
         {!searchQuery && (
-          <div className="space-y-2">
-            {/* Follow requests */}
-            {requestCount > 0 && (
-              <MenuCard
-                icon={<div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
-                </div>}
-                label="フォローリクエスト"
-                badge={requestCount}
-                onClick={() => { setView('requests'); loadFollowRequests(); }}
-              />
-            )}
-          </div>
+          <>
+            <div className="space-y-2">
+              {/* Follow requests */}
+              {requestCount > 0 && (
+                <MenuCard
+                  icon={<div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
+                  </div>}
+                  label="フォローリクエスト"
+                  badge={requestCount}
+                  onClick={() => { setView('requests'); loadFollowRequests(); }}
+                />
+              )}
+            </div>
+
+            {/* 保存ランキング */}
+            <div className="mt-6">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">保存ランキング</h2>
+              {rankingLoading ? (
+                <p className="text-center text-gray-400 text-sm py-6">読み込み中...</p>
+              ) : ranking.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-6">まだデータがありません</p>
+              ) : (
+                <div className="space-y-1">
+                  {ranking.map((r, i) => (
+                    <button
+                      key={r.userId}
+                      onClick={() => openProfile(r.userId)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
+                      <span className={`w-6 text-center font-bold text-sm ${
+                        i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-300'
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                        {r.profilePhotoUrl ? (
+                          <img src={r.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          r.nickname.charAt(0)
+                        )}
+                      </div>
+                      <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white truncate">{r.nickname}</span>
+                      <span className="text-xs text-gray-400">{r.totalStocks} 保存</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
