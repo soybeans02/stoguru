@@ -122,7 +122,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
   const [priceMax, setPriceMax] = useState(10000);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | 'up' | null>(null);
   // nopedMap: { [id]: timestamp } — 2週間経過したら自動復活
-  const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+  const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
   const [nopedMap, setNopedMap] = useState<Record<string, number>>(() => {
     try {
       const now = Date.now();
@@ -132,7 +132,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
         const map = JSON.parse(mapSaved) as Record<string, number>;
         const active: Record<string, number> = {};
         for (const [id, ts] of Object.entries(map)) {
-          if (now - ts < TWO_WEEKS) active[id] = ts;
+          if (now - ts < ONE_WEEK) active[id] = ts;
         }
         return active;
       }
