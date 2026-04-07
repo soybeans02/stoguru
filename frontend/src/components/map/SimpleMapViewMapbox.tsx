@@ -335,6 +335,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const followingDataRef = useRef<Record<string, unknown>[]>([]);
   const followingLoaded = useRef(false);
   const myPostedRef = useRef<Record<string, unknown>[]>([]);
+  const myPostedLoading = useRef(false);
   const myPostedLoaded = useRef(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
@@ -596,33 +597,38 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       });
     }
     // 自分の投稿レストラン（紫ピン）
-    if (!myPostedLoaded.current) {
-      myPostedLoaded.current = true;
+    if (!myPostedLoaded.current && !myPostedLoading.current) {
+      myPostedLoading.current = true;
       try {
         const posted = await getInfluencerRestaurants();
         myPostedRef.current = posted;
+        myPostedLoaded.current = true;
       } catch { /* ignore */ }
+      myPostedLoading.current = false;
     }
-    const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
-    if (postedSrc && myPostedRef.current.length > 0) {
-      const stockIds = new Set(s.map(r => r.id));
-      postedSrc.setData({
-        type: 'FeatureCollection',
-        features: myPostedRef.current
-          .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
-          .map((r: Record<string, unknown>) => ({
-            type: 'Feature' as const,
-            geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
-            properties: {
-              id: r.restaurantId, name: `${r.name}`,
-              genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
-              visited: 0, distance: '',
-              videoUrl: r.videoUrl || '', photoEmoji: '',
-              photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
-              scene: '[]', priceRange: r.priceRange || '',
-            },
-          })),
-      });
+    // ロード完了済みの場合のみソースを更新（フェッチ中は既存データを維持）
+    if (myPostedLoaded.current) {
+      const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
+      if (postedSrc) {
+        const stockIds = new Set(s.map(r => r.id));
+        postedSrc.setData({
+          type: 'FeatureCollection',
+          features: myPostedRef.current
+            .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+            .map((r: Record<string, unknown>) => ({
+              type: 'Feature' as const,
+              geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+              properties: {
+                id: r.restaurantId, name: `${r.name}`,
+                genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+                visited: 0, distance: '',
+                videoUrl: r.videoUrl || '', photoEmoji: '',
+                photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+                scene: '[]', priceRange: r.priceRange || '',
+              },
+            })),
+        });
+      }
     }
     const userSrc = map.getSource('user-location') as mapboxgl.GeoJSONSource | undefined;
     if (userSrc) {
