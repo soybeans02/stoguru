@@ -205,7 +205,7 @@ function SwipeableCard({
             {s.visited && (
               <button
                 onClick={() => onUnmarkVisited(s.id)}
-                className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
+                className="ml-auto bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-medium active:scale-95 transition-all"
                 title="タップでまだに戻す"
               >
                 行った
