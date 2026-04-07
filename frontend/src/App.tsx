@@ -164,7 +164,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}

@@ -4,15 +4,15 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 interface Props {
   restaurant: SwipeRestaurant;
   distance: string;
-  onSwipeComplete: (direction: 'left' | 'right') => void;
+  onSwipeComplete: (direction: 'left' | 'right' | 'up') => void;
   active: boolean;
-  flyOut?: 'left' | 'right' | null;
+  flyOut?: 'left' | 'right' | 'up' | null;
 }
 
 export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOut }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [exiting, setExiting] = useState<'left' | 'right' | null>(null);
+  const [exiting, setExiting] = useState<'left' | 'right' | 'up' | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const offsetRef = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
@@ -61,12 +61,19 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     setOffset(newOffset);
   }, []);
 
+  const SWIPE_UP_THRESHOLD = 100;
+
   const handleEnd = useCallback(() => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     setDragging(false);
     const ox = offsetRef.current.x;
-    if (Math.abs(ox) > SWIPE_THRESHOLD) {
+    const oy = offsetRef.current.y;
+    // 上スワイプ: Y方向が閾値超え && X方向より大きい
+    if (oy < -SWIPE_UP_THRESHOLD && Math.abs(oy) > Math.abs(ox)) {
+      setExiting('up');
+      swipeTimer.current = setTimeout(() => onSwipeRef.current('up'), 300);
+    } else if (Math.abs(ox) > SWIPE_THRESHOLD) {
       const dir = ox > 0 ? 'right' : 'left';
       setExiting(dir);
       swipeTimer.current = setTimeout(() => onSwipeRef.current(dir), 300);
@@ -102,9 +109,11 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   let transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
 
   if (exiting) {
-    transform = exiting === 'right'
-      ? 'translateX(120%) rotate(15deg)'
-      : 'translateX(-120%) rotate(-15deg)';
+    transform = exiting === 'up'
+      ? 'translateY(-120%)'
+      : exiting === 'right'
+        ? 'translateX(120%) rotate(15deg)'
+        : 'translateX(-120%) rotate(-15deg)';
     opacity = 0;
   } else if (active) {
     transform = `translate(${offset.x}px, ${offset.y}px) rotate(${offset.x * 0.08}deg)`;
@@ -145,6 +154,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
             NOPE
           </div>
         )}
+        {offset.y < -40 && Math.abs(offset.y) > Math.abs(offset.x) && !exiting && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            MAP
+          </div>
+        )}
         {exiting === 'right' && (
           <div className="absolute top-4 left-4 z-20 bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-bold -rotate-12">
             LIKE
@@ -153,6 +168,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         {exiting === 'left' && (
           <div className="absolute top-4 right-4 z-20 bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold rotate-12">
             NOPE
+          </div>
+        )}
+        {exiting === 'up' && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            MAP
           </div>
         )}
 

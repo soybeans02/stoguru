@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ストグル - 機能紹介</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #f0f0f0; overflow-x: hidden; }
+
+  .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%); position: relative; }
+  .hero::before { content: ''; position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%); pointer-events: none; }
+  .hero h1 { font-size: 56px; font-weight: 800; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+  .hero .sub { font-size: 18px; color: #888; max-width: 520px; line-height: 1.7; }
+  .scroll-hint { margin-top: 48px; color: #555; font-size: 13px; animation: bounce 2s infinite; }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+  .section { padding: 80px 20px; max-width: 960px; margin: 0 auto; }
+  .section-num { font-size: 13px; font-weight: 700; color: #a855f7; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .section-title { font-size: 36px; font-weight: 800; margin-bottom: 10px; line-height: 1.3; }
+  .section-desc { color: #888; font-size: 16px; margin-bottom: 48px; line-height: 1.6; }
+
+  .feature-row { display: flex; gap: 48px; align-items: center; margin-bottom: 80px; }
+  .feature-row.reverse { flex-direction: row-reverse; }
+  .feature-phone { flex-shrink: 0; width: 280px; }
+  .feature-content { flex: 1; }
+  .feature-content h3 { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+  .feature-content p { font-size: 14px; color: #999; line-height: 1.8; margin-bottom: 16px; }
+  .feature-list { list-style: none; }
+  .feature-list li { font-size: 14px; color: #bbb; padding: 6px 0; padding-left: 24px; position: relative; }
+  .feature-list li::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; }
+  .feature-list li.purple::before { background: #a855f7; }
+  .feature-list li.green::before { background: #4ade80; }
+  .feature-list li.blue::before { background: #3b82f6; }
+  .feature-list li.red::before { background: #f87171; }
+  .feature-list li.amber::before { background: #f59e0b; }
+
+  /* Phone frame */
+  .phone { width: 280px; background: #000; border-radius: 32px; padding: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); }
+  .phone-screen { border-radius: 24px; overflow: hidden; background: #111; aspect-ratio: 9/19.5; position: relative; }
+  .phone-screen iframe { width: 100%; height: 100%; border: none; pointer-events: none; transform-origin: top left; }
+
+  /* Static mockup screens */
+  .screen { width: 100%; height: 100%; display: flex; flex-direction: column; font-family: -apple-system, sans-serif; }
+
+  /* Home screen mock */
+  .s-home { background: #fff; }
+  .s-home-filter { padding: 12px 16px; }
+  .s-home-filter span { font-size: 12px; color: #999; border: 1px solid #e5e7eb; padding: 4px 12px; border-radius: 20px; }
+  .s-home-card { margin: 0 16px; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; flex: 1; display: flex; flex-direction: column; }
+  .s-home-photo { flex: 1; min-height: 0; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 72px; position: relative; }
+  .s-home-handle { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 3px 10px; border-radius: 20px; }
+  .s-home-play { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .s-home-info { padding: 14px 16px; }
+  .s-home-info h4 { font-size: 15px; font-weight: 700; color: #111; }
+  .s-home-info .meta { font-size: 11px; color: #999; margin-top: 4px; }
+  .s-home-tags { display: flex; gap: 6px; margin-top: 10px; }
+  .s-home-tags span { background: #f3f4f6; color: #6b7280; font-size: 10px; padding: 3px 8px; border-radius: 6px; }
+  .s-home-btns { display: flex; justify-content: center; gap: 16px; padding: 16px; }
+  .s-home-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid; background: none; }
+  .s-home-btn.x { border-color: #ef4444; color: #ef4444; }
+  .s-home-btn.u { border-color: #f59e0b; color: #f59e0b; font-size: 14px; }
+  .s-home-btn.h { border-color: #22c55e; color: #22c55e; }
+  .s-home-tab { display: flex; border-top: 1px solid #f0f0f0; padding: 8px 0; }
+  .s-home-tab div { flex: 1; text-align: center; font-size: 9px; color: #bbb; }
+  .s-home-tab div.active { color: #111; font-weight: 600; }
+  .s-home-tab div span { display: block; font-size: 16px; margin-bottom: 1px; }
+
+  /* Stock screen mock */
+  .s-stock { background: #fff; padding: 16px; overflow: hidden; }
+  .s-stock h2 { font-size: 20px; font-weight: 800; color: #111; }
+  .s-stock .count { font-size: 11px; color: #999; margin-bottom: 12px; }
+  .s-stock-search { width: 100%; background: #f3f4f6; border: none; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #999; margin-bottom: 10px; }
+  .s-stock-filters { display: flex; gap: 6px; margin-bottom: 14px; }
+  .s-stock-filters span { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: #f3f4f6; color: #888; }
+  .s-stock-filters span.active { background: #111; color: #fff; }
+  .s-stock-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+  .s-stock-emoji { width: 36px; height: 36px; border-radius: 10px; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .s-stock-text h5 { font-size: 13px; font-weight: 600; color: #111; }
+  .s-stock-text p { font-size: 10px; color: #999; }
+  .s-stock-btns { margin-left: auto; display: flex; gap: 4px; }
+  .s-stock-btns span { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: #111; color: #fff; }
+
+  /* Map screen mock */
+  .s-map { background: #0f172a; position: relative; overflow: hidden; }
+  .s-map-grid { position: absolute; inset: 0; opacity: 0.06; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 30px 30px; }
+  .s-map-pin { position: absolute; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.8); }
+  .s-map-popup { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); background: rgba(20,20,30,0.95); border-radius: 12px; padding: 10px 14px; width: 170px; border: 1px solid rgba(255,255,255,0.1); }
+  .s-map-popup h6 { font-size: 12px; font-weight: 700; color: #f0f0f0; }
+  .s-map-popup .pm { font-size: 9px; color: #888; margin-top: 2px; }
+  .s-map-popup .pb { display: flex; gap: 4px; margin-top: 8px; }
+  .s-map-popup .pb span { flex: 1; text-align: center; font-size: 9px; padding: 4px 0; border-radius: 6px; }
+  .s-map-popup .pb .v { background: rgba(255,255,255,0.08); color: #ccc; }
+  .s-map-popup .pb .n { background: #3b82f6; color: #fff; }
+  .s-map-legend { position: absolute; bottom: 48px; left: 8px; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 8px; display: flex; gap: 8px; font-size: 8px; color: #444; }
+  .s-map-legend span { display: flex; align-items: center; gap: 3px; }
+  .s-map-legend .d { width: 6px; height: 6px; border-radius: 50%; }
+  .s-map-ctrls { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .s-map-ctrl { width: 28px; height: 28px; background: rgba(255,255,255,0.9); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #333; }
+
+  /* Social screen mock */
+  .s-social { background: #fff; padding: 16px; }
+  .s-social h2 { font-size: 20px; font-weight: 800; color: #111; margin-bottom: 12px; }
+  .s-social-search { width: 100%; background: #f3f4f6; border: none; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #999; margin-bottom: 16px; }
+  .s-social-menu { display: flex; flex-direction: column; gap: 2px; }
+  .s-social-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+  .s-social-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; }
+  .s-social-icon.bell { background: #3b82f6; }
+  .s-social-icon.msg { background: #22c55e; }
+  .s-social-icon.ppl { background: #8b5cf6; }
+  .s-social-label { font-size: 14px; font-weight: 600; color: #111; }
+  .s-social-count { margin-left: auto; font-size: 12px; color: #999; }
+
+  /* Account screen mock */
+  .s-account { background: #fff; padding: 20px; text-align: center; overflow: hidden; }
+  .s-account-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #6366f1); margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid #e9d5ff; }
+  .s-account h3 { font-size: 16px; font-weight: 700; color: #111; }
+  .s-account .email { font-size: 11px; color: #999; margin-bottom: 12px; }
+  .s-account-stats { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+  .s-account-stat .num { font-size: 18px; font-weight: 800; color: #111; }
+  .s-account-stat .lab { font-size: 10px; color: #999; }
+  .s-account-btn { display: block; width: 100%; background: linear-gradient(135deg, #312e81, #4c1d95); color: #fff; font-size: 13px; font-weight: 600; padding: 12px; border-radius: 12px; border: none; margin-bottom: 16px; text-align: left; }
+  .s-account-settings { text-align: left; }
+  .s-account-settings .label { font-size: 11px; color: #999; margin-bottom: 8px; }
+  .s-account-setting { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+  .s-account-setting .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .s-account-setting .icon.dark { background: #dbeafe; }
+  .s-account-setting .icon.lock { background: #fef3c7; }
+  .s-account-setting .icon.pw { background: #fce7f3; }
+  .s-account-setting span { font-size: 13px; color: #111; }
+  .s-account-setting .toggle { margin-left: auto; width: 36px; height: 20px; background: #e5e7eb; border-radius: 10px; position: relative; }
+  .s-account-setting .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(168,85,247,0.2), transparent); margin: 20px 0; max-width: 960px; margin-left: auto; margin-right: auto; }
+
+  .footer { text-align: center; padding: 60px 20px; color: #444; font-size: 12px; }
+
+  .tech { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+  .tech-tag { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 14px; font-size: 12px; color: #888; }
+
+  @media (max-width: 700px) {
+    .feature-row, .feature-row.reverse { flex-direction: column; gap: 32px; }
+    .feature-phone { width: 240px; }
+    .section-title { font-size: 28px; }
+    .hero h1 { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>ストグル</h1>
+  <p class="sub">インフルエンサーが紹介したお店をスワイプで発見。<br>保存して、マップで見て、友達とシェア。</p>
+  <p class="scroll-hint">↓ スクロールして機能を見る</p>
+</div>
+
+<!-- 1. Swipe -->
+<div class="section">
+  <div class="feature-row">
+    <div class="feature-phone">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="screen s-home">
+            <div class="s-home-filter"><span>絞り込み</span></div>
+            <div class="s-home-card">
+              <div class="s-home-photo">
+                🍝
+                <span class="s-home-handle">@umeda_gourmet</span>
+                <span class="s-home-play">▶</span>
+              </div>
+              <div class="s-home-info">
+                <h4>トラットリア梅田</h4>
+                <div class="meta">徒歩3分 · ¥1,500〜</div>
+                <div class="s-home-tags">
+                  <span>イタリアン</span><span>デート</span><span>友達</span>
+                </div>
+              </div>
+            </div>
+            <div class="s-home-btns">
+              <div class="s-home-btn x">✕</div>
+              <div class="s-home-btn u">↩</div>
+              <div class="s-home-btn h">♥</div>
+            </div>
+            <div class="s-home-tab">
+              <div class="active"><span>🏠</span>ホーム</div>
+              <div><span>📑</span>保存</div>
+              <div><span>📍</span>マップ</div>
+              <div><span>👥</span>ソーシャル</div>
+              <div><span>👤</span>アカウント</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-content">
+      <div class="section-num">01 — ホーム</div>
+      <h3>スワイプでお店を発見</h3>
+      <p>インフルエンサーが紹介したお店がカード形式で表示。右スワイプで保存、左スワイプでスキップ。直感的にお店を選べる。</p>
+      <ul class="feature-list">
+        <li class="green">右スワイプ or ハートボタンで保存</li>
+        <li class="red">左スワイプ or ✕ボタンでスキップ</li>
+        <li class="amber">元に戻すボタンで直前の操作を取消</li>
+        <li class="purple">シーン・ジャンル・価格帯でフィルタリング</li>
+        <li class="blue">@リンクからインフルエンサーのSNSへ直接アクセス</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. Stock -->
+  <div class="feature-row reverse">
+    <div class="feature-phone">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="screen s-stock">
+            <h2>保存</h2>
+            <div class="count">10件 · うち2件 行った</div>
+            <div class="s-stock-search">🔍 店名・ジャンルで検索</div>
+            <div class="s-stock-filters">
+              <span class="active">全て</span><span>未訪問</span><span>行った</span><span>絞り込み</span>
+            </div>
+            <div class="s-stock-item">
+              <div class="s-stock-emoji">🍣</div>
+              <div class="s-stock-text"><h5>鮨 なかむら</h5><p>徒歩8分 · 寿司 · ¥8,000〜</p></div>
+              <div class="s-stock-btns"><span>マップ</span><span>動画</span></div>
+            </div>
+            <div class="s-stock-item">
+              <div class="s-stock-emoji">🍝</div>
+              <div class="s-stock-text"><h5>トラットリア梅田</h5><p>徒歩3分 · イタリアン · ¥1,500〜</p></div>
+              <div class="s-stock-btns"><span>マップ</span><span>行った</span></div>
+            </div>
+            <div class="s-stock-item">
+              <div class="s-stock-emoji" style="background:#d1fae5">✅🍜</div>
+              <div class="s-stock-text"><h5>麺屋 極 梅田店</h5><p>徒歩5分 · ラーメン · ¥900〜</p></div>
+              <div class="s-stock-btns"><span style="background:#22c55e">訪問済</span></div>
+            </div>
+            <div class="s-stock-item">
+              <div class="s-stock-emoji">🥩</div>
+              <div class="s-stock-text"><h5>焼肉ホルモン 龍</h5><p>徒歩4分 · 焼肉 · ¥3,500〜</p></div>
+              <div class="s-stock-btns"><span>マップ</span><span>行った</span></div>
+            </div>
+            <div class="s-stock-item">
+              <div class="s-stock-emoji">☕</div>
+              <div class="s-stock-text"><h5>Cafe MUGI</h5><p>徒歩6分 · カフェ · ¥800〜</p></div>
+              <div class="s-stock-btns"><span>マップ</span><span>行った</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-content">
+      <div class="section-num">02 — 保存リスト</div>
+      <h3>お気に入りを整理</h3>
+      <p>スワイプで保存したお店を一覧管理。検索・フィルター・ピン留めで自分だけのリストを作成。</p>
+      <ul class="feature-list">
+        <li class="purple">名前・ジャンルで検索</li>
+        <li class="green">全て / 未訪問 / 訪問済みでフィルター</li>
+        <li class="amber">ピン留めでお気に入りを上部固定</li>
+        <li class="blue">マップボタンでお店の場所を確認</li>
+        <li class="red">スワイプ操作で削除・ピン留め</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3. Map -->
+  <div class="feature-row">
+    <div class="feature-phone">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="screen s-map">
+            <div class="s-map-grid"></div>
+            <div class="s-map-pin" style="top:45%;left:40%;background:#ef4444"></div>
+            <div class="s-map-pin" style="top:60%;left:65%;background:#ef4444"></div>
+            <div class="s-map-pin" style="top:35%;left:55%;background:#4ade80"></div>
+            <div class="s-map-pin" style="top:70%;left:30%;background:#a855f7"></div>
+            <div class="s-map-pin" style="top:30%;left:70%;background:#a855f7"></div>
+            <div class="s-map-pin" style="top:55%;left:48%;background:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,0.2)"></div>
+            <div class="s-map-popup">
+              <h6>🍣 鮨 なかむら</h6>
+              <div class="pm">徒歩8分 · 寿司 · ¥8,000〜</div>
+              <div class="pb"><span class="v">▶ 動画</span><span class="n">ナビ</span></div>
+            </div>
+            <div class="s-map-ctrls">
+              <div class="s-map-ctrl">🗺</div>
+              <div class="s-map-ctrl">👤</div>
+            </div>
+            <div class="s-map-legend">
+              <span><div class="d" style="background:#ef4444"></div>保存</span>
+              <span><div class="d" style="background:#22c55e"></div>行った</span>
+              <span><div class="d" style="background:#a855f7"></div>投稿</span>
+              <span><div class="d" style="background:#3b82f6"></div>現在地</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-content">
+      <div class="section-num">03 — マップ</div>
+      <h3>マップでお店を確認</h3>
+      <p>保存したお店・投稿したお店をMapbox上にピン表示。3Dビュー対応。タップでポップアップからナビや動画にアクセス。</p>
+      <ul class="feature-list">
+        <li class="red">赤ピン = 保存したお店</li>
+        <li class="green">緑ピン = 訪問済みのお店</li>
+        <li class="purple">紫ピン = 自分が投稿したお店</li>
+        <li class="blue">青 = 現在地（GPS）</li>
+        <li class="amber">フォロー中ユーザーのマップを閲覧（マップ交換）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4. Social -->
+  <div class="feature-row reverse">
+    <div class="feature-phone">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="screen s-social">
+            <h2>ソーシャル</h2>
+            <div class="s-social-search">🔍 ユーザーを検索...</div>
+            <div class="s-social-menu">
+              <div class="s-social-item">
+                <div class="s-social-icon bell">🔔</div>
+                <span class="s-social-label">通知</span>
+                <span class="s-social-count" style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px">3</span>
+              </div>
+              <div class="s-social-item">
+                <div class="s-social-icon msg">💬</div>
+                <span class="s-social-label">メッセージ</span>
+                <span class="s-social-count">›</span>
+              </div>
+              <div class="s-social-item">
+                <div class="s-social-icon ppl">👥</div>
+                <span class="s-social-label">フォロー中</span>
+                <span class="s-social-count">5 ›</span>
+              </div>
+            </div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0">
+              <div style="font-size:11px;color:#999;margin-bottom:10px">通知</div>
+              <div class="s-social-item">
+                <div style="width:32px;height:32px;border-radius:50%;background:#e9d5ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#7c3aed">A</div>
+                <div><div style="font-size:12px;color:#111;font-weight:600">あいう</div><div style="font-size:10px;color:#999">フォローされました</div></div>
+                <span style="margin-left:auto;font-size:9px;color:#bbb">2分前</span>
+              </div>
+              <div class="s-social-item">
+                <div style="width:32px;height:32px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#2563eb">M</div>
+                <div><div style="font-size:12px;color:#111;font-weight:600">めぐみ</div><div style="font-size:10px;color:#999">フォローリクエスト</div></div>
+                <span style="margin-left:auto;font-size:9px;color:#bbb">1時間前</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-content">
+      <div class="section-num">04 — ソーシャル</div>
+      <h3>友達とつながる</h3>
+      <p>ユーザー検索でフォロー。通知・DM・フォローリクエストでコミュニケーション。</p>
+      <ul class="feature-list">
+        <li class="blue">ニックネームでユーザー検索</li>
+        <li class="purple">フォロー / フォロー解除</li>
+        <li class="green">ダイレクトメッセージ（既読表示付き）</li>
+        <li class="amber">フォロー・メッセージ・承認の通知</li>
+        <li class="red">鍵アカウントでフォロー承認制に</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5. Account -->
+  <div class="feature-row">
+    <div class="feature-phone">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="screen s-account">
+            <div class="s-account-avatar">👤</div>
+            <h3>テスト太郎</h3>
+            <div class="email">test@example.com</div>
+            <div class="s-account-stats">
+              <div class="s-account-stat"><div class="num">3</div><div class="lab">行った</div></div>
+              <div class="s-account-stat"><div class="num">5</div><div class="lab">フォロー</div></div>
+              <div class="s-account-stat"><div class="num">8</div><div class="lab">フォロワー</div></div>
+            </div>
+            <div class="s-account-btn">✏️ お店を編集 ›</div>
+            <div class="s-account-settings">
+              <div class="label">設定</div>
+              <div class="s-account-setting">
+                <div class="icon dark">🌙</div>
+                <span>ダークモード</span>
+                <div class="toggle"></div>
+              </div>
+              <div class="s-account-setting">
+                <div class="icon lock">🔒</div>
+                <span>非公開アカウント</span>
+                <div class="toggle"></div>
+              </div>
+              <div class="s-account-setting">
+                <div class="icon pw">🔑</div>
+                <span>パスワード変更</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-content">
+      <div class="section-num">05 — アカウント</div>
+      <h3>プロフィール & 設定</h3>
+      <p>プロフィール編集、お店の投稿管理、プライバシー設定を一箇所で管理。</p>
+      <ul class="feature-list">
+        <li class="purple">お店を投稿・編集（公開/相互/非表示の3段階）</li>
+        <li class="blue">プロフィール編集（ニックネーム・アイコン）</li>
+        <li class="green">ダークモード切替</li>
+        <li class="amber">非公開アカウント設定（フォロー承認制）</li>
+        <li class="red">パスワード変更・アカウント削除</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- Tech -->
+<div class="section" style="text-align: center;">
+  <div class="section-num">TECH STACK</div>
+  <div class="section-title">技術スタック</div>
+  <div class="section-desc">モダンな技術で構築されたフルスタックアプリ</div>
+  <div class="tech">
+    <span class="tech-tag">React 18</span>
+    <span class="tech-tag">TypeScript</span>
+    <span class="tech-tag">Tailwind CSS</span>
+    <span class="tech-tag">Vite</span>
+    <span class="tech-tag">Express.js</span>
+    <span class="tech-tag">AWS DynamoDB</span>
+    <span class="tech-tag">AWS Cognito</span>
+    <span class="tech-tag">AWS S3</span>
+    <span class="tech-tag">Mapbox GL JS</span>
+    <span class="tech-tag">Vercel</span>
+    <span class="tech-tag">Render</span>
+  </div>
+</div>
+
+<div class="footer">
+  <p style="font-size:14px;margin-bottom:4px">ストグル</p>
+  <p>© 2025</p>
+</div>
+
+</body>
+</html>

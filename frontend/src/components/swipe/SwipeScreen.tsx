@@ -99,6 +99,7 @@ interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
   onNope?: () => void;
   onRemoveStock: (id: string) => void;
+  onShowOnMap?: (lat: number, lng: number) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   refreshKey?: number;
@@ -109,7 +110,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stockedIds, refreshKey }: Props) {
+export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,13 +120,39 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(10000);
-  const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | null>(null);
-  const [nopedIds, setNopedIds] = useState<Set<string>>(() => {
+  const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | 'up' | null>(null);
+  // nopedMap: { [id]: timestamp } — 2週間経過したら自動復活
+  const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+  const [nopedMap, setNopedMap] = useState<Record<string, number>>(() => {
     try {
-      const saved = localStorage.getItem('nopedIds');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch { return new Set(); }
+      const now = Date.now();
+      // 新形式（nopedMap）を優先的に読む
+      const mapSaved = localStorage.getItem('nopedMap');
+      if (mapSaved) {
+        const map = JSON.parse(mapSaved) as Record<string, number>;
+        const active: Record<string, number> = {};
+        for (const [id, ts] of Object.entries(map)) {
+          if (now - ts < TWO_WEEKS) active[id] = ts;
+        }
+        return active;
+      }
+      // 旧形式（nopedIds: string[]）からのマイグレーション
+      const oldSaved = localStorage.getItem('nopedIds');
+      if (oldSaved) {
+        const parsed = JSON.parse(oldSaved);
+        if (Array.isArray(parsed)) {
+          const map: Record<string, number> = {};
+          parsed.forEach((id: string) => { map[id] = now; });
+          localStorage.setItem('nopedMap', JSON.stringify(map));
+          localStorage.removeItem('nopedIds');
+          return map;
+        }
+      }
+      return {};
+    } catch { return {}; }
   });
+  // nopedMapからアクティブなIDのSetを導出
+  const nopedIds = new Set(Object.keys(nopedMap));
   const [history, setHistory] = useState<{ id: string; direction: 'left' | 'right' }[]>([]);
   const [shuffling, setShuffling] = useState(false);
   const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,7 +177,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
         setCards(MOCK_RESTAURANTS.filter((r) => !excludeIds.has(r.id)));
       })
       .finally(() => setLoading(false));
-  }, [userPosition, stockedIds, nopedIds]);
+  }, [userPosition, stockedIds, nopedMap]);
 
   // refreshKeyが変わったらフィード再取得
   useEffect(() => {
@@ -179,12 +206,12 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       setLoading(false);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [stockedIds, nopedIds]);
+  }, [stockedIds, nopedMap]);
 
-  // nopedIdsをlocalStorageに永続化
+  // nopedMapをlocalStorageに永続化
   useEffect(() => {
-    localStorage.setItem('nopedIds', JSON.stringify([...nopedIds]));
-  }, [nopedIds]);
+    localStorage.setItem('nopedMap', JSON.stringify(nopedMap));
+  }, [nopedMap]);
 
   // カード再フィルタ（共通ロジック）
   const refilter = useCallback(() => {
@@ -208,7 +235,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     setCards(filtered);
     setCurrentIndex(0);
     return filtered;
-  }, [allRestaurants, stockedIds, nopedIds, selectedScenes, selectedGenres, priceMin, priceMax]);
+  }, [allRestaurants, stockedIds, nopedMap, selectedScenes, selectedGenres, priceMin, priceMax]);
 
   // 「この条件で探す」ボタンから呼ばれる
   const applyFilter = useCallback(() => {
@@ -223,9 +250,16 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
   }, [refilter]);
 
   const handleSwipeComplete = useCallback(
-    (direction: 'left' | 'right') => {
+    (direction: 'left' | 'right' | 'up') => {
       const current = cards[currentIndex];
       if (!current) return;
+
+      if (direction === 'up') {
+        // 上スワイプ → マップに飛ぶ（カードは消費しない）
+        createSwipeSound('like');
+        onShowOnMap?.(current.lat, current.lng);
+        return;
+      }
 
       createSwipeSound(direction === 'right' ? 'like' : 'nope');
       setHistory((h) => [...h, { id: current.id, direction }]);
@@ -233,14 +267,14 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
       if (direction === 'right') {
         onStock(current);
       } else {
-        setNopedIds((prev) => new Set(prev).add(current.id));
+        setNopedMap((prev) => ({ ...prev, [current.id]: Date.now() }));
         onNope?.();
       }
 
       setButtonFlyOut(null);
       setCurrentIndex((i) => i + 1);
     },
-    [cards, currentIndex, onStock, onNope],
+    [cards, currentIndex, onStock, onNope, onShowOnMap],
   );
 
   const handleUndo = useCallback(() => {
@@ -250,9 +284,9 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     setCurrentIndex((i) => i - 1);
     if (last.direction === 'left') {
       // ×を取り消す → nopedIdsから削除
-      setNopedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(last.id);
+      setNopedMap((prev) => {
+        const next = { ...prev };
+        delete next[last.id];
         return next;
       });
     } else {
@@ -261,7 +295,7 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, userPosition, stoc
     }
   }, [history, currentIndex, onRemoveStock]);
 
-  const handleButtonSwipe = (direction: 'left' | 'right') => {
+  const handleButtonSwipe = (direction: 'left' | 'right' | 'up') => {
     if (buttonFlyOut) return;
     setButtonFlyOut(direction);
   };
