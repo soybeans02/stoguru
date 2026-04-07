@@ -293,6 +293,81 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
   return { width: w, height: h, data: new Uint8Array(imgData.data.buffer) };
 }
 
+/** ストグルロゴ入りピン（オレンジグラデーション + フォークアイコン） */
+function createLogoPinImage(size: number = 48): { width: number; height: number; data: Uint8Array } {
+  const w = size;
+  const h = Math.round(size * 1.4);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const r = size * 0.4;
+  const cx = w / 2;
+  const headY = r + 2;
+
+  // 影
+  ctx.beginPath();
+  ctx.ellipse(cx, h - 3, r * 0.5, 3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fill();
+
+  // グラデーション
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#FF6B6B');
+  grad.addColorStop(1, '#FF8E53');
+
+  // 尖り部分
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.55, headY + r * 0.7);
+  ctx.quadraticCurveTo(cx, h - 4, cx, h - 4);
+  ctx.quadraticCurveTo(cx, h - 4, cx + r * 0.55, headY + r * 0.7);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 丸い頭（白枠）
+  ctx.beginPath();
+  ctx.arc(cx, headY, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, headY, r - 3, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // フォークアイコン（白）
+  ctx.save();
+  ctx.translate(cx, headY);
+  ctx.rotate(-22 * Math.PI / 180);
+  const s = r / 18; // スケール
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 2 * s;
+  // 中央の柄
+  ctx.beginPath();
+  ctx.moveTo(0, -11 * s);
+  ctx.lineTo(0, 8 * s);
+  ctx.stroke();
+  // 左の歯
+  ctx.beginPath();
+  ctx.moveTo(-3 * s, -11 * s);
+  ctx.lineTo(-3 * s, -5 * s);
+  ctx.stroke();
+  // 右の歯
+  ctx.beginPath();
+  ctx.moveTo(3 * s, -11 * s);
+  ctx.lineTo(3 * s, -5 * s);
+  ctx.stroke();
+  // カーブ
+  ctx.beginPath();
+  ctx.moveTo(-3 * s, -5 * s);
+  ctx.quadraticCurveTo(0, -2 * s, 3 * s, -5 * s);
+  ctx.stroke();
+  ctx.restore();
+
+  const imgData = ctx.getImageData(0, 0, w, h);
+  return { width: w, height: h, data: new Uint8Array(imgData.data.buffer) };
+}
+
 const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
 function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
@@ -385,6 +460,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       if (!map.hasImage('pin-red')) map.addImage('pin-red', createPinImage('#ff5a5a', 40));
       if (!map.hasImage('pin-green')) map.addImage('pin-green', createPinImage('#4ade80', 40));
       if (!map.hasImage('pin-purple')) map.addImage('pin-purple', createPinImage('#a855f7', 40));
+      if (!map.hasImage('pin-logo')) map.addImage('pin-logo', createLogoPinImage(48));
 
       // 空のGeoJSONソースとレイヤーを事前追加
       map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -429,7 +505,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
       // panTo一時ピン（スワイプからマップに飛んだ時用）
       map.addLayer({ id: 'panTo-pin-icon', type: 'symbol', source: 'panTo-pin',
-        layout: { 'icon-image': 'pin-red', 'icon-size': 0.9, 'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+        layout: { 'icon-image': 'pin-logo', 'icon-size': 1, 'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
 
       // ユーザー位置
       map.addLayer({ id: 'user-glow', type: 'circle', source: 'user-location',
