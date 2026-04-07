@@ -344,6 +344,56 @@ export async function scanAllInfluencerRestaurants(): Promise<InfluencerRestaura
   return items;
 }
 
+export async function searchRestaurantsByName(query: string, limit = 20): Promise<(InfluencerRestaurant & { influencerDisplayName?: string })[]> {
+  const q = query.toLowerCase();
+  const allRestaurants = await scanAllInfluencerRestaurants();
+  const matched = allRestaurants.filter((r) =>
+    r.name.toLowerCase().includes(q) ||
+    (r.address?.toLowerCase().includes(q)) ||
+    (r.genres?.some((g) => g.toLowerCase().includes(q)))
+  );
+
+  // インフルエンサー名を付与
+  const influencerIds = [...new Set(matched.map((r) => r.influencerId))];
+  const profiles = await Promise.all(influencerIds.map((id) => getInfluencerProfile(id)));
+  const profileMap = new Map(profiles.filter(Boolean).map((p) => [p!.influencerId, p!]));
+
+  return matched.slice(0, limit).map((r) => ({
+    ...r,
+    influencerDisplayName: profileMap.get(r.influencerId)?.displayName,
+  }));
+}
+
+export async function findRestaurantByUrl(url: string): Promise<(InfluencerRestaurant & { influencerDisplayName?: string }) | null> {
+  // URLを正規化（末尾スラッシュ、クエリパラメータ除去）
+  const normalize = (u: string) => {
+    try {
+      const parsed = new URL(u);
+      // Instagramの場合パスだけ比較（クエリ・フラグメント除去）
+      let path = parsed.pathname.replace(/\/+$/, '');
+      return `${parsed.hostname}${path}`.toLowerCase();
+    } catch {
+      return u.toLowerCase().replace(/\/+$/, '').replace(/\?.*$/, '');
+    }
+  };
+
+  const normalizedUrl = normalize(url);
+
+  // InfluencerRestaurantsを全スキャンしてURL照合
+  const allRestaurants = await scanAllInfluencerRestaurants();
+  for (const r of allRestaurants) {
+    const urls = [r.instagramUrl, r.videoUrl].filter(Boolean) as string[];
+    for (const u of urls) {
+      if (normalize(u) === normalizedUrl) {
+        // インフルエンサー名も取得
+        const profile = await getInfluencerProfile(r.influencerId);
+        return { ...r, influencerDisplayName: profile?.displayName };
+      }
+    }
+  }
+  return null;
+}
+
 export async function deleteInfluencerRestaurant(influencerId: string, restaurantId: string) {
   await db.send(new DeleteCommand({
     TableName: TABLE.influencerRestaurants,

@@ -10,6 +10,8 @@ import {
   scanAllInfluencerRestaurants, getInfluencerProfile, getInfluencerRestaurants,
   saveGenreRequest,
   getUserStockRanking,
+  findRestaurantByUrl,
+  searchRestaurantsByName,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -270,6 +272,57 @@ router.get('/users/search', requireAuth, async (req: AuthRequest, res: Response)
   }
 });
 
+// ─── 統合検索（ユーザー + お店 + URL） ───
+
+router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
+  const q = ((req.query.q as string) ?? '').trim().slice(0, 200);
+  if (!q || q.length < 1) {
+    res.json({ users: [], restaurants: [], urlMatch: null });
+    return;
+  }
+
+  const isUrl = q.startsWith('http://') || q.startsWith('https://');
+
+  if (isUrl) {
+    // URL照合のみ
+    const match = await findRestaurantByUrl(q);
+    res.json({
+      users: [],
+      restaurants: [],
+      urlMatch: match ? {
+        restaurantId: match.restaurantId,
+        name: match.name,
+        address: match.address,
+        genres: match.genres,
+        priceRange: match.priceRange,
+        photoUrls: match.photoUrls,
+        influencer: match.influencerDisplayName,
+      } : null,
+    });
+    return;
+  }
+
+  // ユーザー検索 + お店検索を並列
+  const [users, restaurants] = await Promise.all([
+    searchUsers(q).catch(() => []),
+    searchRestaurantsByName(q),
+  ]);
+
+  res.json({
+    users,
+    restaurants: restaurants.map((r) => ({
+      restaurantId: r.restaurantId,
+      name: r.name,
+      address: r.address,
+      genres: r.genres,
+      priceRange: r.priceRange,
+      photoUrls: r.photoUrls,
+      influencer: r.influencerDisplayName,
+    })),
+    urlMatch: null,
+  });
+});
+
 // ─── ユーザープロフィール ───
 
 router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -368,6 +421,63 @@ router.delete('/shares/:createdAt', requireAuth, async (req: AuthRequest, res: R
   if (!createdAt) { res.status(400).json({ error: '無効なパラメータ' }); return; }
   await deleteShare(req.user!.userId, createdAt);
   res.json({ ok: true });
+});
+
+// ─── URL照合（Share Extension用） ───
+
+router.get('/restaurants/by-url', requireAuth, async (req: AuthRequest, res: Response) => {
+  const url = ((req.query.url as string) ?? '').trim();
+  if (!url) {
+    res.status(400).json({ error: 'URLが必要です' });
+    return;
+  }
+  const restaurant = await findRestaurantByUrl(url);
+  if (!restaurant) {
+    res.json({ found: false });
+    return;
+  }
+  res.json({
+    found: true,
+    restaurant: {
+      restaurantId: restaurant.restaurantId,
+      name: restaurant.name,
+      address: restaurant.address,
+      lat: restaurant.lat,
+      lng: restaurant.lng,
+      genres: restaurant.genres,
+      priceRange: restaurant.priceRange,
+      photoUrls: restaurant.photoUrls,
+      description: restaurant.description,
+      influencer: restaurant.influencerDisplayName,
+    },
+  });
+});
+
+router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, res: Response) => {
+  const url = String(req.body.url ?? '').trim();
+  if (!url) {
+    res.status(400).json({ error: 'URLが必要です' });
+    return;
+  }
+  const restaurant = await findRestaurantByUrl(url);
+  if (!restaurant) {
+    res.status(404).json({ error: 'この投稿に一致するお店が見つかりません' });
+    return;
+  }
+  // ユーザーの保存リストに追加
+  await putRestaurant(req.user!.userId, {
+    id: restaurant.restaurantId,
+    name: restaurant.name,
+    address: restaurant.address,
+    lat: restaurant.lat,
+    lng: restaurant.lng,
+    genre: (restaurant.genres || [])[0] || '',
+    genreTags: restaurant.genres || [],
+    videoUrl: restaurant.instagramUrl || restaurant.videoUrl || '',
+    photoEmoji: '🍽️',
+    status: 'unvisited',
+  });
+  res.json({ ok: true, name: restaurant.name });
 });
 
 // ─── ジャンル追加リクエスト ───

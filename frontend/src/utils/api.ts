@@ -279,6 +279,44 @@ export async function getStockRanking(): Promise<RankedUser[]> {
   return res.json();
 }
 
+// ─── 統合検索 ───
+
+export interface SearchResult {
+  users: { userId: string; nickname: string }[];
+  restaurants: {
+    restaurantId: string;
+    name: string;
+    address?: string;
+    genres?: string[];
+    priceRange?: string;
+    photoUrls?: string[];
+    influencer?: string;
+  }[];
+  urlMatch: {
+    restaurantId: string;
+    name: string;
+    address?: string;
+    genres?: string[];
+    priceRange?: string;
+    photoUrls?: string[];
+    influencer?: string;
+  } | null;
+}
+
+export async function unifiedSearch(query: string): Promise<SearchResult> {
+  const res = await fetchWithRetry(`${BASE}/search?q=${encodeURIComponent(query)}`, { headers: headers() });
+  if (!res.ok) return { users: [], restaurants: [], urlMatch: null };
+  return res.json();
+}
+
+export async function stockByUrl(url: string): Promise<{ ok: boolean; name?: string }> {
+  const res = await fetchWithRetry(`${BASE}/restaurants/stock-by-url`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw new Error('保存に失敗しました');
+  return res.json();
+}
+
 // ─── ジャンル追加リクエスト ───
 
 export async function requestGenre(genre: string) {

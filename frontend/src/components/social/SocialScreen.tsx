@@ -32,8 +32,10 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<{ userId: string; nickname: string }[]>([]);
+  const [searchResults, setSearchResults] = useState<api.SearchResult>({ users: [], restaurants: [], urlMatch: null });
   const [searching, setSearching] = useState(false);
+  const [stockingUrl, setStockingUrl] = useState(false);
+  const [stockSuccess, setStockSuccess] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Profile modal
@@ -89,17 +91,28 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   // Search with debounce
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
+    setStockSuccess(null);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!q.trim()) { setSearchResults([]); return; }
+    if (!q.trim()) { setSearchResults({ users: [], restaurants: [], urlMatch: null }); return; }
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await api.searchUsers(q.trim());
-        setSearchResults(results.filter(r => r.userId !== myId));
-      } catch { setSearchResults([]); }
+        const results = await api.unifiedSearch(q.trim());
+        results.users = results.users.filter(r => r.userId !== myId);
+        setSearchResults(results);
+      } catch { setSearchResults({ users: [], restaurants: [], urlMatch: null }); }
       finally { setSearching(false); }
     }, 400);
   }, [myId]);
+
+  const handleStockByUrl = useCallback(async (url: string) => {
+    setStockingUrl(true);
+    try {
+      const res = await api.stockByUrl(url);
+      setStockSuccess(res.name ?? 'お店');
+    } catch { setStockSuccess(null); }
+    finally { setStockingUrl(false); }
+  }, []);
 
   // Load notifications
   const loadNotifications = useCallback(async () => {
@@ -304,12 +317,12 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
           <input
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
-            placeholder="ユーザーを検索..."
+            placeholder="ユーザー・お店・URLで検索..."
             className="w-full bg-gray-100 dark:bg-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
           />
           {searchQuery && (
             <button
-              onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+              onClick={() => { setSearchQuery(''); setSearchResults({ users: [], restaurants: [], urlMatch: null }); setStockSuccess(null); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -319,12 +332,72 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
         {/* Search results */}
         {searching && <p className="text-center text-gray-400 text-sm py-4">検索中...</p>}
-        {!searching && searchQuery && searchResults.length === 0 && (
+        {!searching && searchQuery && !searchResults.users.length && !searchResults.restaurants.length && !searchResults.urlMatch && (
           <p className="text-center text-gray-400 text-sm py-4">見つかりませんでした</p>
         )}
-        {searchResults.length > 0 && (
+
+        {/* URL match */}
+        {searchResults.urlMatch && (
           <div className="mb-4">
-            {searchResults.map(u => (
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">一致したお店</h3>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden shrink-0">
+                {searchResults.urlMatch.photoUrls?.[0] ? (
+                  <img src={searchResults.urlMatch.photoUrls[0]} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl">🍽️</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{searchResults.urlMatch.name}</p>
+                {searchResults.urlMatch.influencer && (
+                  <p className="text-[11px] text-gray-400">by {searchResults.urlMatch.influencer}</p>
+                )}
+              </div>
+              {stockSuccess ? (
+                <span className="text-xs text-green-500 font-medium shrink-0">保存済み ✓</span>
+              ) : (
+                <button
+                  onClick={() => handleStockByUrl(searchQuery)}
+                  disabled={stockingUrl}
+                  className="px-4 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg shrink-0 disabled:opacity-50"
+                >
+                  {stockingUrl ? '...' : '保存する'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Restaurant results */}
+        {searchResults.restaurants.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">お店</h3>
+            {searchResults.restaurants.map(r => (
+              <div key={r.restaurantId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shrink-0">
+                  {r.photoUrls?.[0] ? (
+                    <img src={r.photoUrls[0]} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-base">🍽️</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{r.name}</p>
+                  <p className="text-[11px] text-gray-400 truncate">
+                    {[r.genres?.slice(0, 2).join('・'), r.influencer ? `by ${r.influencer}` : ''].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* User results */}
+        {searchResults.users.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">ユーザー</h3>
+            {searchResults.users.map(u => (
               <button
                 key={u.userId}
                 onClick={() => openProfile(u.userId)}
