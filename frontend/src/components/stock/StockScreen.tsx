@@ -206,7 +206,7 @@ function SwipeableCard({
               <button
                 onClick={() => onUnmarkVisited(s.id)}
                 className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
-                title="タップで未訪問に戻す"
+                title="タップでまだに戻す"
               >
                 visited
               </button>
@@ -279,7 +279,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
       {/* Filter tabs + sort */}
       <div className="flex gap-2 mb-4 items-center">
-        {([['unvisited', '未訪問'], ['visited', '行った']] as const).map(([key, label]) => (
+        {([['unvisited', 'まだ'], ['visited', '行った']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setFilter(filter === key ? 'all' : key)}
