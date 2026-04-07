@@ -536,7 +536,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         const r = panTo.restaurant;
         const showPopup = () => {
           popupRef.current?.remove();
-          popupRef.current = new mapboxgl.Popup({ offset: [0, -10], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
+          popupRef.current = new mapboxgl.Popup({ offset: [0, -45], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
             .setLngLat([r.lng, r.lat])
             .setHTML(buildPopupHTML({
               name: r.name, genre: r.genre || '', distance: r.distance || '',
