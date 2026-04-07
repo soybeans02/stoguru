@@ -208,7 +208,7 @@ function SwipeableCard({
                 className="ml-auto bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-0 rounded font-medium active:scale-95 transition-all leading-tight"
                 title="タップでまだに戻す"
               >
-                visited
+                行った
               </button>
             )}
           </div>
