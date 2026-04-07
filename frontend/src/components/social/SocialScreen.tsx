@@ -46,9 +46,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }:
   const [messageTargetId, setMessageTargetId] = useState<string | null>(null);
 
   // Counts for main view
-  const [followingCount, setFollowingCount] = useState(0);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
-  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [, setFollowingCount] = useState(0);
   const [requestCount, setRequestCount] = useState(0);
 
   // initialViewが渡された場合、対応するサブビューに遷移
@@ -72,19 +70,12 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }:
     }).catch(() => {});
 
     api.getNotifications().then(n => {
-      const unread = n.filter(x => !x.read).length;
-      setUnreadNotifCount(unread);
       setNotifications(n);
-      onUnreadCount?.(unread);
+      onUnreadCount?.(n.filter(x => !x.read).length);
     }).catch(() => {});
 
     api.getConversations().then(c => {
       setConversations(c);
-      const unread = c.filter(conv => {
-        const myLastRead = conv.user1 === myId ? (conv.user1LastRead ?? 0) : (conv.user2LastRead ?? 0);
-        return conv.lastMessageAt > myLastRead && conv.status === 'accepted';
-      }).length;
-      setUnreadMsgCount(unread);
     }).catch(() => {});
 
     api.getFollowRequests().then(r => {
@@ -115,31 +106,12 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }:
     try {
       const n = await api.getNotifications();
       setNotifications(n);
-      setUnreadNotifCount(n.filter(x => !x.read).length);
       // Mark as read
       await api.markNotificationsRead();
-      setUnreadNotifCount(0);
       onUnreadCount?.(0);
     } catch {}
     finally { setNotifLoading(false); }
   }, [onUnreadCount]);
-
-  // Load following list with nicknames
-  const loadFollowing = useCallback(async () => {
-    setFollowListLoading(true);
-    try {
-      const f = await api.getFollowing();
-      const withNicks = await Promise.all(f.map(async (item) => {
-        try {
-          const p = await api.getUserProfile(item.followeeId);
-          return { ...item, nickname: p.nickname };
-        } catch { return item; }
-      }));
-      setFollowing(withNicks);
-      setFollowingCount(withNicks.length);
-    } catch {}
-    finally { setFollowListLoading(false); }
-  }, []);
 
   // Load follow requests with nicknames
   const loadFollowRequests = useCallback(async () => {
