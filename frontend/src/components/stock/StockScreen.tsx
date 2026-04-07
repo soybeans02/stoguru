@@ -279,10 +279,10 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
       {/* Filter tabs + sort */}
       <div className="flex gap-2 mb-4 items-center">
-        {([['all', '全て'], ['unvisited', '未訪問'], ['visited', '行った']] as const).map(([key, label]) => (
+        {([['unvisited', '未訪問'], ['visited', '行った']] as const).map(([key, label]) => (
           <button
             key={key}
-            onClick={() => setFilter(key)}
+            onClick={() => setFilter(filter === key ? 'all' : key)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors ${
               filter === key ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
             }`}
