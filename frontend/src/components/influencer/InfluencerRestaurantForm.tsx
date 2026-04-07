@@ -246,7 +246,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
               autoFocus
             />
             {showPredictions && predictions.length > 0 && (
-              <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-[240px] overflow-y-auto">
                 {predictions.map(p => (
                   <button
                     key={p.place_id}
