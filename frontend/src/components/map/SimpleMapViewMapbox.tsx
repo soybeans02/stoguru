@@ -87,24 +87,13 @@ function updateSunTimes(lat: number, lng: number) {
   sunTimes = calcSunTimes(lat, lng);
 }
 
-function getTimeThemeName(): string {
-  const h = new Date().getHours();
-  const { sunrise, sunset } = sunTimes;
-  const sr = Math.floor(sunrise);
-  const ss = Math.floor(sunset);
-  if (h >= sr && h < sr + 1) return 'morning';
-  if (h >= sr + 1 && h < ss) return 'day';
-  if (h >= ss && h < ss + 1) return 'evening';
-  return 'night';
-}
-
 // 色補間
 function hexToRgb(hex: string): [number, number, number] {
   const m = hex.match(/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
   return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [0, 0, 0];
 }
 function rgbToHex([r, g, b]: number[]): string {
-  return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
 }
 function lerpColor(a: string, b: string, t: number): string {
   const ra = hexToRgb(a), rb = hexToRgb(b);
@@ -118,25 +107,44 @@ function lerpTheme(themeA: Theme, themeB: Theme, t: number): Theme {
   result.poiHalo = `rgba(${hexToRgb(result.background).join(',')},0.9)`;
   return result as unknown as Theme;
 }
+
+/**
+ * 現在時刻に基づいてテーマを決定する。
+ * 各遷移は30分かけてグラデーション（重なりなし）。
+ * night → morning → day → evening → night
+ */
 function getBlendedTheme(): Theme {
   const now = new Date();
   const h = now.getHours() + now.getMinutes() / 60;
   const { sunrise, sunset } = sunTimes;
-  const blend = 0.5; // 30分かけてグラデーション遷移
+
+  // 各フェーズの境界を定義（重ならないように配置）
+  // night → morning: sunrise の30分前から30分かけて遷移
+  // morning → day:   sunrise の30分後から30分かけて遷移
+  // day → evening:   sunset  の30分前から30分かけて遷移
+  // evening → night: sunset  の30分後から30分かけて遷移
+  const dur = 0.5; // 遷移にかける時間（30分）
   const transitions = [
-    { at: sunrise - 0.5, from: 'night', to: 'morning' },
-    { at: sunrise + 0.5, from: 'morning', to: 'day' },
-    { at: sunset - 0.5, from: 'day', to: 'evening' },
-    { at: sunset + 0.5, from: 'evening', to: 'night' },
+    { start: sunrise - dur, from: 'night',   to: 'morning' },
+    { start: sunrise,       from: 'morning', to: 'day' },
+    { start: sunset - dur,  from: 'day',     to: 'evening' },
+    { start: sunset,        from: 'evening', to: 'night' },
   ];
+
   for (const tr of transitions) {
-    const diff = h - tr.at;
-    if (diff >= -blend && diff <= blend) {
-      const t = (diff + blend) / (blend * 2);
+    if (h >= tr.start && h < tr.start + dur) {
+      const t = (h - tr.start) / dur;
       return lerpTheme(themes[tr.from], themes[tr.to], t);
     }
   }
-  return themes[getTimeThemeName()];
+
+  // 遷移区間外 → 固定テーマ
+  if (h < sunrise - dur) return themes.night;
+  if (h < sunrise) return themes.night;       // ↑ のtransitionでカバー済みだがフォールバック
+  if (h < sunrise + dur) return themes.day;   // ↑ 同上
+  if (h < sunset - dur) return themes.day;
+  if (h < sunset + dur) return themes.evening;// ↑ 同上
+  return themes.night;
 }
 
 function buildStyle(t: Theme): mapboxgl.StyleSpecification {
@@ -289,7 +297,8 @@ const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-lab
 
 function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
-  const dark = ['evening', 'night'].includes(getTimeThemeName());
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  const dark = h < sunTimes.sunrise || h >= sunTimes.sunset;
   const bg = dark ? 'rgba(30,30,40,0.92)' : '#fff';
   const border = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)';
   const nameColor = dark ? '#f0f0f0' : '#111';
@@ -340,10 +349,13 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
 
-  // GPS取得時に日の出/日の入り時刻を更新
+  // GPS取得時に日の出/日の入り時刻を更新 → テーマを即再適用
   useEffect(() => {
     if (userPosition) {
       updateSunTimes(userPosition.lat, userPosition.lng);
+      if (mapRef.current?.isStyleLoaded()) {
+        applyThemeColors(mapRef.current, getBlendedTheme());
+      }
     }
   }, [userPosition]);
 
