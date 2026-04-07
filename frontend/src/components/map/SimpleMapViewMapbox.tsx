@@ -381,6 +381,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       map.addSource('my-posted', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('panTo-pin', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
       // フォロー中: 丸ピン（保存=紫, 行った=緑）+ 紫枠で区別
       map.addLayer({ id: 'following-outline', type: 'circle', source: 'following', maxzoom: 15,
@@ -416,6 +417,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         layout: { 'icon-image': 'pin-purple',
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+      // panTo一時ピン（スワイプからマップに飛んだ時用）
+      map.addLayer({ id: 'panTo-pin-icon', type: 'symbol', source: 'panTo-pin',
+        layout: { 'icon-image': 'pin-red', 'icon-size': 0.9, 'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+
       // ユーザー位置
       map.addLayer({ id: 'user-glow', type: 'circle', source: 'user-location',
         paint: { 'circle-radius': 14, 'circle-color': 'rgba(59,130,246,0.15)' } });
@@ -514,6 +519,19 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       initialCenterSet.current = true;
       map.flyTo({ center: [panTo.lng, panTo.lat], zoom: 17 });
 
+      // 一時ピンを表示（ストック済みでなければ）
+      const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
+      if (panSrc) {
+        panSrc.setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature' as const,
+            geometry: { type: 'Point' as const, coordinates: [panTo.lng, panTo.lat] },
+            properties: {},
+          }],
+        });
+      }
+
       if (panTo.restaurant) {
         const r = panTo.restaurant;
         const showPopup = () => {
@@ -560,6 +578,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const updateData = useCallback(async (s: StockedRestaurant[], uPos: GPSPosition | null) => {
     const map = mapRef.current;
     if (!map || !mapLoadedRef.current) return;
+    // 一時ピンをクリア
+    const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
+    if (panSrc) panSrc.setData({ type: 'FeatureCollection', features: [] });
     const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
     if (stockSrc) {
       stockSrc.setData({
