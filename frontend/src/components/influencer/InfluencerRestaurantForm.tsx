@@ -26,13 +26,6 @@ const GENRE_OPTIONS = [
   '中華', '韓国料理', 'カフェ', '居酒屋', 'バー', 'スイーツ', 'その他',
 ];
 
-const PRICE_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 7500, 10000] as const;
-function formatYen(v: number): string {
-  if (v === 0) return '下限なし';
-  if (v >= 10000) return '上限なし';
-  return `¥${v.toLocaleString()}`;
-}
-
 interface PlacePrediction {
   place_id: string;
   description: string;
@@ -297,42 +290,44 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
             </div>
           </div>
 
-          {/* Price Range (min/max selectors) */}
+          {/* Price Range (free input) */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">価格帯</label>
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <label className="text-[10px] text-gray-400 mb-1 block">下限</label>
-                <select
-                  value={priceMin}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setPriceMin(v);
-                    if (v > priceMax) setPriceMax(v);
-                  }}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
-                >
-                  {PRICE_STEPS.filter((v) => v < priceMax || v === 0).map((v) => (
-                    <option key={v} value={v}>{formatYen(v)}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={priceMin || ''}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value) || 0;
+                      setPriceMin(v);
+                    }}
+                    placeholder="0"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-7 pr-3 py-2.5 text-sm text-gray-700"
+                  />
+                </div>
               </div>
               <span className="text-gray-300 mt-4">〜</span>
               <div className="flex-1">
                 <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
-                <select
-                  value={priceMax}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setPriceMax(v);
-                    if (v < priceMin) setPriceMin(v);
-                  }}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 appearance-none"
-                >
-                  {PRICE_STEPS.filter((v) => v > priceMin || v >= 10000).map((v) => (
-                    <option key={v} value={v}>{formatYen(v)}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={priceMax >= 10000 ? '' : priceMax || ''}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value) || 0;
+                      setPriceMax(v || 10000);
+                    }}
+                    placeholder="上限なし"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-7 pr-3 py-2.5 text-sm text-gray-700"
+                  />
+                </div>
               </div>
             </div>
           </div>
