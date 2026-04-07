@@ -391,29 +391,65 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-6">
-        {/* Search bar */}
-        <button
-          onClick={() => setView('search')}
-          className="w-full flex items-center gap-3 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2.5 mb-5"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <span className="text-sm text-gray-400">ユーザーを検索...</span>
-        </button>
-
-        {/* Menu cards */}
-        <div className="space-y-2">
-          {/* Follow requests */}
-          {requestCount > 0 && (
-            <MenuCard
-              icon={<div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
-              </div>}
-              label="フォローリクエスト"
-              badge={requestCount}
-              onClick={() => { setView('requests'); loadFollowRequests(); }}
-            />
+        {/* Search bar - inline */}
+        <div className="relative mb-4">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </div>
+          <input
+            value={searchQuery}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="ユーザーを検索..."
+            className="w-full bg-gray-100 dark:bg-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           )}
         </div>
+
+        {/* Search results */}
+        {searching && <p className="text-center text-gray-400 text-sm py-4">検索中...</p>}
+        {!searching && searchQuery && searchResults.length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-4">見つかりませんでした</p>
+        )}
+        {searchResults.length > 0 && (
+          <div className="mb-4">
+            {searchResults.map(u => (
+              <button
+                key={u.userId}
+                onClick={() => openProfile(u.userId)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-300 flex items-center justify-center text-white font-bold text-sm">
+                  {u.nickname.charAt(0)}
+                </div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{u.nickname}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Menu cards */}
+        {!searchQuery && (
+          <div className="space-y-2">
+            {/* Follow requests */}
+            {requestCount > 0 && (
+              <MenuCard
+                icon={<div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
+                </div>}
+                label="フォローリクエスト"
+                badge={requestCount}
+                onClick={() => { setView('requests'); loadFollowRequests(); }}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Profile modal */}
