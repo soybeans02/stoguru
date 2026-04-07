@@ -205,10 +205,10 @@ function SwipeableCard({
             {s.visited && (
               <button
                 onClick={() => onUnmarkVisited(s.id)}
-                className="ml-auto bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-medium active:scale-95 transition-all"
+                className="ml-auto bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium active:scale-95 transition-all flex items-center gap-1"
                 title="タップでまだに戻す"
               >
-                行った <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline-block ml-0.5 -mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                行った <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
             )}
           </div>
