@@ -184,35 +184,39 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
           ) : (
             <span className="text-9xl">{restaurant.photoEmoji}</span>
           )}
-          <a
-            href={
-              restaurant.influencer.url || (
-              restaurant.influencer.platform === 'instagram'
-                ? `https://www.instagram.com/${restaurant.influencer.handle.replace('@', '')}/`
-                : restaurant.influencer.platform === 'tiktok'
-                ? `https://www.tiktok.com/@${restaurant.influencer.handle.replace('@', '')}`
-                : `https://www.youtube.com/@${restaurant.influencer.handle.replace('@', '')}`)
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm z-10"
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-          >
-            {restaurant.influencer.handle}
-          </a>
-          <button
-            className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(restaurant.videoUrl, '_blank');
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-          </button>
+          {restaurant.influencer?.handle && (
+            <a
+              href={
+                restaurant.influencer.url || (
+                restaurant.influencer.platform === 'instagram'
+                  ? `https://www.instagram.com/${restaurant.influencer.handle.replace('@', '')}/`
+                  : restaurant.influencer.platform === 'tiktok'
+                  ? `https://www.tiktok.com/@${restaurant.influencer.handle.replace('@', '')}`
+                  : `https://www.youtube.com/@${restaurant.influencer.handle.replace('@', '')}`)
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm z-10"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              {restaurant.influencer.handle}
+            </a>
+          )}
+          {restaurant.videoUrl && (
+            <button
+              className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(restaurant.videoUrl, '_blank');
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          )}
         </div>
 
         {/* Info area */}
