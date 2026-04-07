@@ -335,40 +335,41 @@ function createLogoPinImage(size: number = 48): { width: number; height: number;
 
   // フォーク&ナイフアイコン（白）— ロゴと同じデザイン
   const s = r / 20;
+  const iconCenterY = headY + 2 * s; // アイコンを少し下にオフセット
   ctx.strokeStyle = '#ffffff';
   ctx.lineCap = 'round';
   ctx.fillStyle = '#ffffff';
 
   // フォーク（左寄り、-22度回転）
   ctx.save();
-  ctx.translate(cx, headY);
+  ctx.translate(cx, iconCenterY);
   ctx.rotate(-22 * Math.PI / 180);
   ctx.lineWidth = 2 * s;
   // 柄
-  ctx.beginPath(); ctx.moveTo(0, -14 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -12 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
   // 左歯
-  ctx.beginPath(); ctx.moveTo(-3 * s, -14 * s); ctx.lineTo(-3 * s, -8 * s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3 * s, -12 * s); ctx.lineTo(-3 * s, -7 * s); ctx.stroke();
   // 右歯
-  ctx.beginPath(); ctx.moveTo(3 * s, -14 * s); ctx.lineTo(3 * s, -8 * s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3 * s, -12 * s); ctx.lineTo(3 * s, -7 * s); ctx.stroke();
   // カーブ
   ctx.beginPath();
-  ctx.moveTo(-3 * s, -8 * s);
-  ctx.quadraticCurveTo(0, -5 * s, 3 * s, -8 * s);
+  ctx.moveTo(-3 * s, -7 * s);
+  ctx.quadraticCurveTo(0, -4 * s, 3 * s, -7 * s);
   ctx.stroke();
   ctx.restore();
 
   // ナイフ（右寄り、+22度回転）
   ctx.save();
-  ctx.translate(cx, headY);
+  ctx.translate(cx, iconCenterY);
   ctx.rotate(22 * Math.PI / 180);
   ctx.lineWidth = 2.2 * s;
   // 柄
-  ctx.beginPath(); ctx.moveTo(0, -14 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -12 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
   // 刃（カーブ）
   ctx.globalAlpha = 0.85;
   ctx.beginPath();
-  ctx.moveTo(0, -14 * s);
-  ctx.quadraticCurveTo(5 * s, -10 * s, 0, -5 * s);
+  ctx.moveTo(0, -12 * s);
+  ctx.quadraticCurveTo(5 * s, -8 * s, 0, -4 * s);
   ctx.fill();
   ctx.globalAlpha = 1;
   ctx.restore();
@@ -512,9 +513,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         layout: { 'icon-image': 'pin-purple',
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
-      // panTo一時ピン（スワイプからマップに飛んだ時用）
+      // panTo一時ピン（スワイプ/保存カードからマップに飛んだ時用）
       map.addLayer({ id: 'panTo-pin-icon', type: 'symbol', source: 'panTo-pin',
-        layout: { 'icon-image': 'pin-logo', 'icon-size': 1, 'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+        layout: { 'icon-image': 'pin-logo',
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
+          'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
 
       // ユーザー位置
       map.addLayer({ id: 'user-glow', type: 'circle', source: 'user-location',
@@ -550,7 +553,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       map.on('click', 'my-posted-pin', (e) => handleClick(e, [0, -55]));
       map.on('click', 'following-circle', (e) => handleClick(e, 15));
       map.on('click', 'following-pin', (e) => handleClick(e, [0, -55]));
-      ['stocks-circle', 'stocks-pin', 'my-posted-circle', 'my-posted-pin', 'following-circle', 'following-pin'].forEach(id => {
+      map.on('click', 'panTo-pin-icon', (e) => handleClick(e, [0, -70]));
+      ['stocks-circle', 'stocks-pin', 'my-posted-circle', 'my-posted-pin', 'following-circle', 'following-pin', 'panTo-pin-icon'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
       });
@@ -649,12 +653,19 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       // 一時ピンを表示（ストック済みでなければ）
       const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
       if (panSrc) {
+        const r = panTo.restaurant;
         panSrc.setData({
           type: 'FeatureCollection',
           features: [{
             type: 'Feature' as const,
             geometry: { type: 'Point' as const, coordinates: [panTo.lng, panTo.lat] },
-            properties: {},
+            properties: r ? {
+              id: r.id, name: r.name, genre: r.genre || '',
+              visited: r.visited ? 1 : 0, distance: r.distance || '',
+              videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+              photoUrls: (r as any).photoUrls?.[0] || '',
+              scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
+            } : { name: '選択した場所' },
           }],
         });
       }
@@ -663,7 +674,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         const r = panTo.restaurant;
         const showPopup = () => {
           popupRef.current?.remove();
-          popupRef.current = new mapboxgl.Popup({ offset: [0, -45], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
+          popupRef.current = new mapboxgl.Popup({ offset: [0, -70], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
             .setLngLat([r.lng, r.lat])
             .setHTML(buildPopupHTML({
               name: r.name, genre: r.genre || '', distance: r.distance || '',
