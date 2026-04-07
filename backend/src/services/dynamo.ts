@@ -523,3 +523,4 @@ export async function deleteShare(userId: string, createdAt: number) {
     Key: { userId, createdAt },
   }));
 }
+

@@ -508,4 +508,6 @@ router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => 
   res.json(withProfiles);
 });
 
+
+
 export default router;
