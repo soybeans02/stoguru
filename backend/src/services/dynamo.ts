@@ -31,8 +31,6 @@ const TABLE = {
   followRequests: 'GourmetStock_FollowRequests',
   notifications: 'GourmetStock_Notifications',
   stats: 'GourmetStock_Stats',
-  conversations: 'GourmetStock_Conversations',
-  messages: 'GourmetStock_Messages',
   shares: 'GourmetStock_Shares',
   influencerProfiles: 'GourmetStock_InfluencerProfiles',
   influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
@@ -238,129 +236,6 @@ export async function loadActivity(): Promise<Record<string, { lastSeen: number;
   return null;
 }
 
-// ─── メッセージ ───
-
-function makeConversationId(a: string, b: string): string {
-  return [a, b].sort().join('#');
-}
-
-export async function getOrCreateConversation(senderId: string, receiverId: string) {
-  const pk = makeConversationId(senderId, receiverId);
-  const existing = await db.send(new GetCommand({
-    TableName: TABLE.conversations,
-    Key: { pk },
-  }));
-  if (existing.Item) return existing.Item;
-
-  const conv = {
-    pk,
-    user1: [senderId, receiverId].sort()[0],
-    user2: [senderId, receiverId].sort()[1],
-    status: 'pending',
-    requestedBy: senderId,
-    lastMessage: '',
-    lastMessageAt: Date.now(),
-    createdAt: Date.now(),
-  };
-  await db.send(new PutCommand({ TableName: TABLE.conversations, Item: conv }));
-  return conv;
-}
-
-export async function getConversation(user1: string, user2: string) {
-  const pk = makeConversationId(user1, user2);
-  const result = await db.send(new GetCommand({
-    TableName: TABLE.conversations,
-    Key: { pk },
-  }));
-  return result.Item ?? null;
-}
-
-export async function updateConversationStatus(pk: string, status: string) {
-  await db.send(new UpdateCommand({
-    TableName: TABLE.conversations,
-    Key: { pk },
-    UpdateExpression: 'SET #s = :status',
-    ExpressionAttributeNames: { '#s': 'status' },
-    ExpressionAttributeValues: { ':status': status },
-  }));
-}
-
-export async function updateConversationLastMessage(pk: string, content: string) {
-  await db.send(new UpdateCommand({
-    TableName: TABLE.conversations,
-    Key: { pk },
-    UpdateExpression: 'SET lastMessage = :msg, lastMessageAt = :ts',
-    ExpressionAttributeValues: { ':msg': content.slice(0, 50), ':ts': Date.now() },
-  }));
-}
-
-export async function getUserConversations(userId: string) {
-  try {
-    // GSIで効率的に取得
-    const [r1, r2] = await Promise.all([
-      db.send(new QueryCommand({
-        TableName: TABLE.conversations,
-        IndexName: 'user1-index',
-        KeyConditionExpression: 'user1 = :uid',
-        ExpressionAttributeValues: { ':uid': userId },
-      })),
-      db.send(new QueryCommand({
-        TableName: TABLE.conversations,
-        IndexName: 'user2-index',
-        KeyConditionExpression: 'user2 = :uid',
-        ExpressionAttributeValues: { ':uid': userId },
-      })),
-    ]);
-    const seen = new Set<string>();
-    const items = [...(r1.Items ?? []), ...(r2.Items ?? [])].filter((item) => {
-      const pk = (item as Record<string, string>).pk;
-      if (seen.has(pk)) return false;
-      seen.add(pk);
-      return true;
-    });
-    return items.sort((a, b) =>
-      ((b as Record<string, number>).lastMessageAt ?? 0) - ((a as Record<string, number>).lastMessageAt ?? 0)
-    );
-  } catch (err) {
-    // GSIが存在しない場合はエラーを投げる（Scanフォールバックは避ける）
-    throw new Error(`getUserConversations failed: GSI query error for userId=${userId}: ${err}`);
-  }
-}
-
-export async function markConversationRead(pk: string, userId: string, user1: string) {
-  const field = userId === user1 ? 'user1LastRead' : 'user2LastRead';
-  await db.send(new UpdateCommand({
-    TableName: TABLE.conversations,
-    Key: { pk },
-    UpdateExpression: 'SET #f = :ts',
-    ExpressionAttributeNames: { '#f': field },
-    ExpressionAttributeValues: { ':ts': Date.now() },
-  }));
-}
-
-export async function sendMessage(conversationId: string, senderId: string, content: string) {
-  const msg = {
-    conversationId,
-    createdAt: Date.now(),
-    senderId,
-    content,
-    read: false,
-  };
-  await db.send(new PutCommand({ TableName: TABLE.messages, Item: msg }));
-  await updateConversationLastMessage(conversationId, content);
-  return msg;
-}
-
-export async function getMessages(conversationId: string, limit = 200) {
-  const result = await db.send(new QueryCommand({
-    TableName: TABLE.messages,
-    KeyConditionExpression: 'conversationId = :cid',
-    ExpressionAttributeValues: { ':cid': conversationId },
-    ScanIndexForward: true,
-    Limit: limit,
-  }));
-  return result.Items ?? [];
-}
 
 // ─── インフルエンサー ───
 
@@ -470,25 +345,6 @@ export async function deleteAllUserData(userId: string) {
         })),
       },
     }));
-  }
-
-  // 会話のメッセージ削除
-  const convs = await getUserConversations(userId).catch(() => []);
-  for (const conv of convs) {
-    const pk = conv.pk as string;
-    const msgs = await getMessages(pk, 1000);
-    const msgChunks = chunkArray(msgs, 25);
-    for (const chunk of msgChunks) {
-      await db.send(new BatchWriteCommand({
-        RequestItems: {
-          [TABLE.messages]: chunk.map((m) => ({
-            DeleteRequest: { Key: { conversationId: pk, createdAt: (m as Record<string, unknown>).createdAt as number } },
-          })),
-        },
-      }));
-    }
-    // 会話自体を削除
-    await db.send(new DeleteCommand({ TableName: TABLE.conversations, Key: { pk } }));
   }
 
   // シェア削除
