@@ -386,7 +386,7 @@ export function SocialScreen({ onUnreadCount }: Props) {
     <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">ソーシャル</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">検索</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-6">
@@ -419,16 +419,6 @@ export function SocialScreen({ onUnreadCount }: Props) {
             label="メッセージ"
             badge={unreadMsgCount}
             onClick={() => { setView('messages'); loadConversations(); }}
-          />
-
-          {/* Following */}
-          <MenuCard
-            icon={<div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-            </div>}
-            label="フォロー中"
-            count={followingCount}
-            onClick={() => { setView('following'); loadFollowing(); }}
           />
 
           {/* Follow requests */}
