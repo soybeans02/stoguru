@@ -235,64 +235,6 @@ export async function markNotificationsRead() {
   if (!res.ok) throw new Error('Failed to mark read');
 }
 
-// ─── メッセージ ───
-
-export interface Conversation {
-  pk: string;
-  user1: string;
-  user2: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  requestedBy: string;
-  lastMessage: string;
-  lastMessageAt: number;
-  user1LastRead?: number;
-  user2LastRead?: number;
-}
-
-export interface Message {
-  conversationId: string;
-  createdAt: number;
-  senderId: string;
-  content: string;
-  read: boolean;
-}
-
-export async function getConversations(): Promise<Conversation[]> {
-  const res = await fetch(`${BASE}/conversations`, { headers: headers() });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getMessagesWithUser(targetId: string, skipRead = false): Promise<{ messages: Message[]; status: string | null; requestedBy?: string; user1?: string; user2?: string; user1LastRead?: number; user2LastRead?: number }> {
-  const url = skipRead ? `${BASE}/messages/${targetId}?skipRead=1` : `${BASE}/messages/${targetId}`;
-  const res = await fetch(url, { headers: headers() });
-  if (!res.ok) return { messages: [], status: null };
-  return res.json();
-}
-
-export async function sendMessageTo(targetId: string, content: string) {
-  const res = await fetch(`${BASE}/messages/${targetId}`, {
-    method: 'POST', headers: headers(),
-    body: JSON.stringify({ content }),
-  });
-  if (!res.ok) throw new Error('Failed to send message');
-  return res.json();
-}
-
-export async function acceptMessageRequest(targetId: string) {
-  const res = await fetch(`${BASE}/messages/${targetId}/accept`, {
-    method: 'POST', headers: headers(),
-  });
-  if (!res.ok) throw new Error('Failed to accept');
-}
-
-export async function rejectMessageRequest(targetId: string) {
-  const res = await fetch(`${BASE}/messages/${targetId}/reject`, {
-    method: 'POST', headers: headers(),
-  });
-  if (!res.ok) throw new Error('Failed to reject');
-}
-
 // ─── 写真アップロード ───
 
 export async function getPresignedUploadUrl(contentType: string, filename: string): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {

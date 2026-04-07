@@ -86,7 +86,7 @@ export interface InfluencerRestaurant {
   updatedAt: number;
 }
 
-export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted' | 'message_request' | 'message';
+export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted';
 
 export interface Notification {
   userId: string;

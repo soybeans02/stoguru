@@ -6,14 +6,12 @@ import {
   followUser, unfollowUser, getFollowing,
   createFollowRequest, getFollowRequests, deleteFollowRequest,
   createNotification, getNotifications, markNotificationsRead,
-  getOrCreateConversation, getConversation, updateConversationStatus,
-  getUserConversations, sendMessage, getMessages, markConversationRead,
   createShare, getSharesFeed, deleteShare,
   scanAllInfluencerRestaurants, getInfluencerProfile, getInfluencerRestaurants,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
-import { validate, restaurantSchema, settingsSchema, messageSchema, shareSchema, nearbySchema } from '../validators';
+import { validate, restaurantSchema, settingsSchema, shareSchema, nearbySchema } from '../validators';
 import { haversineDistance } from '../utils/geo';
 
 const router = Router();
@@ -335,104 +333,6 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
     console.error('Profile fetch failed:', err);
     res.status(500).json({ error: 'プロフィール取得に失敗しました' });
   }
-});
-
-// ─── メッセージ ───
-
-// 会話一覧取得
-router.get('/conversations', requireAuth, async (req: AuthRequest, res: Response) => {
-  const convs = await getUserConversations(req.user!.userId);
-  res.json(convs);
-});
-
-// メッセージ送信（初回はリクエスト扱い）
-router.post('/messages/:targetId', requireAuth, async (req: AuthRequest, res: Response) => {
-  const myId = req.user!.userId;
-  const targetId = req.params.targetId as string;
-  const mv = validate(messageSchema, req.body);
-  if (!mv.success) { res.status(400).json({ error: mv.error }); return; }
-  const { content } = mv.data;
-
-  const conv = await getOrCreateConversation(myId, targetId);
-  const convId = conv.pk as string;
-
-  // リクエストが拒否されていたら送信不可
-  if (conv.status === 'rejected') {
-    res.status(403).json({ error: 'メッセージを送れません' });
-    return;
-  }
-
-  // pending状態で相手から送ろうとした場合は自動承認
-  if (conv.status === 'pending' && conv.requestedBy !== myId) {
-    await updateConversationStatus(convId, 'accepted');
-  }
-
-  const msg = await sendMessage(convId, myId, content.trim());
-
-  // 初回メッセージの場合、通知を送る
-  if (conv.status === 'pending' && conv.requestedBy === myId) {
-    await createNotification(targetId, 'message_request', myId, req.user!.nickname ?? '', content.trim());
-  }
-  // 承認済み会話で相手にメッセージ通知
-  if (conv.status === 'accepted') {
-    await createNotification(targetId, 'message', myId, req.user!.nickname ?? '', content.trim());
-  }
-
-  res.json({ ok: true, message: msg, status: conv.status });
-});
-
-// メッセージ取得（初回のみ既読マーク、ポーリングはスキップ）
-router.get('/messages/:targetId', requireAuth, async (req: AuthRequest, res: Response) => {
-  const myId = req.user!.userId;
-  const targetId = req.params.targetId as string;
-  const skipRead = req.query.skipRead === '1';
-  const conv = await getConversation(myId, targetId);
-  if (!conv) {
-    res.json({ messages: [], status: null });
-    return;
-  }
-  // 既読マークとメッセージ取得を並列実行（ポーリング時はスキップ）
-  const [, messages] = await Promise.all([
-    skipRead ? Promise.resolve() : markConversationRead(conv.pk as string, myId, conv.user1 as string),
-    getMessages(conv.pk as string),
-  ]);
-  // 既読マーク後の最新conv取得（自分のlastReadが更新されてるので再取得）
-  const freshConv = skipRead ? conv : (await getConversation(myId, targetId)) ?? conv;
-  res.json({
-    messages,
-    status: freshConv.status,
-    requestedBy: freshConv.requestedBy,
-    user1: freshConv.user1,
-    user2: freshConv.user2,
-    user1LastRead: freshConv.user1LastRead ?? 0,
-    user2LastRead: freshConv.user2LastRead ?? 0,
-  });
-});
-
-// メッセージリクエスト承認
-router.post('/messages/:targetId/accept', requireAuth, async (req: AuthRequest, res: Response) => {
-  const myId = req.user!.userId;
-  const targetId = req.params.targetId as string;
-  const conv = await getConversation(myId, targetId);
-  if (!conv || conv.status !== 'pending') {
-    res.status(400).json({ error: 'リクエストが見つかりません' });
-    return;
-  }
-  await updateConversationStatus(conv.pk as string, 'accepted');
-  res.json({ ok: true });
-});
-
-// メッセージリクエスト拒否
-router.post('/messages/:targetId/reject', requireAuth, async (req: AuthRequest, res: Response) => {
-  const myId = req.user!.userId;
-  const targetId = req.params.targetId as string;
-  const conv = await getConversation(myId, targetId);
-  if (!conv || conv.status !== 'pending') {
-    res.status(400).json({ error: 'リクエストが見つかりません' });
-    return;
-  }
-  await updateConversationStatus(conv.pk as string, 'rejected');
-  res.json({ ok: true });
 });
 
 // ─── シェア ───

@@ -163,7 +163,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} onOpenMessages={() => { setSocialInitView('messages'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}

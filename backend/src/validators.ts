@@ -94,12 +94,6 @@ export const settingsSchema = z.object({
   isPrivate: z.boolean().optional(),
 }).passthrough(); // 将来のフィールド拡張に対応しつつサイズは制限
 
-// ─── メッセージ ───
-
-export const messageSchema = z.object({
-  content: z.string().min(1, 'メッセージを入力してください').max(2000, '上限2000文字です').trim(),
-});
-
 // ─── シェア ───
 
 export const shareSchema = z.object({

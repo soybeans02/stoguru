@@ -5,8 +5,7 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
-import { fetchRestaurantFeed, getNotifications, getConversations } from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
+import { fetchRestaurantFeed, getNotifications } from '../../utils/api';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
 let sharedAudioCtx: AudioContext | null = null;
@@ -101,7 +100,6 @@ interface Props {
   onRemoveStock: (id: string) => void;
   onShowOnMap?: (lat: number, lng: number, restaurant?: any) => void;
   onOpenNotifications?: () => void;
-  onOpenMessages?: () => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   refreshKey?: number;
@@ -112,11 +110,10 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, onOpenMessages, userPosition, stockedIds, refreshKey }: Props) {
+export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [unreadNotif, setUnreadNotif] = useState(0);
-  const [unreadMsg, setUnreadMsg] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -162,18 +159,10 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
   const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedFetched = useRef(false);
 
-  // 未読カウント取得
-  const { user } = useAuth();
-  const myId = user?.userId ?? '';
+  // 未読通知カウント取得
   useEffect(() => {
     getNotifications().then(n => setUnreadNotif(n.filter(x => !x.read).length)).catch(() => {});
-    getConversations().then(c => {
-      setUnreadMsg(c.filter(conv => {
-        const myLastRead = conv.user1 === myId ? (conv.user1LastRead ?? 0) : (conv.user2LastRead ?? 0);
-        return conv.lastMessageAt > myLastRead && conv.status === 'accepted';
-      }).length);
-    }).catch(() => {});
-  }, [myId]);
+  }, []);
 
   // APIからフィード取得（位置情報が取れたら1回だけ）
   useEffect(() => {
@@ -363,15 +352,6 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
             {unreadNotif > 0 && (
               <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
                 {unreadNotif}
-              </span>
-            )}
-          </button>
-          {/* メッセージ */}
-          <button onClick={onOpenMessages} className="relative p-1.5 text-gray-500 dark:text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-            {unreadMsg > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                {unreadMsg}
               </span>
             )}
           </button>

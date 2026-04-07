@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Star, X, UserPlus, UserMinus, Lock, MessageCircle } from 'lucide-react';
+import { MapPin, Star, X, UserPlus, UserMinus, Lock } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
@@ -23,10 +23,9 @@ interface ProfileData {
 interface Props {
   userId: string | null;
   onClose: () => void;
-  onOpenMessage?: (targetId: string) => void;
 }
 
-export function UserProfileModal({ userId, onClose, onOpenMessage }: Props) {
+export function UserProfileModal({ userId, onClose }: Props) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,13 +140,6 @@ export function UserProfileModal({ userId, onClose, onOpenMessage }: Props) {
                 </div>
                 {!isMyself && (
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => userId && onOpenMessage?.(userId)}
-                      className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"
-                      title="メッセージ"
-                    >
-                      <MessageCircle size={16} />
-                    </button>
                     <button
                       onClick={toggleFollow}
                       disabled={followLoading}

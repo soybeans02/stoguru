@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
-import { MessageView } from '../message/MessageView';
 
-type SubView = 'main' | 'notifications' | 'following' | 'requests' | 'messages';
+type SubView = 'main' | 'notifications' | 'following' | 'requests';
 
 interface Props {
   onUnreadCount?: (count: number) => void;
@@ -17,10 +16,10 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   const { user } = useAuth();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
-    if (initialView === 'notifications' || initialView === 'messages') return initialView;
+    if (initialView === 'notifications') return 'notifications';
     return 'main';
   });
-  const cameFromHome = useRef(initialView === 'notifications' || initialView === 'messages');
+  const cameFromHome = useRef(initialView === 'notifications');
 
   const handleBack = useCallback(() => {
     if (cameFromHome.current) {
@@ -51,11 +50,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   // Follow requests
   const [followRequests, setFollowRequests] = useState<{ requesterId: string; createdAt: number; nickname?: string }[]>([]);
 
-  // Messages
-  const [conversations, setConversations] = useState<api.Conversation[]>([]);
-  const [nicknames, setNicknames] = useState<Record<string, string>>({});
-  const [messageTargetId, setMessageTargetId] = useState<string | null>(null);
-
   // Counts for main view
   const [requestCount, setRequestCount] = useState(0);
 
@@ -64,10 +58,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     if (initialView === 'notifications') {
       setView('notifications');
       loadNotifications();
-      onInitViewConsumed?.();
-    } else if (initialView === 'messages') {
-      setView('messages');
-      loadConversations();
       onInitViewConsumed?.();
     }
   }, [initialView]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -79,10 +69,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     api.getNotifications().then(n => {
       setNotifications(n);
       onUnreadCount?.(n.filter(x => !x.read).length);
-    }).catch(() => {});
-
-    api.getConversations().then(c => {
-      setConversations(c);
     }).catch(() => {});
 
     api.getFollowRequests().then(r => {
@@ -153,25 +139,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     } catch {}
   };
 
-  // Load conversations + nicknames for message list
-  const loadConversations = useCallback(async () => {
-    try {
-      const c = await api.getConversations();
-      setConversations(c);
-      // Fetch nicknames
-      const ids = c.map(conv => conv.user1 === myId ? conv.user2 : conv.user1);
-      const unique = [...new Set(ids)];
-      const nicks: Record<string, string> = { ...nicknames };
-      await Promise.all(unique.filter(id => !nicks[id]).map(async id => {
-        try {
-          const p = await api.getUserProfile(id);
-          nicks[id] = p.nickname;
-        } catch {}
-      }));
-      setNicknames(nicks);
-    } catch {}
-  }, [myId, nicknames]);
-
   function timeAgo(ts: number) {
     const diff = Date.now() - ts;
     const min = Math.floor(diff / 60000);
@@ -187,8 +154,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
       case 'follow': return '👤';
       case 'follow_request': return '🔔';
       case 'follow_accepted': return '✅';
-      case 'message_request': return '💬';
-      case 'message': return '✉️';
       default: return '🔔';
     }
   }
@@ -198,32 +163,12 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
       case 'follow': return `${n.fromNickname}があなたをフォローしました`;
       case 'follow_request': return `${n.fromNickname}からフォローリクエスト`;
       case 'follow_accepted': return `${n.fromNickname}がフォローリクエストを承認しました`;
-      case 'message_request': return `${n.fromNickname}からメッセージリクエスト`;
-      case 'message': return `${n.fromNickname}からメッセージ`;
       default: return '通知';
     }
   }
 
   // Profile modal handler
   const openProfile = (userId: string) => setProfileUserId(userId);
-  const openMessage = (targetId: string) => {
-    setProfileUserId(null);
-    setMessageTargetId(targetId);
-    setView('messages');
-  };
-
-  // === Message View ===
-  if (view === 'messages') {
-    return (
-      <MessageView
-        onClose={() => { handleBack(); setMessageTargetId(null); }}
-        initialTargetId={messageTargetId}
-        cachedConversations={conversations}
-        cachedNicknames={nicknames}
-        onConversationsChanged={loadConversations}
-      />
-    );
-  }
 
   // === Sub views ===
   if (view === 'notifications') {
@@ -238,13 +183,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
           {notifications.map((n, i) => (
             <button
               key={`${n.createdAt}-${i}`}
-              onClick={() => {
-                if (n.type === 'message' || n.type === 'message_request') {
-                  openMessage(n.fromUserId);
-                } else {
-                  openProfile(n.fromUserId);
-                }
-              }}
+              onClick={() => openProfile(n.fromUserId)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 dark:border-gray-800 ${
                 !n.read ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''
               }`}
@@ -260,7 +199,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
           ))}
         </div>
         {profileUserId && (
-          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} onOpenMessage={openMessage} />
+          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
         )}
       </div>
     );
@@ -289,7 +228,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
           ))}
         </div>
         {profileUserId && (
-          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} onOpenMessage={openMessage} />
+          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
         )}
       </div>
     );
@@ -334,7 +273,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
           ))}
         </div>
         {profileUserId && (
-          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} onOpenMessage={openMessage} />
+          <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
         )}
       </div>
     );
@@ -412,7 +351,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
       {/* Profile modal */}
       {profileUserId && (
-        <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} onOpenMessage={openMessage} />
+        <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
       )}
     </div>
   );
