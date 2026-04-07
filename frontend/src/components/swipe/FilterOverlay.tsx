@@ -1,14 +1,5 @@
 import { SCENES, GENRES } from '../../data/mockRestaurants';
 
-/** 500円刻みの選択肢 */
-export const PRICE_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 7500, 10000] as const;
-
-function formatYen(v: number): string {
-  if (v === 0) return '下限なし';
-  if (v >= 10000) return '上限なし';
-  return `¥${v.toLocaleString()}`;
-}
-
 interface Props {
   selectedScenes: string[];
   selectedGenres: string[];
@@ -48,6 +39,13 @@ export function FilterOverlay({
     );
   }
 
+  /** 数字以外の入力を防ぐ */
+  function blockNonNumeric(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+
   function handleMinChange(v: number) {
     if (!onPriceChange) return;
     onPriceChange(v, v > priceMax ? v : priceMax);
@@ -63,9 +61,6 @@ export function FilterOverlay({
     onGenresChange([]);
     onPriceChange?.(0, 10000);
   }
-
-  const minSteps = PRICE_STEPS.filter((v) => v < priceMax || v === 0);
-  const maxSteps = PRICE_STEPS.filter((v) => v > priceMin || v >= 10000);
 
   return (
     <div className="absolute inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
@@ -114,42 +109,41 @@ export function FilterOverlay({
           ))}
         </div>
 
-        {/* Price Range - min/max selectors */}
+        {/* Price Range - free input */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1">
             <label className="text-[10px] text-gray-400 mb-1 block">下限</label>
-            <select
-              value={priceMin}
-              onChange={(e) => handleMinChange(Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 appearance-none"
-            >
-              {minSteps.map((v) => (
-                <option key={v} value={v}>{formatYen(v)}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={priceMin || ''}
+                onChange={(e) => handleMinChange(parseInt(e.target.value) || 0)}
+                onKeyDown={blockNonNumeric}
+                placeholder="0"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-7 pr-3 py-2.5 text-sm text-gray-700 dark:text-gray-200"
+              />
+            </div>
           </div>
           <span className="text-gray-300 dark:text-gray-600 mt-4">〜</span>
           <div className="flex-1">
             <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
-            <select
-              value={priceMax}
-              onChange={(e) => handleMaxChange(Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 appearance-none"
-            >
-              {maxSteps.map((v) => (
-                <option key={v} value={v}>{formatYen(v)}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={priceMax >= 10000 ? '' : priceMax || ''}
+                onChange={(e) => handleMaxChange(parseInt(e.target.value) || 10000)}
+                onKeyDown={blockNonNumeric}
+                placeholder="上限なし"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-7 pr-3 py-2.5 text-sm text-gray-700 dark:text-gray-200"
+              />
+            </div>
           </div>
         </div>
-        {(priceMin > 0 || priceMax < 10000) && (
-          <p className="text-xs text-gray-500 -mt-4 mb-6">
-            {priceMin > 0 ? `¥${priceMin.toLocaleString()}` : ''}
-            {priceMin > 0 && priceMax < 10000 ? ' 〜 ' : ''}
-            {priceMax < 10000 ? `¥${priceMax.toLocaleString()}` : priceMin > 0 ? ' 〜' : ''}
-          </p>
-        )}
       </div>
 
       {/* Footer */}

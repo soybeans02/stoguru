@@ -299,12 +299,12 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
                     value={priceMin || ''}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value) || 0;
-                      setPriceMin(v);
+                    onChange={(e) => setPriceMin(parseInt(e.target.value) || 0)}
+                    onKeyDown={(e) => {
+                      if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) e.preventDefault();
                     }}
                     placeholder="0"
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-7 pr-3 py-2.5 text-sm text-gray-700"
@@ -317,12 +317,12 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
                     value={priceMax >= 10000 ? '' : priceMax || ''}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value) || 0;
-                      setPriceMax(v || 10000);
+                    onChange={(e) => setPriceMax(parseInt(e.target.value) || 10000)}
+                    onKeyDown={(e) => {
+                      if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) e.preventDefault();
                     }}
                     placeholder="上限なし"
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-7 pr-3 py-2.5 text-sm text-gray-700"
