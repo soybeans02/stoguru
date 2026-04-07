@@ -509,28 +509,37 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !panTo) return;
-    map.flyTo({ center: [panTo.lng, panTo.lat], zoom: 17 });
-    initialCenterSet.current = true;
 
-    if (panTo.restaurant) {
-      const r = panTo.restaurant;
-      const showPopup = () => {
-        popupRef.current?.remove();
-        popupRef.current = new mapboxgl.Popup({ offset: [0, -55], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
-          .setLngLat([r.lng, r.lat])
-          .setHTML(buildPopupHTML({
-            name: r.name, genre: r.genre || '', distance: r.distance || '',
-            videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-            photoUrls: (r as any).photoUrls?.[0] || '',
-            scene: r.scene || [], priceRange: r.priceRange || '',
-            lat: r.lat, lng: r.lng,
-          }, userPosRef.current))
-          .addTo(map);
-      };
-      map.once('moveend', showPopup);
+    const doPan = () => {
+      initialCenterSet.current = true;
+      map.flyTo({ center: [panTo.lng, panTo.lat], zoom: 17 });
+
+      if (panTo.restaurant) {
+        const r = panTo.restaurant;
+        const showPopup = () => {
+          popupRef.current?.remove();
+          popupRef.current = new mapboxgl.Popup({ offset: [0, -10], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
+            .setLngLat([r.lng, r.lat])
+            .setHTML(buildPopupHTML({
+              name: r.name, genre: r.genre || '', distance: r.distance || '',
+              videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+              photoUrls: (r as any).photoUrls?.[0] || '',
+              scene: r.scene || [], priceRange: r.priceRange || '',
+              lat: r.lat, lng: r.lng,
+            }, userPosRef.current))
+            .addTo(map);
+        };
+        map.once('moveend', showPopup);
+      }
+      onPanComplete();
+    };
+
+    // マップがまだload完了してなければ待つ
+    if (mapLoadedRef.current) {
+      doPan();
+    } else {
+      map.once('load', doPan);
     }
-
-    onPanComplete();
   }, [panTo, onPanComplete]);
 
   // Set initial center to user position

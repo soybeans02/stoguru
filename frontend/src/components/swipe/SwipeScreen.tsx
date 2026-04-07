@@ -99,7 +99,7 @@ interface Props {
   onStock: (restaurant: SwipeRestaurant) => void;
   onNope?: () => void;
   onRemoveStock: (id: string) => void;
-  onShowOnMap?: (lat: number, lng: number) => void;
+  onShowOnMap?: (lat: number, lng: number, restaurant?: any) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   refreshKey?: number;
@@ -257,7 +257,24 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
       if (direction === 'up') {
         // 上スワイプ → マップに飛ぶ（カードは消費しない）
         createSwipeSound('like');
-        onShowOnMap?.(current.lat, current.lng);
+        // StockedRestaurant互換のオブジェクトを作ってポップアップ表示
+        const mapRestaurant = {
+          id: current.id,
+          name: current.name,
+          lat: current.lat,
+          lng: current.lng,
+          genre: current.genre || '',
+          scene: current.scene || [],
+          priceRange: current.priceRange || '',
+          distance: getDistance(userPosition, current),
+          videoUrl: current.videoUrl || '',
+          photoEmoji: current.photoEmoji || '',
+          photoUrls: current.photoUrls || [],
+          visited: false,
+          pinned: false,
+          stockedAt: '',
+        };
+        onShowOnMap?.(current.lat, current.lng, mapRestaurant as any);
         return;
       }
 
