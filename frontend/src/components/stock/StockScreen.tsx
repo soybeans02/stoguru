@@ -147,7 +147,7 @@ function SwipeableCard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className={`flex gap-3 p-3.5 relative ${s.pinned ? 'bg-amber-50 dark:bg-amber-950/30 ring-1 ring-amber-200 dark:ring-amber-800' : 'bg-gray-50 dark:bg-gray-900'}`}
+        className={`flex gap-3 pl-3.5 pr-2 py-3.5 relative ${s.pinned ? 'bg-amber-50 dark:bg-amber-950/30 ring-1 ring-amber-200 dark:ring-amber-800' : 'bg-gray-50 dark:bg-gray-900'}`}
         style={{ transform: `translateX(${translate}px)`, transition: 'transform 0.25s ease' }}
       >
         <div
