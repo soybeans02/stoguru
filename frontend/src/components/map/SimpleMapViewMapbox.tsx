@@ -293,7 +293,7 @@ function createPinImage(color: string, size: number = 40): { width: number; heig
   return { width: w, height: h, data: new Uint8Array(imgData.data.buffer) };
 }
 
-/** ストグルロゴ入りピン（オレンジグラデーション + フォークアイコン） */
+/** ストグルロゴ入りピン（オレンジグラデーション + フォーク&ナイフ） */
 function createLogoPinImage(size: number = 48): { width: number; height: number; data: Uint8Array } {
   const w = size;
   const h = Math.round(size * 1.4);
@@ -311,7 +311,6 @@ function createLogoPinImage(size: number = 48): { width: number; height: number;
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.fill();
 
-  // グラデーション
   const grad = ctx.createLinearGradient(0, 0, w, h);
   grad.addColorStop(0, '#FF6B6B');
   grad.addColorStop(1, '#FF8E53');
@@ -334,34 +333,44 @@ function createLogoPinImage(size: number = 48): { width: number; height: number;
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // フォークアイコン（白）
+  // フォーク&ナイフアイコン（白）— ロゴと同じデザイン
+  const s = r / 20;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineCap = 'round';
+  ctx.fillStyle = '#ffffff';
+
+  // フォーク（左寄り、-22度回転）
   ctx.save();
   ctx.translate(cx, headY);
   ctx.rotate(-22 * Math.PI / 180);
-  const s = r / 18; // スケール
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineCap = 'round';
   ctx.lineWidth = 2 * s;
-  // 中央の柄
-  ctx.beginPath();
-  ctx.moveTo(0, -11 * s);
-  ctx.lineTo(0, 8 * s);
-  ctx.stroke();
-  // 左の歯
-  ctx.beginPath();
-  ctx.moveTo(-3 * s, -11 * s);
-  ctx.lineTo(-3 * s, -5 * s);
-  ctx.stroke();
-  // 右の歯
-  ctx.beginPath();
-  ctx.moveTo(3 * s, -11 * s);
-  ctx.lineTo(3 * s, -5 * s);
-  ctx.stroke();
+  // 柄
+  ctx.beginPath(); ctx.moveTo(0, -14 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
+  // 左歯
+  ctx.beginPath(); ctx.moveTo(-3 * s, -14 * s); ctx.lineTo(-3 * s, -8 * s); ctx.stroke();
+  // 右歯
+  ctx.beginPath(); ctx.moveTo(3 * s, -14 * s); ctx.lineTo(3 * s, -8 * s); ctx.stroke();
   // カーブ
   ctx.beginPath();
-  ctx.moveTo(-3 * s, -5 * s);
-  ctx.quadraticCurveTo(0, -2 * s, 3 * s, -5 * s);
+  ctx.moveTo(-3 * s, -8 * s);
+  ctx.quadraticCurveTo(0, -5 * s, 3 * s, -8 * s);
   ctx.stroke();
+  ctx.restore();
+
+  // ナイフ（右寄り、+22度回転）
+  ctx.save();
+  ctx.translate(cx, headY);
+  ctx.rotate(22 * Math.PI / 180);
+  ctx.lineWidth = 2.2 * s;
+  // 柄
+  ctx.beginPath(); ctx.moveTo(0, -14 * s); ctx.lineTo(0, 6 * s); ctx.stroke();
+  // 刃（カーブ）
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(0, -14 * s);
+  ctx.quadraticCurveTo(5 * s, -10 * s, 0, -5 * s);
+  ctx.fill();
+  ctx.globalAlpha = 1;
   ctx.restore();
 
   const imgData = ctx.getImageData(0, 0, w, h);
