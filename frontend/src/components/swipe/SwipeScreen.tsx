@@ -5,7 +5,8 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
-import { fetchRestaurantFeed } from '../../utils/api';
+import { fetchRestaurantFeed, getNotifications, getConversations } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
 let sharedAudioCtx: AudioContext | null = null;
@@ -100,6 +101,8 @@ interface Props {
   onNope?: () => void;
   onRemoveStock: (id: string) => void;
   onShowOnMap?: (lat: number, lng: number, restaurant?: any) => void;
+  onOpenNotifications?: () => void;
+  onOpenMessages?: () => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   refreshKey?: number;
@@ -110,9 +113,11 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userPosition, stockedIds, refreshKey }: Props) {
+export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, onOpenNotifications, onOpenMessages, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
+  const [unreadNotif, setUnreadNotif] = useState(0);
+  const [unreadMsg, setUnreadMsg] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -157,6 +162,19 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
   const [shuffling, setShuffling] = useState(false);
   const shuffleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedFetched = useRef(false);
+
+  // 未読カウント取得
+  const { user } = useAuth();
+  const myId = user?.userId ?? '';
+  useEffect(() => {
+    getNotifications().then(n => setUnreadNotif(n.filter(x => !x.read).length)).catch(() => {});
+    getConversations().then(c => {
+      setUnreadMsg(c.filter(conv => {
+        const myLastRead = conv.user1 === myId ? (conv.user1LastRead ?? 0) : (conv.user2LastRead ?? 0);
+        return conv.lastMessageAt > myLastRead && conv.status === 'accepted';
+      }).length);
+    }).catch(() => {});
+  }, [myId]);
 
   // APIからフィード取得（位置情報が取れたら1回だけ）
   useEffect(() => {
@@ -326,8 +344,8 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
 
   return (
     <div className="flex-1 flex flex-col items-center relative bg-white dark:bg-gray-900">
-      {/* Filter bar */}
-      <div className="w-full flex items-center gap-2 px-4 py-3 flex-shrink-0">
+      {/* Header bar */}
+      <div className="w-full flex items-center justify-between px-4 py-3 flex-shrink-0">
         <button
           onClick={() => setFilterOpen(true)}
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -340,6 +358,26 @@ export function SwipeScreen({ onStock, onNope, onRemoveStock, onShowOnMap, userP
             </span>
           )}
         </button>
+        <div className="flex items-center gap-3">
+          {/* 通知ベル */}
+          <button onClick={onOpenNotifications} className="relative p-1.5 text-gray-500 dark:text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            {unreadNotif > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                {unreadNotif}
+              </span>
+            )}
+          </button>
+          {/* メッセージ */}
+          <button onClick={onOpenMessages} className="relative p-1.5 text-gray-500 dark:text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            {unreadMsg > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                {unreadMsg}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Card area */}

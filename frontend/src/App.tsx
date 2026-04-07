@@ -154,6 +154,7 @@ function MainApp() {
   const stockedIds = useMemo(() => stocks.map(s => s.id), [stocks]);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const refreshFeed = useCallback(() => setFeedRefreshKey(k => k + 1), []);
+  const [socialInitView, setSocialInitView] = useState<string | null>(null);
 
   const handleShowOnMap = useCallback((lat: number, lng: number, restaurant?: StockedRestaurant) => {
     setPanTo({ lat, lng, restaurant });
@@ -164,7 +165,7 @@ function MainApp() {
     <div className="flex flex-col h-svh bg-white dark:bg-gray-900 max-w-xl mx-auto overflow-hidden">
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
+        {tab === 'home' && <SwipeScreen onStock={handleStock} onNope={handleNope} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} onOpenMessages={() => { setSocialInitView('messages'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
         {tab === 'stock' && (
           <StockScreen
             stocks={stocks}
@@ -187,7 +188,7 @@ function MainApp() {
           </Suspense>
         )}
         {tab === 'social' && (
-          <SocialScreen />
+          <SocialScreen initialView={socialInitView} onInitViewConsumed={() => setSocialInitView(null)} />
         )}
         {tab === 'account' && (
           <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />
@@ -199,11 +200,11 @@ function MainApp() {
         <TabButton active={tab === 'home'} onClick={() => setTab('home')} label="ホーム">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'home' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
         </TabButton>
-        <TabButton active={tab === 'stock'} onClick={() => setTab('stock')} label="保存">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'stock' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-        </TabButton>
         <TabButton active={tab === 'map'} onClick={() => setTab('map')} label="マップ">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'map' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+        </TabButton>
+        <TabButton active={tab === 'stock'} onClick={() => setTab('stock')} label="保存">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'stock' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
         </TabButton>
         <TabButton active={tab === 'social'} onClick={() => setTab('social')} label="検索">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={tab === 'social' ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
