@@ -2,45 +2,13 @@ import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 // import { requireInfluencer } from '../middleware/requireInfluencer';
 import {
-  getUserSettings, putUserSettings,
   putInfluencerProfile, getInfluencerProfile,
   putInfluencerRestaurant, getInfluencerRestaurants, deleteInfluencerRestaurant,
   updateRestaurantVisibility,
 } from '../services/dynamo';
-import { validate, influencerRegisterSchema, influencerRestaurantSchema } from '../validators';
+import { validate, influencerProfileSchema, influencerRestaurantSchema } from '../validators';
 
 const router = Router();
-
-// ─── インフルエンサー登録 ───
-
-router.post('/register', requireAuth, async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-
-  // 既に登録済みかチェック
-  const settings = await getUserSettings(userId);
-  if (settings.role === 'influencer') {
-    res.status(400).json({ error: '既にインフルエンサーとして登録済みです' });
-    return;
-  }
-
-  const v = validate(influencerRegisterSchema, req.body);
-  if (!v.success) { res.status(400).json({ error: v.error }); return; }
-
-  // ロールをインフルエンサーに更新
-  await putUserSettings(userId, { ...settings, role: 'influencer' });
-
-  // プロフィール作成
-  const now = Date.now();
-  await putInfluencerProfile(userId, {
-    influencerId: userId,
-    ...v.data,
-    isVerified: false,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  res.json({ ok: true });
-});
 
 // ─── 自分のプロフィール取得 ───
 
@@ -56,7 +24,7 @@ router.get('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
 // ─── 自分のプロフィール更新 ───
 
 router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
-  const v = validate(influencerRegisterSchema, req.body);
+  const v = validate(influencerProfileSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 
   const existing = await getInfluencerProfile(req.user!.userId);
@@ -81,13 +49,27 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
 // ─── レストラン追加/更新 ───
 
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
   const restaurantId = req.params.id as string;
   const v = validate(influencerRestaurantSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 
-  await putInfluencerRestaurant(req.user!.userId, {
+  // プロフィール未作成なら自動作成
+  const existing = await getInfluencerProfile(userId);
+  if (!existing) {
+    const now = Date.now();
+    await putInfluencerProfile(userId, {
+      influencerId: userId,
+      displayName: req.user!.nickname || 'ユーザー',
+      isVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await putInfluencerRestaurant(userId, {
     restaurantId,
-    influencerId: req.user!.userId,
+    influencerId: userId,
     ...v.data,
     createdAt: Date.now(),
   });

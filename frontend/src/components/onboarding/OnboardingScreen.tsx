@@ -107,14 +107,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         {step < 2 ? (
           <button
             onClick={goNext}
-            className="w-64 py-3 rounded-full bg-gray-900 text-white font-medium text-base transition-transform active:scale-95"
+            className="w-64 py-3 rounded-full bg-orange-500 text-white font-medium text-base transition-transform active:scale-95"
           >
             次へ
           </button>
         ) : (
           <button
             onClick={handleStart}
-            className="w-64 py-3 rounded-full bg-gray-900 text-white font-medium text-base transition-transform active:scale-95"
+            className="w-64 py-3 rounded-full bg-orange-500 text-white font-medium text-base transition-transform active:scale-95"
           >
             始める
           </button>

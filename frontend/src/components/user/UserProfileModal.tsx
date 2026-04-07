@@ -148,7 +148,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                           ? 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
                           : isPending
                             ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
-                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                            : 'bg-orange-500 text-white hover:bg-orange-600'
                       } disabled:opacity-50`}
                     >
                       {isFollowing ? (

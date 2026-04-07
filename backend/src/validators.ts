@@ -114,16 +114,16 @@ export const nearbySchema = z.object({
 
 // ─── インフルエンサー ───
 
-export const influencerRegisterSchema = z.object({
-  displayName: z.string().min(1, '表示名は必須です').max(50, '表示名は50文字以内にしてください').trim(),
-  bio: z.string().max(500, '自己紹介は500文字以内にしてください').optional(),
+export const influencerProfileSchema = z.object({
+  displayName: z.string().min(1).max(50).trim(),
+  bio: z.string().max(500).optional(),
   instagramHandle: z.string().max(100).optional(),
   instagramUrl: z.string().max(500).optional(),
   tiktokHandle: z.string().max(100).optional(),
   tiktokUrl: z.string().max(500).optional(),
   youtubeHandle: z.string().max(100).optional(),
   youtubeUrl: z.string().max(500).optional(),
-  genres: z.array(z.string().max(50)).max(10, 'ジャンルは10個まで').default([]),
+  genres: z.array(z.string().max(50)).max(10).default([]),
 });
 
 export const influencerRestaurantSchema = z.object({

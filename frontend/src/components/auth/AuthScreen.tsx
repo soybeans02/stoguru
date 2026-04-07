@@ -160,7 +160,7 @@ export function AuthScreen() {
               </p>
               <p>
                 アカウントがない？{' '}
-                <button onClick={() => { setMode('signup'); setError(''); }} className="text-red-500 font-medium">
+                <button onClick={() => { setMode('signup'); setError(''); }} className="text-orange-500 font-medium">
                   新規登録
                 </button>
               </p>
@@ -169,14 +169,14 @@ export function AuthScreen() {
           {mode === 'signup' && (
             <p>
               アカウントがある？{' '}
-              <button onClick={() => { setMode('login'); setError(''); }} className="text-red-500 font-medium">
+              <button onClick={() => { setMode('login'); setError(''); }} className="text-orange-500 font-medium">
                 ログイン
               </button>
             </p>
           )}
           {(mode === 'forgot' || mode === 'reset') && (
             <p>
-              <button onClick={() => { setMode('login'); setError(''); setCode(''); setNewPassword(''); }} className="text-red-500 font-medium">
+              <button onClick={() => { setMode('login'); setError(''); setCode(''); setNewPassword(''); }} className="text-orange-500 font-medium">
                 ログインに戻る
               </button>
             </p>

@@ -258,7 +258,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
               <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => handleApproveRequest(r.requesterId)}
-                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg"
+                  className="px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg"
                 >
                   承認
                 </button>

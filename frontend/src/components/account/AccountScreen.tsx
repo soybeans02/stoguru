@@ -10,7 +10,7 @@ interface Props {
   onRestaurantEdited?: () => void;
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount' | 'influencerRegister';
+type Panel = null | 'password' | 'email' | 'deleteAccount';
 type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
@@ -29,7 +29,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
   const [followersCount, setFollowersCount] = useState(() => Number(localStorage.getItem('cache:followersCount')) || 0);
   const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
-  const [userRole, setUserRole] = useState<'user' | 'influencer'>(() => (localStorage.getItem('cache:userRole') as 'user' | 'influencer') || 'user');
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
@@ -44,10 +43,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       if (s.profileImage) {
         setProfileImage(s.profileImage as string);
         localStorage.setItem('cache:profileImage', s.profileImage as string);
-      }
-      if (s.role === 'influencer') {
-        setUserRole('influencer');
-        localStorage.setItem('cache:userRole', 'influencer');
       }
     }).catch(() => {});
     api.getPrivacySettings().then((p) => {
@@ -129,7 +124,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             className="relative"
             disabled={uploadingPhoto}
           >
-            <div className="w-[88px] h-[88px] rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 p-[3px]">
+            <div className="w-[88px] h-[88px] rounded-full bg-gradient-to-br from-orange-400 to-orange-500 p-[3px]">
               <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
                 {profileImage ? (
                   <img src={profileImage} alt="" className="w-full h-full rounded-full object-cover" />
@@ -203,28 +198,15 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       <div className="px-4 pb-8">
         {/* Influencer banner */}
         <div className="mt-2 mb-5">
-          {userRole === 'influencer' ? (
-            <button
-              onClick={() => setShowInfluencerDashboard(true)}
-              className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
-            >
-              <div>
-                <p className="text-[13px] font-bold text-white">お店を編集</p>
-              </div>
-              <span className="text-white/40 text-lg">›</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setPanel('influencerRegister')}
-              className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
-            >
-              <div>
-                <p className="text-[13px] font-bold text-white">インフルエンサー登録</p>
-                <p className="text-[11px] text-white/50 mt-0.5">おすすめのお店を公開する</p>
-              </div>
-              <span className="text-white/40 text-lg">›</span>
-            </button>
-          )}
+          <button
+            onClick={() => setShowInfluencerDashboard(true)}
+            className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
+          >
+            <div>
+              <p className="text-[13px] font-bold text-white">お店を編集</p>
+            </div>
+            <span className="text-white/40 text-lg">›</span>
+          </button>
         </div>
 
         {/* Settings section */}
@@ -233,14 +215,14 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-[8px] bg-indigo-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                 </div>
                 <span className="text-[14px] text-gray-700 dark:text-gray-200">ダークモード</span>
               </div>
               <button
                 onClick={toggleDarkMode}
-                className={`relative w-11 h-[26px] rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-indigo-500' : 'bg-gray-200'}`}
+                className={`relative w-11 h-[26px] rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-orange-500' : 'bg-gray-200'}`}
               >
                 <span
                   className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-[18px]' : ''}`}
@@ -264,7 +246,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   localStorage.setItem('cache:isPrivate', next ? '1' : '0');
                   try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
                 }}
-                className={`relative w-11 h-[26px] rounded-full transition-colors ${isPrivate ? 'bg-gray-900 dark:bg-indigo-500' : 'bg-gray-200'}`}
+                className={`relative w-11 h-[26px] rounded-full transition-colors ${isPrivate ? 'bg-gray-900 dark:bg-orange-500' : 'bg-gray-200'}`}
               >
                 <span
                   className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isPrivate ? 'translate-x-[18px]' : ''}`}
@@ -324,13 +306,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {panel === 'deleteAccount' && (
         <DeleteAccountPanel onClose={() => setPanel(null)} onDeleted={logout} />
       )}
-      {panel === 'influencerRegister' && (
-        <InfluencerRegisterPanel
-          onClose={() => setPanel(null)}
-          onRegistered={() => { setUserRole('influencer'); localStorage.setItem('cache:userRole', 'influencer'); setPanel(null); }}
-        />
-      )}
-
       {/* List panels */}
       {listPanel === 'stocks' && (
         <Overlay title="保存" onClose={() => setListPanel(null)}>
@@ -571,72 +546,6 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
           {loading ? '...' : 'アカウントを削除する'}
         </button>
       </div>
-    </Overlay>
-  );
-}
-
-/* ─── インフルエンサー登録パネル ─── */
-
-function InfluencerRegisterPanel({ onClose, onRegistered }: { onClose: () => void; onRegistered: () => void }) {
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [instagramHandle, setInstagramHandle] = useState('');
-  const [tiktokHandle, setTiktokHandle] = useState('');
-  const [youtubeHandle, setYoutubeHandle] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!displayName.trim()) {
-      setError('表示名は必須です');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await api.registerInfluencer({
-        displayName: displayName.trim(),
-        bio: bio.trim() || undefined,
-        instagramHandle: instagramHandle.trim() || undefined,
-        tiktokHandle: tiktokHandle.trim() || undefined,
-        youtubeHandle: youtubeHandle.trim() || undefined,
-        genres: [],
-      });
-      onRegistered();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Overlay title="インフルエンサー登録" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-xs text-gray-500 mb-2">
-          インフルエンサーとして登録すると、おすすめレストランを公開できます。
-        </p>
-        <FormInput label="表示名 *" value={displayName} onChange={setDisplayName} placeholder="あなたの表示名" autoFocus />
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">自己紹介</label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            maxLength={500}
-            rows={3}
-            placeholder="自己紹介を入力..."
-            className="w-full rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm resize-none"
-          />
-        </div>
-        <FormInput label="Instagram" value={instagramHandle} onChange={setInstagramHandle} placeholder="username" />
-        <FormInput label="TikTok" value={tiktokHandle} onChange={setTiktokHandle} placeholder="username" />
-        <FormInput label="YouTube" value={youtubeHandle} onChange={setYoutubeHandle} placeholder="channel" />
-        {error && <p className="text-red-500 text-xs">{error}</p>}
-        <button type="submit" disabled={loading || !displayName.trim()} className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-          {loading ? '...' : '登録する'}
-        </button>
-      </form>
     </Overlay>
   );
 }

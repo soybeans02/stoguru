@@ -8,6 +8,7 @@ import {
   createNotification, getNotifications, markNotificationsRead,
   createShare, getSharesFeed, deleteShare,
   scanAllInfluencerRestaurants, getInfluencerProfile, getInfluencerRestaurants,
+  saveGenreRequest,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { Restaurant } from '../types';
@@ -365,6 +366,18 @@ router.delete('/shares/:createdAt', requireAuth, async (req: AuthRequest, res: R
   const createdAt = Number(req.params.createdAt);
   if (!createdAt) { res.status(400).json({ error: '無効なパラメータ' }); return; }
   await deleteShare(req.user!.userId, createdAt);
+  res.json({ ok: true });
+});
+
+// ─── ジャンル追加リクエスト ───
+
+router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Response) => {
+  const genre = String(req.body.genre || '').trim();
+  if (!genre || genre.length > 50) {
+    res.status(400).json({ error: 'ジャンル名を入力してください（50文字以内）' });
+    return;
+  }
+  await saveGenreRequest(req.user!.userId, req.user!.nickname, genre);
   res.json({ ok: true });
 });
 

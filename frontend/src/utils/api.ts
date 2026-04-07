@@ -264,18 +264,17 @@ export async function deletePhoto(key: string) {
   if (!res.ok) throw new Error('写真の削除に失敗しました');
 }
 
-// ─── インフルエンサー ───
+// ─── ジャンル追加リクエスト ───
 
-export async function registerInfluencer(data: { displayName: string; bio?: string; instagramHandle?: string; instagramUrl?: string; tiktokHandle?: string; tiktokUrl?: string; youtubeHandle?: string; youtubeUrl?: string; genres?: string[] }) {
-  const res = await fetchWithRetry(`${BASE}/influencer/register`, {
-    method: 'POST', headers: headers(), body: JSON.stringify(data),
+export async function requestGenre(genre: string) {
+  const res = await fetchWithRetry(`${BASE}/genre-request`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ genre }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'インフルエンサー登録に失敗しました' }));
-    throw new Error(err.error || 'インフルエンサー登録に失敗しました');
-  }
+  if (!res.ok) throw new Error('リクエストに失敗しました');
   return res.json();
 }
+
+// ─── インフルエンサー ───
 
 export async function getInfluencerProfile() {
   const res = await fetchWithRetry(`${BASE}/influencer/profile`, { headers: headers() });

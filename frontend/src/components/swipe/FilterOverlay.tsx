@@ -156,7 +156,7 @@ export function FilterOverlay({
         </button>
         <button
           onClick={onApply ?? onClose}
-          className="flex-[2] py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium"
+          className="flex-[2] py-3 rounded-xl bg-orange-500 text-white text-sm font-medium"
         >
           この条件で探す
         </button>

@@ -22,8 +22,12 @@ interface InfluencerRestaurant {
 }
 
 const GENRE_OPTIONS = [
-  '和食', '寿司', '焼肉', 'ラーメン', 'イタリアン', 'フレンチ',
-  '中華', '韓国料理', 'カフェ', '居酒屋', 'バー', 'スイーツ', 'その他',
+  'ラーメン', '焼肉', '寿司', 'カフェ', '居酒屋',
+  'イタリアン', 'カレー', 'ハンバーガー', '中華', '韓国料理',
+  'スイーツ', 'パン', 'うどん', '和食', 'フレンチ',
+  'そば', '天ぷら', 'とんかつ', 'お好み焼き', 'たこ焼き',
+  '餃子', 'ステーキ', 'タイ料理', 'ベトナム料理', 'メキシカン',
+  'インド料理', 'バー',
 ];
 
 interface PlacePrediction {
@@ -287,6 +291,23 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={async () => {
+                  const name = prompt('追加したいジャンル名を入力してください');
+                  if (!name?.trim()) return;
+                  try {
+                    const { requestGenre } = await import('../../utils/api');
+                    await requestGenre(name.trim());
+                    alert('リクエストを送信しました！');
+                  } catch {
+                    alert('送信に失敗しました');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-full text-xs font-medium border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
+              >
+                + 追加依頼
+              </button>
             </div>
           </div>
 

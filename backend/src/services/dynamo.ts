@@ -205,6 +205,16 @@ export async function loadStats(): Promise<Record<string, unknown> | null> {
   return (result.Item as Record<string, unknown>) ?? null;
 }
 
+// ─── ジャンル追加リクエスト ───
+
+export async function saveGenreRequest(userId: string, nickname: string, genre: string) {
+  const ts = Date.now();
+  await db.send(new PutCommand({
+    TableName: TABLE.stats,
+    Item: { pk: `genre_req#${ts}#${userId}`, userId, nickname, genre, createdAt: ts },
+  }));
+}
+
 export async function saveActivity(data: Record<string, { lastSeen: number; nickname?: string }>) {
   // ユーザーごとに分割して保存（400KBリミット回避）
   const entries = Object.entries(data);
