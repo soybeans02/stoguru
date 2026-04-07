@@ -188,7 +188,7 @@ function MainApp() {
           </Suspense>
         )}
         {tab === 'social' && (
-          <SocialScreen initialView={socialInitView} onInitViewConsumed={() => setSocialInitView(null)} />
+          <SocialScreen initialView={socialInitView} onInitViewConsumed={() => setSocialInitView(null)} onGoHome={() => setTab('home')} />
         )}
         {tab === 'account' && (
           <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />

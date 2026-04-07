@@ -10,15 +10,26 @@ interface Props {
   onUnreadCount?: (count: number) => void;
   initialView?: string | null;
   onInitViewConsumed?: () => void;
+  onGoHome?: () => void;
 }
 
-export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }: Props) {
+export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome }: Props) {
   const { user } = useAuth();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
     if (initialView === 'notifications' || initialView === 'messages') return initialView;
     return 'main';
   });
+  const cameFromHome = useRef(initialView === 'notifications' || initialView === 'messages');
+
+  const handleBack = useCallback(() => {
+    if (cameFromHome.current) {
+      cameFromHome.current = false;
+      onGoHome?.();
+    } else {
+      setView('main');
+    }
+  }, [onGoHome]);
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -209,7 +220,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }:
   if (view === 'messages') {
     return (
       <MessageView
-        onClose={() => { setView('main'); setMessageTargetId(null); }}
+        onClose={() => { handleBack(); setMessageTargetId(null); }}
         initialTargetId={messageTargetId}
         cachedConversations={conversations}
         cachedNicknames={nicknames}
@@ -260,7 +271,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed }:
   if (view === 'notifications') {
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
-        <Header title="通知" onBack={() => setView('main')} />
+        <Header title="通知" onBack={handleBack} />
         <div className="flex-1 overflow-y-auto">
           {notifLoading && <p className="text-center text-gray-400 text-sm py-8">読み込み中...</p>}
           {!notifLoading && notifications.length === 0 && (
