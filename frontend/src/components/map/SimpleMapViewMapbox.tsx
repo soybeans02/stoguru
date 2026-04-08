@@ -581,7 +581,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           const features = map.queryRenderedFeatures(e.point, { layers: [`${src}-cluster`] });
           if (!features.length) return;
           const clusterId = features[0].properties!.cluster_id;
-          (map.getSource(src) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId, (err: Error | null, zoom: number | null) => {
+          (map.getSource(src) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId, (err?: Error | null, zoom?: number | null) => {
             if (err || zoom == null) return;
             map.easeTo({ center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number], zoom });
           });
