@@ -48,8 +48,9 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
   const { lat, lng, radius } = v.data;
 
   const allRestaurants = await scanAllInfluencerRestaurants();
+  const userId = req.user!.userId;
   const nearby = allRestaurants
-    .filter((r) => r.lat != null && r.lng != null)
+    .filter((r) => r.lat != null && r.lng != null && r.influencerId !== userId)
     .map((r) => ({
       ...r,
       distanceMeters: haversineDistance(lat, lng, r.lat!, r.lng!),
@@ -114,6 +115,20 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const items = await getRestaurants(req.user!.userId);
+  // photoUrlsが空のものはインフルエンサーテーブルから補完
+  const needsPhotos = items.filter((r) => !r.photoUrls || r.photoUrls.length === 0);
+  if (needsPhotos.length > 0) {
+    const allInfluencer = await scanAllInfluencerRestaurants();
+    const infMap = new Map(allInfluencer.map((r) => [r.restaurantId, r]));
+    for (const item of items) {
+      if ((!item.photoUrls || item.photoUrls.length === 0) && item.restaurantId) {
+        const inf = infMap.get(item.restaurantId);
+        if (inf?.photoUrls && inf.photoUrls.length > 0) {
+          (item as any).photoUrls = inf.photoUrls;
+        }
+      }
+    }
+  }
   res.json(items);
 });
 

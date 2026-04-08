@@ -15,6 +15,7 @@ export interface Restaurant {
   influencer?: { name: string; handle: string; platform: string };
   videoUrl?: string;
   photoEmoji?: string;
+  photoUrls?: string[];
   pinned?: boolean;
   categoryIds?: string[];
   influencerIds?: string[];
