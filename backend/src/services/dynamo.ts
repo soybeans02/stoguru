@@ -324,7 +324,7 @@ export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string;
   do {
     const result = await db.send(new ScanCommand({
       TableName: TABLE.restaurantsV2,
-      ProjectionExpression: 'postedBy, stockCount',
+      ProjectionExpression: 'postedBy, stockCount, visibility',
       ExclusiveStartKey: lastKey,
     }));
     items.push(...((result.Items ?? []) as RestaurantV2[]));
@@ -333,7 +333,7 @@ export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string;
 
   const counts = new Map<string, number>();
   for (const item of items) {
-    if (item.postedBy && item.stockCount > 0) {
+    if (item.postedBy && item.stockCount > 0 && item.visibility !== 'private') {
       counts.set(item.postedBy, (counts.get(item.postedBy) ?? 0) + item.stockCount);
     }
   }
