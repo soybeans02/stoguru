@@ -236,9 +236,9 @@ export function InfluencerDashboard({ onBack }: Props) {
           </div>
 
           {/* Genres */}
-          {profile.genres.length > 0 && (
+          {(profile.genres?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {profile.genres.map(g => (
+              {(profile.genres ?? []).map(g => (
                 <span key={g} className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{g}</span>
               ))}
             </div>

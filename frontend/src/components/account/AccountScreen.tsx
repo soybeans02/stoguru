@@ -32,7 +32,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
 
-  const visitedCount = stocks.filter((s) => s.visited).length;
+  const safeStocks = stocks ?? [];
+  const visitedCount = safeStocks.filter((s) => s.visited).length;
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
@@ -309,11 +310,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {/* List panels */}
       {listPanel === 'stocks' && (
         <Overlay title="保存" onClose={() => setListPanel(null)}>
-          {stocks.filter(s => !s.visited).length === 0 ? (
+          {safeStocks.filter(s => !s.visited).length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">まだ保存がないよ</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {stocks.filter(s => !s.visited).map(s => (
+              {safeStocks.filter(s => !s.visited).map(s => (
                 <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
                   <span className="text-xl">{s.photoEmoji}</span>
                   <div className="min-w-0">
@@ -328,11 +329,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       )}
       {listPanel === 'visited' && (
         <Overlay title="行った" onClose={() => setListPanel(null)}>
-          {stocks.filter(s => s.visited).length === 0 ? (
+          {safeStocks.filter(s => s.visited).length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">まだ行ったお店がないよ</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {stocks.filter(s => s.visited).map(s => (
+              {safeStocks.filter(s => s.visited).map(s => (
                 <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
                   <span className="text-xl">{s.photoEmoji}</span>
                   <div className="min-w-0">
