@@ -1,5 +1,53 @@
 // ─── DynamoDB Item Interfaces ───
 
+// ─── V2: 正規化されたレストランマスター ───
+
+export interface RestaurantV2 {
+  restaurantId: string;        // PK
+  name: string;
+  nameLower: string;           // 検索用（小文字）
+  address?: string;
+  lat?: number;
+  lng?: number;
+  geohash?: string;            // GSI-Geohash PK用（precision 6）
+  geohash4?: string;           // GSI-Geohash PK（precision 4、粗いパーティション）
+  genres: string[];
+  priceRange?: string;
+  photoUrls: string[];
+  urls: string[];              // 全動画/SNS URL
+  description?: string;
+  postedBy: string;            // 投稿者のuserId
+  visibility: 'public' | 'mutual' | 'hidden';
+  stockCount: number;          // 保存された回数（アトミックカウンター）
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ─── V2: ユーザー⇔レストランの紐付け ───
+
+export interface UserStock {
+  userId: string;              // PK
+  restaurantId: string;        // SK
+  pinned?: boolean;
+  notes?: string;
+  landmarkMemo?: string;
+  review?: { text: string; rating?: number; reviewedAt?: string } | null;
+  status: 'wishlist' | 'visited';
+  visitedAt?: string | null;
+  photoEmoji?: string;
+  createdAt: string;
+  updatedAt: number;
+}
+
+// ─── URL逆引きインデックス ───
+
+export interface UrlIndexEntry {
+  normalizedUrl: string;       // PK
+  restaurantId: string;
+}
+
+// ─── レガシー（既存テーブル用、マイグレーション中に使用） ───
+
 export interface Restaurant {
   userId: string;
   restaurantId: string;

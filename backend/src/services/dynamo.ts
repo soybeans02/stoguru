@@ -7,10 +7,14 @@ import {
   DeleteCommand,
   UpdateCommand,
   BatchWriteCommand,
+  BatchGetCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type {
   Restaurant,
+  RestaurantV2,
+  UserStock,
+  UrlIndexEntry,
   UserSettings,
   Follow,
   FollowRequest,
@@ -19,12 +23,17 @@ import type {
   InfluencerProfile,
   InfluencerRestaurant,
 } from '../types';
+import { encode as geohashEncode } from '../utils/geohash';
 
 const rawClient = new DynamoDBClient({ region: 'ap-northeast-1' });
 const db = DynamoDBDocumentClient.from(rawClient);
 
-
 const TABLE = {
+  // 新テーブル（V2）
+  restaurantsV2: 'GourmetStock_Restaurants_v2',
+  userStocks: 'GourmetStock_UserStocks',
+  urlIndex: 'GourmetStock_UrlIndex',
+  // 既存テーブル
   restaurants: 'GourmetStock_Restaurants',
   settings: 'GourmetStock_UserSettings',
   follows: 'GourmetStock_Follows',
@@ -36,7 +45,308 @@ const TABLE = {
   influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
 } as const;
 
-// ─── レストラン ───
+// =============================================
+// V2: レストランマスター（1店舗1レコード）
+// =============================================
+
+export async function putRestaurantV2(restaurant: Omit<RestaurantV2, 'nameLower' | 'geohash' | 'geohash4'> & { nameLower?: string; geohash?: string; geohash4?: string }) {
+  const nameLower = restaurant.nameLower ?? restaurant.name.toLowerCase();
+  const geohash = (restaurant.lat != null && restaurant.lng != null)
+    ? geohashEncode(restaurant.lat, restaurant.lng, 6)
+    : undefined;
+  const geohash4 = geohash ? geohash.substring(0, 4) : undefined;
+
+  await db.send(new PutCommand({
+    TableName: TABLE.restaurantsV2,
+    Item: {
+      ...restaurant,
+      nameLower,
+      geohash,
+      geohash4,
+      updatedAt: Date.now(),
+    },
+  }));
+
+  // URL逆引きインデックスも更新
+  if (restaurant.urls?.length) {
+    await putUrlIndexEntries(restaurant.restaurantId, restaurant.urls);
+  }
+}
+
+export async function getRestaurantV2(restaurantId: string): Promise<RestaurantV2 | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+  }));
+  return (result.Item as RestaurantV2) ?? null;
+}
+
+export async function batchGetRestaurantsV2(restaurantIds: string[]): Promise<RestaurantV2[]> {
+  if (restaurantIds.length === 0) return [];
+
+  const results: RestaurantV2[] = [];
+  // BatchGetItemは100件まで
+  for (const chunk of chunkArray(restaurantIds, 100)) {
+    const keys = chunk.map((id) => ({ restaurantId: id }));
+    const res = await db.send(new BatchGetCommand({
+      RequestItems: {
+        [TABLE.restaurantsV2]: { Keys: keys },
+      },
+    }));
+    const items = res.Responses?.[TABLE.restaurantsV2] ?? [];
+    results.push(...(items as RestaurantV2[]));
+  }
+  return results;
+}
+
+export async function deleteRestaurantV2(restaurantId: string) {
+  // まずURLインデックスを削除
+  const existing = await getRestaurantV2(restaurantId);
+  if (existing?.urls?.length) {
+    await deleteUrlIndexEntries(existing.urls);
+  }
+  await db.send(new DeleteCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+  }));
+}
+
+/**
+ * Geohash GSIでの位置検索
+ * geohash4プレフィックスでクエリ → 約40km×20km のセル
+ */
+export async function queryRestaurantsByGeohash(geohash4: string): Promise<RestaurantV2[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.restaurantsV2,
+    IndexName: 'GSI-Geohash',
+    KeyConditionExpression: 'geohash4 = :gh',
+    ExpressionAttributeValues: { ':gh': geohash4 },
+    Limit: 1000,
+  }));
+  return (result.Items ?? []) as RestaurantV2[];
+}
+
+/**
+ * 投稿者別のレストラン一覧（GSI-PostedBy）
+ */
+export async function queryRestaurantsByPostedBy(postedBy: string): Promise<RestaurantV2[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.restaurantsV2,
+    IndexName: 'GSI-PostedBy',
+    KeyConditionExpression: 'postedBy = :pb',
+    ExpressionAttributeValues: { ':pb': postedBy },
+    ScanIndexForward: false,
+  }));
+  return (result.Items ?? []) as RestaurantV2[];
+}
+
+/**
+ * レストランのstockCountをアトミックに増減
+ */
+export async function incrementStockCount(restaurantId: string, delta: number) {
+  await db.send(new UpdateCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+    UpdateExpression: 'ADD stockCount :d',
+    ExpressionAttributeValues: { ':d': delta },
+  }));
+}
+
+/**
+ * レストランのvisibilityを更新
+ */
+export async function updateRestaurantV2Visibility(restaurantId: string, visibility: string) {
+  await db.send(new UpdateCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+    UpdateExpression: 'SET visibility = :v, updatedAt = :u',
+    ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
+  }));
+}
+
+// =============================================
+// V2: ユーザーストック（紐付けのみ）
+// =============================================
+
+export async function putUserStock(userId: string, stock: Omit<UserStock, 'userId' | 'updatedAt'>) {
+  await db.send(new PutCommand({
+    TableName: TABLE.userStocks,
+    Item: { userId, ...stock, updatedAt: Date.now() },
+  }));
+}
+
+export async function getUserStocks(userId: string): Promise<UserStock[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.userStocks,
+    KeyConditionExpression: 'userId = :uid',
+    ExpressionAttributeValues: { ':uid': userId },
+    Limit: 1000,
+  }));
+  return (result.Items ?? []) as UserStock[];
+}
+
+export async function deleteUserStock(userId: string, restaurantId: string) {
+  await db.send(new DeleteCommand({
+    TableName: TABLE.userStocks,
+    Key: { userId, restaurantId },
+  }));
+}
+
+export async function getUserStock(userId: string, restaurantId: string): Promise<UserStock | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.userStocks,
+    Key: { userId, restaurantId },
+  }));
+  return (result.Item as UserStock) ?? null;
+}
+
+/**
+ * あるレストランを保存しているユーザー数（GSI-RestaurantStocks）
+ */
+export async function getStockUserCount(restaurantId: string): Promise<number> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.userStocks,
+    IndexName: 'GSI-RestaurantStocks',
+    KeyConditionExpression: 'restaurantId = :rid',
+    ExpressionAttributeValues: { ':rid': restaurantId },
+    Select: 'COUNT',
+  }));
+  return result.Count ?? 0;
+}
+
+// =============================================
+// URL逆引きインデックス
+// =============================================
+
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    let path = parsed.pathname.replace(/\/+$/, '');
+    path = path.replace(/^\/reels\//, '/reel/');
+    const host = parsed.hostname.replace(/^www\./, '');
+    return `${host}${path}`.toLowerCase();
+  } catch {
+    return url.toLowerCase().replace(/\/+$/, '').replace(/\?.*$/, '');
+  }
+}
+
+async function putUrlIndexEntries(restaurantId: string, urls: string[]) {
+  const items = urls.filter(Boolean).map((url) => ({
+    PutRequest: {
+      Item: { normalizedUrl: normalizeUrl(url), restaurantId },
+    },
+  }));
+  for (const chunk of chunkArray(items, 25)) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: { [TABLE.urlIndex]: chunk },
+    }));
+  }
+}
+
+async function deleteUrlIndexEntries(urls: string[]) {
+  const items = urls.filter(Boolean).map((url) => ({
+    DeleteRequest: {
+      Key: { normalizedUrl: normalizeUrl(url) },
+    },
+  }));
+  for (const chunk of chunkArray(items, 25)) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: { [TABLE.urlIndex]: chunk },
+    }));
+  }
+}
+
+export async function lookupRestaurantByUrl(url: string): Promise<string | null> {
+  const normalized = normalizeUrl(url);
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.urlIndex,
+    Key: { normalizedUrl: normalized },
+  }));
+  return (result.Item as UrlIndexEntry)?.restaurantId ?? null;
+}
+
+// =============================================
+// テキスト検索（インメモリキャッシュ）
+// =============================================
+
+let searchCache: RestaurantV2[] = [];
+let searchCacheExpiry = 0;
+const SEARCH_CACHE_TTL = 60_000; // 60秒
+
+async function getSearchCache(): Promise<RestaurantV2[]> {
+  if (Date.now() < searchCacheExpiry && searchCache.length > 0) return searchCache;
+
+  // 全件スキャン（V2テーブルが小さいうちはOK、将来はStreams+ESに移行）
+  const items: RestaurantV2[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.restaurantsV2,
+      ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, priceRange, photoUrls, postedBy, visibility',
+      ExpressionAttributeNames: { '#n': 'name' },
+      ExclusiveStartKey: lastKey,
+    }));
+    items.push(...((result.Items ?? []) as RestaurantV2[]));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+
+  searchCache = items;
+  searchCacheExpiry = Date.now() + SEARCH_CACHE_TTL;
+  return items;
+}
+
+export function invalidateSearchCache() {
+  searchCacheExpiry = 0;
+}
+
+export async function searchRestaurantsV2(query: string, limit = 20): Promise<RestaurantV2[]> {
+  const q = query.toLowerCase();
+  const cache = await getSearchCache();
+  return cache
+    .filter((r) =>
+      r.visibility !== 'hidden' &&
+      (r.nameLower.includes(q) ||
+       r.address?.toLowerCase().includes(q) ||
+       r.genres?.some((g) => g.toLowerCase().includes(q)))
+    )
+    .slice(0, limit);
+}
+
+// =============================================
+// ランキング（V2: stockCountベース）
+// =============================================
+
+export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string; totalStocks: number }[]> {
+  // 全レストランのstockCountを投稿者別に集計
+  // TODO: データ量が増えたらGSIまたはアグリゲーションテーブルに移行
+  const items: RestaurantV2[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.restaurantsV2,
+      ProjectionExpression: 'postedBy, stockCount',
+      ExclusiveStartKey: lastKey,
+    }));
+    items.push(...((result.Items ?? []) as RestaurantV2[]));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (item.postedBy && item.stockCount > 0) {
+      counts.set(item.postedBy, (counts.get(item.postedBy) ?? 0) + item.stockCount);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([postedBy, totalStocks]) => ({ postedBy, totalStocks }))
+    .sort((a, b) => b.totalStocks - a.totalStocks)
+    .slice(0, limit);
+}
+
+// =============================================
+// 旧テーブル（マイグレーション用に残す）
+// =============================================
 
 export async function putRestaurant(userId: string, restaurant: Partial<Restaurant> & { id: string }) {
   await db.send(new PutCommand({
@@ -62,47 +372,23 @@ export async function deleteRestaurant(userId: string, restaurantId: string) {
   }));
 }
 
-export async function getUserStockRanking(limit = 30): Promise<{ userId: string; totalStocks: number }[]> {
-  // 1. インフルエンサーが投稿したレストランID → 投稿者IDのマップを作る
-  const restaurantToOwner = new Map<string, string>();
-  let lastKey1: Record<string, unknown> | undefined;
+export async function scanAllInfluencerRestaurants(): Promise<InfluencerRestaurant[]> {
+  const items: InfluencerRestaurant[] = [];
+  let lastKey: Record<string, unknown> | undefined;
   do {
     const result = await db.send(new ScanCommand({
       TableName: TABLE.influencerRestaurants,
-      ProjectionExpression: 'restaurantId, influencerId',
-      ExclusiveStartKey: lastKey1,
+      ExclusiveStartKey: lastKey,
     }));
-    for (const item of result.Items ?? []) {
-      restaurantToOwner.set(item.restaurantId as string, item.influencerId as string);
-    }
-    lastKey1 = result.LastEvaluatedKey;
-  } while (lastKey1);
-
-  // 2. ユーザーの保存を全スキャンし、投稿者ごとに保存回数を集計
-  const counts = new Map<string, number>();
-  let lastKey2: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.restaurants,
-      ProjectionExpression: 'restaurantId',
-      ExclusiveStartKey: lastKey2,
-    }));
-    for (const item of result.Items ?? []) {
-      const owner = restaurantToOwner.get(item.restaurantId as string);
-      if (owner) {
-        counts.set(owner, (counts.get(owner) ?? 0) + 1);
-      }
-    }
-    lastKey2 = result.LastEvaluatedKey;
-  } while (lastKey2);
-
-  return [...counts.entries()]
-    .map(([userId, totalStocks]) => ({ userId, totalStocks }))
-    .sort((a, b) => b.totalStocks - a.totalStocks)
-    .slice(0, limit);
+    items.push(...((result.Items ?? []) as InfluencerRestaurant[]));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+  return items;
 }
 
-// ─── ユーザー設定（インフルエンサー・カテゴリ等） ───
+// =============================================
+// ユーザー設定
+// =============================================
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {
   const result = await db.send(new GetCommand({
@@ -119,7 +405,9 @@ export async function putUserSettings(userId: string, settings: Partial<UserSett
   }));
 }
 
-// ─── フォロー ───
+// =============================================
+// フォロー
+// =============================================
 
 export async function followUser(followerId: string, followeeId: string) {
   await db.send(new PutCommand({
@@ -154,7 +442,9 @@ export async function getFollowers(followeeId: string): Promise<Follow[]> {
   return (result.Items ?? []) as Follow[];
 }
 
-// ─── フォローリクエスト（鍵垢用） ───
+// =============================================
+// フォローリクエスト
+// =============================================
 
 export async function createFollowRequest(requesterId: string, targetId: string) {
   await db.send(new PutCommand({
@@ -180,10 +470,11 @@ export async function deleteFollowRequest(targetId: string, requesterId: string)
   }));
 }
 
-// ─── 通知 ───
+// =============================================
+// 通知
+// =============================================
 
 export async function createNotification(userId: string, type: NotificationType, fromUserId: string, fromNickname: string, content?: string) {
-  // createdAtにランダムサフィックスを付与してミリ秒衝突を回避
   const ts = Date.now() + Math.random() * 0.999;
   const item: Record<string, unknown> = { userId, createdAt: ts, type, fromUserId, fromNickname, read: false };
   if (content) item.content = content.slice(0, 50);
@@ -198,19 +489,17 @@ export async function getNotifications(userId: string, limit = 20): Promise<Noti
     TableName: TABLE.notifications,
     KeyConditionExpression: 'userId = :uid',
     ExpressionAttributeValues: { ':uid': userId },
-    ScanIndexForward: false, // 新しい順
+    ScanIndexForward: false,
     Limit: limit,
   }));
   return (result.Items ?? []) as Notification[];
 }
 
 export async function markNotificationsRead(userId: string) {
-  // 全件取得（上限1000件）して未読を一括更新
   const items = await getNotifications(userId, 1000);
   const unread = items.filter((item) => !item.read);
   if (unread.length === 0) return;
 
-  // BatchWriteはUpdateをサポートしないため、個別Updateだが並列化
   const batchSize = 10;
   for (let i = 0; i < unread.length; i += batchSize) {
     const batch = unread.slice(i, i + batchSize);
@@ -226,68 +515,9 @@ export async function markNotificationsRead(userId: string) {
   }
 }
 
-// ─── アカウント削除（全データ削除） ───
-
-// ─── リクエスト統計（永続化） ───
-
-export async function saveStats(data: Record<string, unknown>) {
-  await db.send(new PutCommand({
-    TableName: TABLE.stats,
-    Item: { pk: 'request_stats', ...data, updatedAt: Date.now() },
-  }));
-}
-
-export async function loadStats(): Promise<Record<string, unknown> | null> {
-  const result = await db.send(new GetCommand({
-    TableName: TABLE.stats,
-    Key: { pk: 'request_stats' },
-  }));
-  return (result.Item as Record<string, unknown>) ?? null;
-}
-
-// ─── ジャンル追加リクエスト ───
-
-export async function saveGenreRequest(userId: string, nickname: string, genre: string) {
-  const ts = Date.now();
-  await db.send(new PutCommand({
-    TableName: TABLE.stats,
-    Item: { pk: `genre_req#${ts}#${userId}`, userId, nickname, genre, createdAt: ts },
-  }));
-}
-
-export async function saveActivity(data: Record<string, { lastSeen: number; nickname?: string }>) {
-  // ユーザーごとに分割して保存（400KBリミット回避）
-  const entries = Object.entries(data);
-  const chunks = chunkArray(entries, 25);
-  for (const chunk of chunks) {
-    await db.send(new BatchWriteCommand({
-      RequestItems: {
-        [TABLE.stats]: chunk.map(([userId, d]) => ({
-          PutRequest: {
-            Item: { pk: `activity#${userId}`, lastSeen: d.lastSeen, nickname: d.nickname, updatedAt: Date.now() },
-          },
-        })),
-      },
-    }));
-  }
-}
-
-export async function loadActivity(): Promise<Record<string, { lastSeen: number; nickname?: string }> | null> {
-  // 旧形式（単一レコード）から読み込み
-  // 新形式はper-user保存だが、読み込みはメモリ上のuserActivityから行うため
-  // 起動時は旧形式のフォールバックのみ
-  const legacy = await db.send(new GetCommand({
-    TableName: TABLE.stats,
-    Key: { pk: 'user_activity' },
-  }));
-  if (legacy.Item?.data) {
-    return legacy.Item.data as Record<string, { lastSeen: number; nickname?: string }>;
-  }
-  return null;
-}
-
-
-// ─── インフルエンサー ───
+// =============================================
+// インフルエンサープロフィール
+// =============================================
 
 export async function putInfluencerProfile(influencerId: string, data: Partial<InfluencerProfile>) {
   await db.send(new PutCommand({
@@ -304,19 +534,14 @@ export async function getInfluencerProfile(influencerId: string): Promise<Influe
   return (result.Item as InfluencerProfile) ?? null;
 }
 
+// =============================================
+// 旧インフルエンサーレストラン（マイグレーション用）
+// =============================================
+
 export async function putInfluencerRestaurant(influencerId: string, restaurant: Partial<InfluencerRestaurant> & { restaurantId: string }) {
   await db.send(new PutCommand({
     TableName: TABLE.influencerRestaurants,
     Item: { influencerId, ...restaurant, updatedAt: Date.now() },
-  }));
-}
-
-export async function updateRestaurantVisibility(influencerId: string, restaurantId: string, visibility: string) {
-  await db.send(new UpdateCommand({
-    TableName: TABLE.influencerRestaurants,
-    Key: { influencerId, restaurantId },
-    UpdateExpression: 'SET visibility = :v, updatedAt = :u',
-    ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
   }));
 }
 
@@ -330,71 +555,13 @@ export async function getInfluencerRestaurants(influencerId: string): Promise<In
   return (result.Items ?? []) as InfluencerRestaurant[];
 }
 
-export async function scanAllInfluencerRestaurants(): Promise<InfluencerRestaurant[]> {
-  const items: InfluencerRestaurant[] = [];
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.influencerRestaurants,
-      ExclusiveStartKey: lastKey,
-    }));
-    items.push(...((result.Items ?? []) as InfluencerRestaurant[]));
-    lastKey = result.LastEvaluatedKey;
-  } while (lastKey);
-  return items;
-}
-
-export async function searchRestaurantsByName(query: string, limit = 20): Promise<(InfluencerRestaurant & { influencerDisplayName?: string })[]> {
-  const q = query.toLowerCase();
-  const allRestaurants = await scanAllInfluencerRestaurants();
-  const matched = allRestaurants.filter((r) =>
-    r.name.toLowerCase().includes(q) ||
-    (r.address?.toLowerCase().includes(q)) ||
-    (r.genres?.some((g) => g.toLowerCase().includes(q)))
-  );
-
-  // インフルエンサー名を付与
-  const influencerIds = [...new Set(matched.map((r) => r.influencerId))];
-  const profiles = await Promise.all(influencerIds.map((id) => getInfluencerProfile(id)));
-  const profileMap = new Map(profiles.filter(Boolean).map((p) => [p!.influencerId, p!]));
-
-  return matched.slice(0, limit).map((r) => ({
-    ...r,
-    influencerDisplayName: profileMap.get(r.influencerId)?.displayName,
+export async function updateRestaurantVisibility(influencerId: string, restaurantId: string, visibility: string) {
+  await db.send(new UpdateCommand({
+    TableName: TABLE.influencerRestaurants,
+    Key: { influencerId, restaurantId },
+    UpdateExpression: 'SET visibility = :v, updatedAt = :u',
+    ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
   }));
-}
-
-export async function findRestaurantByUrl(url: string): Promise<(InfluencerRestaurant & { influencerDisplayName?: string }) | null> {
-  // URLを正規化（末尾スラッシュ、クエリパラメータ除去）
-  const normalize = (u: string) => {
-    try {
-      const parsed = new URL(u);
-      let path = parsed.pathname.replace(/\/+$/, '');
-      // Instagram: /reels/ID → /reel/ID に統一
-      path = path.replace(/^\/reels\//, '/reel/');
-      // www除去で統一
-      const host = parsed.hostname.replace(/^www\./, '');
-      return `${host}${path}`.toLowerCase();
-    } catch {
-      return u.toLowerCase().replace(/\/+$/, '').replace(/\?.*$/, '');
-    }
-  };
-
-  const normalizedUrl = normalize(url);
-
-  // InfluencerRestaurantsを全スキャンしてURL照合
-  const allRestaurants = await scanAllInfluencerRestaurants();
-  for (const r of allRestaurants) {
-    const urls = [...(r.urls || []), r.instagramUrl, r.tiktokUrl, r.youtubeUrl, r.videoUrl].filter(Boolean) as string[];
-    for (const u of urls) {
-      if (normalize(u) === normalizedUrl) {
-        // インフルエンサー名も取得
-        const profile = await getInfluencerProfile(r.influencerId);
-        return { ...r, influencerDisplayName: profile?.displayName };
-      }
-    }
-  }
-  return null;
 }
 
 export async function deleteInfluencerRestaurant(influencerId: string, restaurantId: string) {
@@ -404,11 +571,82 @@ export async function deleteInfluencerRestaurant(influencerId: string, restauran
   }));
 }
 
+// =============================================
+// 統計
+// =============================================
+
+export async function saveStats(data: Record<string, unknown>) {
+  await db.send(new PutCommand({
+    TableName: TABLE.stats,
+    Item: { pk: 'request_stats', ...data, updatedAt: Date.now() },
+  }));
+}
+
+export async function loadStats(): Promise<Record<string, unknown> | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.stats,
+    Key: { pk: 'request_stats' },
+  }));
+  return (result.Item as Record<string, unknown>) ?? null;
+}
+
+export async function saveGenreRequest(userId: string, nickname: string, genre: string) {
+  const ts = Date.now();
+  await db.send(new PutCommand({
+    TableName: TABLE.stats,
+    Item: { pk: `genre_req#${ts}#${userId}`, userId, nickname, genre, createdAt: ts },
+  }));
+}
+
+export async function saveActivity(data: Record<string, { lastSeen: number; nickname?: string }>) {
+  const entries = Object.entries(data);
+  const chunks = chunkArray(entries, 25);
+  for (const chunk of chunks) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.stats]: chunk.map(([userId, d]) => ({
+          PutRequest: {
+            Item: { pk: `activity#${userId}`, lastSeen: d.lastSeen, nickname: d.nickname, updatedAt: Date.now() },
+          },
+        })),
+      },
+    }));
+  }
+}
+
+export async function loadActivity(): Promise<Record<string, { lastSeen: number; nickname?: string }> | null> {
+  const legacy = await db.send(new GetCommand({
+    TableName: TABLE.stats,
+    Key: { pk: 'user_activity' },
+  }));
+  if (legacy.Item?.data) {
+    return legacy.Item.data as Record<string, { lastSeen: number; nickname?: string }>;
+  }
+  return null;
+}
+
+// =============================================
+// アカウント削除
+// =============================================
+
 export async function deleteAllUserData(userId: string) {
-  // レストラン全削除（BatchWrite使用）
+  // 新テーブル: UserStocks削除 + stockCount減算
+  const stocks = await getUserStocks(userId);
+  for (const chunk of chunkArray(stocks, 25)) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.userStocks]: chunk.map((s) => ({
+          DeleteRequest: { Key: { userId, restaurantId: s.restaurantId } },
+        })),
+      },
+    }));
+    // stockCountを減算
+    await Promise.all(chunk.map((s) => incrementStockCount(s.restaurantId, -1).catch(() => {})));
+  }
+
+  // 旧テーブル: レストラン全削除
   const restaurants = await getRestaurants(userId);
-  const restChunks = chunkArray(restaurants, 25);
-  for (const chunk of restChunks) {
+  for (const chunk of chunkArray(restaurants, 25)) {
     await db.send(new BatchWriteCommand({
       RequestItems: {
         [TABLE.restaurants]: chunk.map((r) => ({
@@ -419,15 +657,11 @@ export async function deleteAllUserData(userId: string) {
   }
 
   // 設定削除
-  await db.send(new DeleteCommand({
-    TableName: TABLE.settings,
-    Key: { userId },
-  }));
+  await db.send(new DeleteCommand({ TableName: TABLE.settings, Key: { userId } }));
 
-  // フォロー関係削除（BatchWrite使用）
+  // フォロー関係削除
   const following = await getFollowing(userId);
-  const followChunks = chunkArray(following, 25);
-  for (const chunk of followChunks) {
+  for (const chunk of chunkArray(following, 25)) {
     await db.send(new BatchWriteCommand({
       RequestItems: {
         [TABLE.follows]: chunk.map((f) => ({
@@ -439,8 +673,7 @@ export async function deleteAllUserData(userId: string) {
 
   // 通知削除
   const notifications = await getNotifications(userId, 1000);
-  const notifChunks = chunkArray(notifications, 25);
-  for (const chunk of notifChunks) {
+  for (const chunk of chunkArray(notifications, 25)) {
     await db.send(new BatchWriteCommand({
       RequestItems: {
         [TABLE.notifications]: chunk.map((n) => ({
@@ -452,8 +685,7 @@ export async function deleteAllUserData(userId: string) {
 
   // シェア削除
   const shares = await getSharesByUser(userId, 1000);
-  const shareChunks = chunkArray(shares, 25);
-  for (const chunk of shareChunks) {
+  for (const chunk of chunkArray(shares, 25)) {
     await db.send(new BatchWriteCommand({
       RequestItems: {
         [TABLE.shares]: chunk.map((s) => ({
@@ -464,15 +696,9 @@ export async function deleteAllUserData(userId: string) {
   }
 }
 
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-}
-
-// ─── シェア ───
+// =============================================
+// シェア
+// =============================================
 
 export async function createShare(data: {
   userId: string;
@@ -483,11 +709,7 @@ export async function createShare(data: {
   lng?: number;
   comment?: string;
 }) {
-  const item = {
-    ...data,
-    shareId: crypto.randomUUID(),
-    createdAt: Date.now(),
-  };
+  const item = { ...data, shareId: crypto.randomUUID(), createdAt: Date.now() };
   await db.send(new PutCommand({ TableName: TABLE.shares, Item: item }));
   return item;
 }
@@ -508,7 +730,6 @@ async function getSharesByUser(userId: string, limit = 20) {
 }
 
 export async function getSharesFeed(followeeIds: string[], limit = 50) {
-  // 並列クエリ数を制限（最大50人分、10件ずつバッチ処理）
   const capped = followeeIds.slice(0, 50);
   const results: Awaited<ReturnType<typeof getSharesByUser>>[] = [];
   const BATCH = 10;
@@ -527,3 +748,14 @@ export async function deleteShare(userId: string, createdAt: number) {
   }));
 }
 
+// =============================================
+// ヘルパー
+// =============================================
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}

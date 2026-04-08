@@ -1,10 +1,11 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-// import { requireInfluencer } from '../middleware/requireInfluencer';
 import {
   putInfluencerProfile, getInfluencerProfile,
-  putInfluencerRestaurant, getInfluencerRestaurants, deleteInfluencerRestaurant,
-  updateRestaurantVisibility,
+  // V2
+  putRestaurantV2, getRestaurantV2, queryRestaurantsByPostedBy,
+  deleteRestaurantV2, updateRestaurantV2Visibility,
+  invalidateSearchCache,
 } from '../services/dynamo';
 import { validate, influencerProfileSchema, influencerRestaurantSchema } from '../validators';
 
@@ -40,14 +41,31 @@ router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
   res.json({ ok: true });
 });
 
-// ─── 自分のレストラン一覧 ───
+// ─── 自分のレストラン一覧（V2: GSI-PostedBy） ───
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
-  const items = await getInfluencerRestaurants(req.user!.userId);
-  res.json(items);
+  const items = await queryRestaurantsByPostedBy(req.user!.userId);
+  // 旧APIとの互換性のためフィールドをマッピング
+  const mapped = items.map((r) => ({
+    restaurantId: r.restaurantId,
+    influencerId: r.postedBy,
+    name: r.name,
+    address: r.address,
+    lat: r.lat,
+    lng: r.lng,
+    genres: r.genres,
+    priceRange: r.priceRange,
+    photoUrls: r.photoUrls,
+    urls: r.urls,
+    description: r.description,
+    visibility: r.visibility,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  }));
+  res.json(mapped);
 });
 
-// ─── レストラン追加/更新 ───
+// ─── レストラン追加/更新（V2: Restaurants_v2に直接書き込み） ───
 
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
@@ -56,8 +74,8 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 
   // プロフィール未作成なら自動作成
-  const existing = await getInfluencerProfile(userId);
-  if (!existing) {
+  const existingProfile = await getInfluencerProfile(userId);
+  if (!existingProfile) {
     const now = Date.now();
     await putInfluencerProfile(userId, {
       influencerId: userId,
@@ -68,13 +86,34 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
     });
   }
 
-  await putInfluencerRestaurant(userId, {
+  // 既存レストランがあれば更新、なければ新規
+  const existing = await getRestaurantV2(restaurantId);
+
+  await putRestaurantV2({
     restaurantId,
-    influencerId: userId,
-    ...v.data,
-    createdAt: Date.now(),
+    name: v.data.name,
+    address: v.data.address,
+    lat: v.data.lat,
+    lng: v.data.lng,
+    genres: v.data.genres,
+    priceRange: v.data.priceRange,
+    photoUrls: v.data.photoUrls,
+    urls: [
+      ...(v.data.urls || []),
+      v.data.instagramUrl,
+      v.data.tiktokUrl,
+      v.data.youtubeUrl,
+      v.data.videoUrl,
+    ].filter(Boolean) as string[],
+    description: v.data.description,
+    postedBy: existing?.postedBy || userId,
+    visibility: v.data.visibility || existing?.visibility || 'public',
+    stockCount: existing?.stockCount ?? 0,
+    createdAt: existing?.createdAt ?? Date.now(),
+    updatedAt: Date.now(),
   });
 
+  invalidateSearchCache();
   res.json({ ok: true });
 });
 
@@ -87,18 +126,36 @@ router.patch('/restaurants/:id/visibility', requireAuth, async (req: AuthRequest
     res.status(400).json({ error: '無効な公開設定です' });
     return;
   }
-  await updateRestaurantVisibility(req.user!.userId, restaurantId, visibility);
+
+  // 自分の投稿のみ変更可能
+  const restaurant = await getRestaurantV2(restaurantId);
+  if (!restaurant || restaurant.postedBy !== req.user!.userId) {
+    res.status(403).json({ error: '権限がありません' });
+    return;
+  }
+
+  await updateRestaurantV2Visibility(restaurantId, visibility);
   res.json({ ok: true });
 });
 
 // ─── レストラン削除 ───
 
 router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
-  await deleteInfluencerRestaurant(req.user!.userId, req.params.id as string);
+  const restaurantId = req.params.id as string;
+
+  // 自分の投稿のみ削除可能
+  const restaurant = await getRestaurantV2(restaurantId);
+  if (!restaurant || restaurant.postedBy !== req.user!.userId) {
+    res.status(403).json({ error: '権限がありません' });
+    return;
+  }
+
+  await deleteRestaurantV2(restaurantId);
+  invalidateSearchCache();
   res.json({ ok: true });
 });
 
-// ─── 公開プロフィール（認証済みユーザーなら誰でも閲覧可） ───
+// ─── 公開プロフィール ───
 
 router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) => {
   const profile = await getInfluencerProfile(req.params.id as string);
@@ -106,7 +163,6 @@ router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) =
     res.status(404).json({ error: 'インフルエンサーが見つかりません' });
     return;
   }
-  // 公開用フィールドのみ返す
   res.json({
     influencerId: profile.influencerId,
     displayName: profile.displayName,
@@ -123,7 +179,7 @@ router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) =
   });
 });
 
-// ─── 公開レストラン一覧 ───
+// ─── 公開レストラン一覧（V2: GSI-PostedBy） ───
 
 router.get('/:id/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const id = req.params.id as string;
@@ -132,8 +188,30 @@ router.get('/:id/restaurants', requireAuth, async (req: AuthRequest, res: Respon
     res.status(404).json({ error: 'インフルエンサーが見つかりません' });
     return;
   }
-  const items = await getInfluencerRestaurants(id);
-  res.json(items);
+  const items = await queryRestaurantsByPostedBy(id);
+  // hiddenを除外、mutualは本人のみ
+  const visible = items.filter((r) => {
+    if (r.visibility === 'hidden') return false;
+    if (r.visibility === 'mutual' && r.postedBy !== req.user!.userId) return false;
+    return true;
+  });
+
+  const mapped = visible.map((r) => ({
+    restaurantId: r.restaurantId,
+    influencerId: r.postedBy,
+    name: r.name,
+    address: r.address,
+    lat: r.lat,
+    lng: r.lng,
+    genres: r.genres,
+    priceRange: r.priceRange,
+    photoUrls: r.photoUrls,
+    urls: r.urls,
+    description: r.description,
+    visibility: r.visibility,
+    createdAt: r.createdAt,
+  }));
+  res.json(mapped);
 });
 
 export default router;
