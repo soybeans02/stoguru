@@ -473,21 +473,24 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       if (!map.hasImage('pin-logo')) map.addImage('pin-logo', createLogoPinImage(48));
 
       // 空のGeoJSONソースとレイヤーを事前追加
-      map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addSource('my-posted', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
+      map.addSource('my-posted', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
+      map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
       map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('panTo-pin', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
       // フォロー中: 丸ピン（保存=紫, 行った=緑）+ 紫枠で区別
       map.addLayer({ id: 'following-outline', type: 'circle', source: 'following', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         layout: { visibility: 'none' },
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 8], 'circle-color': '#ffffff' } });
       map.addLayer({ id: 'following-circle', type: 'circle', source: 'following', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         layout: { visibility: 'none' },
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
           'circle-color': ['case', ['==', ['get', 'isPosted'], 1], '#a855f7', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
       map.addLayer({ id: 'following-pin', type: 'symbol', source: 'following', minzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         layout: { visibility: 'none',
           'icon-image': ['case', ['==', ['get', 'isPosted'], 1], 'pin-purple', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
@@ -495,21 +498,27 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
       // 縮小時: 丸ピン
       map.addLayer({ id: 'stocks-outline', type: 'circle', source: 'stocks', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 7], 'circle-color': '#ffffff' } });
       map.addLayer({ id: 'stocks-circle', type: 'circle', source: 'stocks', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
           'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
       // 拡大時: ティアドロップピン
       map.addLayer({ id: 'stocks-pin', type: 'symbol', source: 'stocks', minzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         layout: { 'icon-image': ['case', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
       // 自分の投稿（紫ピン）
       map.addLayer({ id: 'my-posted-outline', type: 'circle', source: 'my-posted', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 7], 'circle-color': '#ffffff' } });
       map.addLayer({ id: 'my-posted-circle', type: 'circle', source: 'my-posted', maxzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5], 'circle-color': '#a855f7' } });
       map.addLayer({ id: 'my-posted-pin', type: 'symbol', source: 'my-posted', minzoom: 15,
+        filter: ['!', ['has', 'point_count']],
         layout: { 'icon-image': 'pin-purple',
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
@@ -518,6 +527,25 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         layout: { 'icon-image': 'pin-logo',
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+
+      // クラスター（黒丸 + 白数字）
+      for (const src of ['stocks', 'my-posted', 'following'] as const) {
+        map.addLayer({ id: `${src}-cluster`, type: 'circle', source: src,
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#000000',
+            'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 16, 10, 22, 50, 28],
+            'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff',
+          } });
+        map.addLayer({ id: `${src}-cluster-count`, type: 'symbol', source: src,
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+            'text-size': 14, 'text-allow-overlap': true,
+          },
+          paint: { 'text-color': '#ffffff' } });
+      }
 
       // ユーザー位置
       map.addLayer({ id: 'user-glow', type: 'circle', source: 'user-location',
@@ -547,6 +575,19 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           }, userPosRef.current))
           .addTo(map);
       };
+      // クラスタークリック → ズームイン
+      for (const src of ['stocks', 'my-posted', 'following'] as const) {
+        map.on('click', `${src}-cluster`, (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: [`${src}-cluster`] });
+          if (!features.length) return;
+          const clusterId = features[0].properties!.cluster_id;
+          (map.getSource(src) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(clusterId).then(zoom => {
+            map.easeTo({ center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+          });
+        });
+        map.on('mouseenter', `${src}-cluster`, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', `${src}-cluster`, () => { map.getCanvas().style.cursor = ''; });
+      }
       map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
       map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -55]));
       map.on('click', 'my-posted-circle', (e) => handleClick(e, 15));
