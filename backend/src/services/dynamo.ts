@@ -369,9 +369,12 @@ export async function findRestaurantByUrl(url: string): Promise<(InfluencerResta
   const normalize = (u: string) => {
     try {
       const parsed = new URL(u);
-      // Instagramの場合パスだけ比較（クエリ・フラグメント除去）
       let path = parsed.pathname.replace(/\/+$/, '');
-      return `${parsed.hostname}${path}`.toLowerCase();
+      // Instagram: /reels/ID → /reel/ID に統一
+      path = path.replace(/^\/reels\//, '/reel/');
+      // www除去で統一
+      const host = parsed.hostname.replace(/^www\./, '');
+      return `${host}${path}`.toLowerCase();
     } catch {
       return u.toLowerCase().replace(/\/+$/, '').replace(/\?.*$/, '');
     }
