@@ -45,8 +45,10 @@ router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const items = await queryRestaurantsByPostedBy(req.user!.userId);
+  // privateはストック由来（本人が投稿したものではない）なので除外
+  const filtered = items.filter((r) => r.visibility !== 'private');
   // 旧APIとの互換性のためフィールドをマッピング
-  const mapped = items.map((r) => ({
+  const mapped = filtered.map((r) => ({
     restaurantId: r.restaurantId,
     influencerId: r.postedBy,
     name: r.name,

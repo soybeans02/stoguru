@@ -17,7 +17,7 @@ export interface RestaurantV2 {
   urls: string[];              // 全動画/SNS URL
   description?: string;
   postedBy: string;            // 投稿者のuserId
-  visibility: 'public' | 'mutual' | 'hidden';
+  visibility: 'public' | 'mutual' | 'hidden' | 'private';
   stockCount: number;          // 保存された回数（アトミックカウンター）
   createdAt: number;
   updatedAt: number;
@@ -134,7 +134,7 @@ export interface InfluencerRestaurant {
   youtubeUrl?: string;
   urls?: string[];
   description?: string;
-  visibility?: 'public' | 'mutual' | 'hidden';
+  visibility?: 'public' | 'mutual' | 'hidden' | 'private';
   createdAt: number;
   updatedAt: number;
 }

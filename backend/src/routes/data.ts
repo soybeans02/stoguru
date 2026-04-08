@@ -42,7 +42,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
 
   // 距離フィルタ + 自分の投稿を除外 + hidden除外
   const nearby = allRestaurants
-    .filter((r) => r.lat != null && r.lng != null && r.postedBy !== userId && r.visibility !== 'hidden')
+    .filter((r) => r.lat != null && r.lng != null && r.postedBy !== userId && r.visibility !== 'hidden' && r.visibility !== 'private')
     .map((r) => ({
       ...r,
       distanceMeters: haversineDistance(lat, lng, r.lat!, r.lng!),
@@ -487,14 +487,17 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
     searchRestaurantsV2(q),
   ]);
 
+  // private/hidden除外
+  const visibleRestaurants = restaurants.filter((r) => r.visibility !== 'private' && r.visibility !== 'hidden');
+
   // レストラン結果にインフルエンサー名を付与
-  const postedByIds = [...new Set(restaurants.map((r) => r.postedBy))];
+  const postedByIds = [...new Set(visibleRestaurants.map((r) => r.postedBy))];
   const profiles = await Promise.all(postedByIds.map((id) => getInfluencerProfile(id)));
   const profileMap = new Map(profiles.filter(Boolean).map((p) => [p!.influencerId, p!]));
 
   res.json({
     users,
-    restaurants: restaurants.map((r) => ({
+    restaurants: visibleRestaurants.map((r) => ({
       restaurantId: r.restaurantId,
       name: r.name,
       address: r.address,
