@@ -385,7 +385,7 @@ export async function findRestaurantByUrl(url: string): Promise<(InfluencerResta
   // InfluencerRestaurantsを全スキャンしてURL照合
   const allRestaurants = await scanAllInfluencerRestaurants();
   for (const r of allRestaurants) {
-    const urls = [r.instagramUrl, r.videoUrl].filter(Boolean) as string[];
+    const urls = [...(r.urls || []), r.instagramUrl, r.tiktokUrl, r.youtubeUrl, r.videoUrl].filter(Boolean) as string[];
     for (const u of urls) {
       if (normalize(u) === normalizedUrl) {
         // インフルエンサー名も取得

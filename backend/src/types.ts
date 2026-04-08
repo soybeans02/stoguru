@@ -60,6 +60,7 @@ export interface InfluencerProfile {
   tiktokUrl?: string;
   youtubeHandle?: string;
   youtubeUrl?: string;
+  platform?: 'instagram' | 'tiktok' | 'youtube';
   profilePhotoUrl?: string;
   genres: string[];
   isVerified: boolean;
@@ -80,6 +81,9 @@ export interface InfluencerRestaurant {
   photoUrls: string[];
   videoUrl?: string;
   instagramUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  urls?: string[];
   description?: string;
   visibility?: 'public' | 'mutual' | 'hidden';
   createdAt: number;

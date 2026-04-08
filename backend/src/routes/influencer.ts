@@ -32,6 +32,7 @@ router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
     ...existing,
     influencerId: req.user!.userId,
     ...v.data,
+    displayName: v.data.displayName || existing?.displayName || req.user!.nickname || '',
     createdAt: existing?.createdAt ?? Date.now(),
     updatedAt: Date.now(),
   });

@@ -15,6 +15,9 @@ interface InfluencerRestaurant {
   photoUrls: string[];
   videoUrl?: string;
   instagramUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  urls?: string[];
   description?: string;
   visibility?: 'public' | 'mutual' | 'hidden';
   createdAt: number;
@@ -45,6 +48,13 @@ interface Props {
   onClose: () => void;
 }
 
+function urlIcon(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.includes('tiktok.com')) return '🎵';
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return '▶️';
+  return '🔗';
+}
+
 export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [name, setName] = useState(editing?.name ?? '');
   const [address, setAddress] = useState(editing?.address ?? '');
@@ -64,7 +74,11 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
     return nums[1] || nums[0] || 10000;
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>(editing?.photoUrls ?? []);
-  const [videoUrl, setVideoUrl] = useState(editing?.videoUrl ?? '');
+  const [urls, setUrls] = useState<string[]>(() => {
+    if (editing?.urls?.length) return editing.urls;
+    const migrated = [editing?.instagramUrl, editing?.tiktokUrl, editing?.youtubeUrl, editing?.videoUrl].filter(Boolean) as string[];
+    return migrated.length ? migrated : [''];
+  });
   const [description, setDescription] = useState(editing?.description ?? '');
   const [visibility, setVisibility] = useState<'public' | 'mutual' | 'hidden'>(editing?.visibility ?? 'public');
   const [saving, setSaving] = useState(false);
@@ -197,7 +211,8 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
       const maxStr = priceMax < 10000 ? `¥${priceMax.toLocaleString()}` : '';
       data.priceRange = minStr && maxStr ? `${minStr}〜${maxStr}` : minStr ? `${minStr}〜` : `〜${maxStr}`;
     }
-    if (videoUrl.trim()) data.videoUrl = videoUrl.trim();
+    const filteredUrls = urls.map(u => u.trim()).filter(Boolean);
+    if (filteredUrls.length) data.urls = filteredUrls;
     if (description.trim()) data.description = description.trim();
     data.visibility = visibility;
 
@@ -359,12 +374,33 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
             <PhotoUpload photos={photoUrls} onChange={setPhotoUrls} maxPhotos={5} />
           </div>
 
-          {/* Video URL */}
+          {/* URLs */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">動画URL</label>
-            <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} maxLength={500}
-              placeholder="https://..."
-              className="w-full rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
+            <label className="block text-xs text-gray-400 mb-1">動画リンク</label>
+            <div className="flex flex-col gap-2">
+              {urls.map((url, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-base w-5 text-center flex-shrink-0">{urlIcon(url)}</span>
+                  <input
+                    value={url}
+                    onChange={e => { const next = [...urls]; next[i] = e.target.value; setUrls(next); }}
+                    maxLength={500}
+                    placeholder="https://..."
+                    className="flex-1 rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm"
+                  />
+                  {urls.length > 1 && (
+                    <button type="button" onClick={() => setUrls(urls.filter((_, j) => j !== i))}
+                      className="text-red-400 hover:text-red-600 text-lg flex-shrink-0">−</button>
+                  )}
+                </div>
+              ))}
+              {urls.length < 20 && (
+                <button type="button" onClick={() => setUrls([...urls, ''])}
+                  className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium py-1">
+                  <span className="text-lg">+</span> URLを追加
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Description */}

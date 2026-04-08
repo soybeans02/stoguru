@@ -115,7 +115,7 @@ export const nearbySchema = z.object({
 // ─── インフルエンサー ───
 
 export const influencerProfileSchema = z.object({
-  displayName: z.string().min(1).max(50).trim(),
+  displayName: z.string().max(50).trim().optional(),
   bio: z.string().max(500).optional(),
   instagramHandle: z.string().max(100).optional(),
   instagramUrl: z.string().max(500).optional(),
@@ -123,6 +123,7 @@ export const influencerProfileSchema = z.object({
   tiktokUrl: z.string().max(500).optional(),
   youtubeHandle: z.string().max(100).optional(),
   youtubeUrl: z.string().max(500).optional(),
+  platform: z.enum(['instagram', 'tiktok', 'youtube']).optional(),
   genres: z.array(z.string().max(50)).max(10).default([]),
 });
 
@@ -137,6 +138,9 @@ export const influencerRestaurantSchema = z.object({
   photoUrls: z.array(z.string().url().max(500)).max(10, '写真は10枚まで').default([]),
   videoUrl: z.string().max(500).optional(),
   instagramUrl: z.string().max(500).optional(),
+  tiktokUrl: z.string().max(500).optional(),
+  youtubeUrl: z.string().max(500).optional(),
+  urls: z.array(z.string().max(500)).max(20).optional(),
   description: z.string().max(1000).optional(),
   visibility: z.enum(['public', 'mutual', 'hidden']).default('public'),
 });

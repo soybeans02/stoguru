@@ -66,11 +66,24 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
 
   const feed = nearby.map((r) => {
     const profile = profileMap.get(r.influencerId);
-    const handle = profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
-    const platform = profile?.instagramHandle ? 'instagram'
+    const selectedPlatform = profile?.platform || (
+      profile?.instagramHandle ? 'instagram'
       : profile?.tiktokHandle ? 'tiktok'
       : profile?.youtubeHandle ? 'youtube'
-      : 'instagram';
+      : 'instagram'
+    );
+    const handleMap: Record<string, string | undefined> = {
+      instagram: profile?.instagramHandle,
+      tiktok: profile?.tiktokHandle,
+      youtube: profile?.youtubeHandle,
+    };
+    const urlMap: Record<string, string | undefined> = {
+      instagram: profile?.instagramUrl,
+      tiktok: profile?.tiktokUrl,
+      youtube: profile?.youtubeUrl,
+    };
+    const handle = handleMap[selectedPlatform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
+    const profileUrl = urlMap[selectedPlatform] || profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '';
     return {
       id: r.restaurantId,
       name: r.name,
@@ -85,10 +98,10 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       influencer: {
         name: profile?.displayName || '',
         handle: handle ? `@${handle.replace(/^@/, '')}` : '',
-        platform,
-        url: profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '',
+        platform: selectedPlatform,
+        url: profileUrl,
       },
-      videoUrl: r.videoUrl || '',
+      videoUrl: (r.urls || [])[0] || r.instagramUrl || r.tiktokUrl || r.youtubeUrl || r.videoUrl || '',
       photoEmoji: '🍽️',
       photoUrls: r.photoUrls || [],
       description: r.description || '',
@@ -473,7 +486,7 @@ router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, r
     lng: restaurant.lng,
     genre: (restaurant.genres || [])[0] || '',
     genreTags: restaurant.genres || [],
-    videoUrl: restaurant.instagramUrl || restaurant.videoUrl || '',
+    videoUrl: (restaurant.urls || [])[0] || restaurant.instagramUrl || restaurant.tiktokUrl || restaurant.youtubeUrl || restaurant.videoUrl || '',
     photoEmoji: '🍽️',
     status: 'unvisited',
   });
