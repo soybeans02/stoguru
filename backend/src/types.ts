@@ -84,6 +84,7 @@ export interface UserSettings {
   categories: string[];
   isPrivate?: boolean;
   role?: 'user' | 'influencer';
+  profilePhotoUrl?: string;
   updatedAt?: number;
 }
 

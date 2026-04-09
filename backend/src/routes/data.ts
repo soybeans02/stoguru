@@ -354,6 +354,13 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
   res.json({ ok: true });
 });
 
+router.put('/settings/profile-photo', requireAuth, async (req: AuthRequest, res: Response) => {
+  const url = req.body.profilePhotoUrl ?? null;
+  const existing = await getUserSettings(req.user!.userId);
+  await putUserSettings(req.user!.userId, { ...existing, profilePhotoUrl: url || undefined });
+  res.json({ ok: true });
+});
+
 // ─── フォロー ───
 
 router.post('/follow/:targetId', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -545,6 +552,7 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
         userId: userInfo.userId,
         nickname: userInfo.nickname,
         createdAt: userInfo.createdAt,
+        profilePhotoUrl: settings.profilePhotoUrl ?? null,
         isPrivate: true,
         isLockedOut: true,
         isFollowing: false,
@@ -583,6 +591,7 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
       userId: userInfo.userId,
       nickname: userInfo.nickname,
       createdAt: userInfo.createdAt,
+      profilePhotoUrl: settings.profilePhotoUrl ?? null,
       isPrivate,
       isFollowing: isMyself ? undefined : isFollowing,
       restaurantCount: stocks.length,
@@ -697,6 +706,43 @@ router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, r
   }
 
   res.json({ ok: true, name: restaurant.name });
+});
+
+// ─── 検索からお店を保存 ───
+
+router.post('/restaurants/stock-from-place', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { name, address, lat, lng } = req.body;
+  if (!name || typeof name !== 'string') {
+    res.status(400).json({ error: 'お店の名前が必要です' });
+    return;
+  }
+  const userId = req.user!.userId;
+  const restaurantId = `place_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  await putRestaurantV2({
+    restaurantId,
+    name: String(name).trim(),
+    address: address ? String(address).trim() : undefined,
+    lat: typeof lat === 'number' ? lat : undefined,
+    lng: typeof lng === 'number' ? lng : undefined,
+    genres: [],
+    photoUrls: [],
+    urls: [],
+    postedBy: userId,
+    visibility: 'private',
+    stockCount: 1,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+
+  await putUserStock(userId, {
+    restaurantId,
+    status: 'wishlist',
+    photoEmoji: '🍽️',
+    createdAt: new Date().toISOString(),
+  });
+
+  res.json({ ok: true, restaurantId, name });
 });
 
 // ─── ジャンル追加リクエスト ───
