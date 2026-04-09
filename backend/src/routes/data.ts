@@ -480,6 +480,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
             priceRange: r.priceRange,
             photoUrls: r.photoUrls,
             influencer: profile?.displayName,
+            influencerId: r.postedBy,
           },
         });
         return;
@@ -513,6 +514,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
       priceRange: r.priceRange,
       photoUrls: r.photoUrls,
       influencer: profileMap.get(r.postedBy)?.displayName,
+      influencerId: r.postedBy,
     })),
     urlMatch: null,
   });
