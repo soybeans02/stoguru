@@ -258,6 +258,8 @@ router.post('/restaurants/bulk-csv', requireAuth, async (req: AuthRequest, res: 
     const sceneStr = cols[3]?.trim();
     const priceMinStr = cols[4]?.trim();
     const priceMaxStr = cols[5]?.trim();
+    const urlStr = cols[6]?.trim();
+    const desc = cols[7]?.trim();
 
     if (!name) {
       results.push({ name: `行${i + 1}`, ok: false, error: '店名が空です' });
@@ -299,8 +301,8 @@ router.post('/restaurants/bulk-csv', requireAuth, async (req: AuthRequest, res: 
         scene,
         priceRange,
         photoUrls: [],
-        urls: [],
-        description: '',
+        urls: urlStr ? urlStr.split(' ').map(u => u.trim()).filter(Boolean) : [],
+        description: desc || '',
         postedBy: userId,
         visibility: 'public',
         stockCount: 0,
