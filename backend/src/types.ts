@@ -12,6 +12,7 @@ export interface RestaurantV2 {
   geohash?: string;            // GSI-Geohash PK用（precision 6）
   geohash4?: string;           // GSI-Geohash PK（precision 4、粗いパーティション）
   genres: string[];
+  scene?: string[];
   priceRange?: string;
   photoUrls: string[];
   urls: string[];              // 全動画/SNS URL

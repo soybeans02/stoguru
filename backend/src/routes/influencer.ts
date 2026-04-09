@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
@@ -217,5 +218,161 @@ router.get('/:id/restaurants', requireAuth, async (req: AuthRequest, res: Respon
   }));
   res.json(mapped);
 });
+
+// ─── CSV一括登録 ───
+
+router.post('/restaurants/bulk-csv', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const { csv } = req.body as { csv: string };
+
+  if (!csv || typeof csv !== 'string') {
+    res.status(400).json({ error: 'csvフィールドが必要です' });
+    return;
+  }
+
+  // プロフィール未作成なら自動作成
+  const existingProfile = await getInfluencerProfile(userId);
+  if (!existingProfile) {
+    const now = Date.now();
+    await putInfluencerProfile(userId, {
+      influencerId: userId,
+      displayName: req.user!.nickname || 'ユーザー',
+      isVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const lines = csv.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  // ヘッダー行をスキップ（「店名」を含む行）
+  const startIdx = lines[0]?.includes('店名') ? 1 : 0;
+
+  const results: { name: string; ok: boolean; error?: string }[] = [];
+  let successCount = 0;
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    const name = cols[0]?.trim();
+    const address = cols[1]?.trim();
+    const genre = cols[2]?.trim();
+    const sceneStr = cols[3]?.trim();
+    const priceMinStr = cols[4]?.trim();
+    const priceMaxStr = cols[5]?.trim();
+
+    if (!name) {
+      results.push({ name: `行${i + 1}`, ok: false, error: '店名が空です' });
+      continue;
+    }
+
+    try {
+      // 住所からlat/lngを取得
+      let lat: number | undefined;
+      let lng: number | undefined;
+      if (address) {
+        const coords = await geocodeAddress(address);
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      }
+
+      const genres = genre ? genre.split('/').map(g => g.trim()).filter(Boolean) : [];
+      const scene = sceneStr ? sceneStr.split('/').map(s => s.trim()).filter(Boolean) : [];
+
+      const priceMin = priceMinStr ? parseInt(priceMinStr) : 0;
+      const priceMax = priceMaxStr ? parseInt(priceMaxStr) : 0;
+      let priceRange: string | undefined;
+      if (priceMin > 0 || priceMax > 0) {
+        const minS = priceMin > 0 ? `¥${priceMin}` : '';
+        const maxS = priceMax > 0 ? `¥${priceMax}` : '';
+        priceRange = minS && maxS ? `${minS}〜${maxS}` : minS ? `${minS}〜` : `〜${maxS}`;
+      }
+
+      const restaurantId = crypto.randomUUID();
+      await putRestaurantV2({
+        restaurantId,
+        name,
+        address,
+        lat,
+        lng,
+        genres,
+        scene,
+        priceRange,
+        photoUrls: [],
+        urls: [],
+        description: '',
+        postedBy: userId,
+        visibility: 'public',
+        stockCount: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      successCount++;
+      results.push({ name, ok: true });
+    } catch (e: any) {
+      results.push({ name, ok: false, error: e.message });
+    }
+
+    // ジオコーディングのレートリミット（1秒1リクエスト）
+    if (address) {
+      await new Promise(r => setTimeout(r, 1100));
+    }
+  }
+
+  invalidateSearchCache();
+  res.json({ total: results.length, success: successCount, failed: results.length - successCount, results });
+});
+
+// ─── ジオコーディング（Nominatim） ───
+
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=jp`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Stoguru/1.0 (moro0215123@gmail.com)' }
+    });
+    const data = await resp.json() as any[];
+    if (data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── CSVパーサー（カンマ区切り、ダブルクォート対応） ───
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
 
 export default router;
