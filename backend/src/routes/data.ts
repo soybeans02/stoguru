@@ -83,7 +83,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       lng: r.lng!,
       genre: (r.genres || [])[0] || '',
       genres: r.genres || [],
-      scene: [],
+      scene: r.scene || [],
       priceRange: r.priceRange || '',
       distance: '',
       influencer: {

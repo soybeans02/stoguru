@@ -134,6 +134,7 @@ export const influencerRestaurantSchema = z.object({
   lng: z.number().optional(),
   placeId: z.string().max(300).optional(),
   genres: z.array(z.string().max(50)).max(5, 'ジャンルは5個まで').default([]),
+  scene: z.array(z.string().max(50)).max(10).optional(),
   priceRange: z.string().max(50).optional(),
   photoUrls: z.array(z.string().url().max(500)).max(10, '写真は10枚まで').default([]),
   videoUrl: z.string().max(500).optional(),

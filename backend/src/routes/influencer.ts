@@ -107,6 +107,7 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
       v.data.youtubeUrl,
       v.data.videoUrl,
     ].filter(Boolean) as string[],
+    scene: v.data.scene || existing?.scene || [],
     description: v.data.description,
     postedBy: existing?.postedBy || userId,
     visibility: v.data.visibility || existing?.visibility || 'public',
