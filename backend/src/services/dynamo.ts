@@ -156,6 +156,16 @@ export async function incrementStockCount(restaurantId: string, delta: number) {
  * レストランのvisibilityを更新
  */
 export async function updateRestaurantV2Visibility(restaurantId: string, visibility: string) {
+  const existing = await getRestaurantV2(restaurantId);
+  if (existing?.urls?.length) {
+    if (visibility === 'hidden' || visibility === 'private') {
+      // soft delete: URLインデックスも削除
+      await deleteUrlIndexEntries(existing.urls);
+    } else if (existing.visibility === 'hidden' || existing.visibility === 'private') {
+      // 復元: URLインデックスを再作成
+      await putUrlIndexEntries(restaurantId, existing.urls);
+    }
+  }
   await db.send(new UpdateCommand({
     TableName: TABLE.restaurantsV2,
     Key: { restaurantId },

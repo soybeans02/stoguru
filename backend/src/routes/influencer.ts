@@ -152,7 +152,8 @@ router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Res
     return;
   }
 
-  await deleteRestaurantV2(restaurantId);
+  // 物理削除ではなくhiddenにする（他ユーザーのストックデータを壊さないため）
+  await updateRestaurantV2Visibility(restaurantId, 'hidden');
   invalidateSearchCache();
   res.json({ ok: true });
 });

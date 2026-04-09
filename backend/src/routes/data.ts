@@ -384,13 +384,21 @@ router.delete('/follow/:targetId', requireAuth, async (req: AuthRequest, res: Re
 
 router.get('/following', requireAuth, async (req: AuthRequest, res: Response) => {
   const list = await getFollowing(req.user!.userId);
-  res.json(list);
+  const enriched = await Promise.all(list.map(async (f) => {
+    const user = await getUserById(f.followeeId);
+    return { ...f, nickname: user?.nickname ?? f.followeeId };
+  }));
+  res.json(enriched);
 });
 
 router.get('/followers', requireAuth, async (req: AuthRequest, res: Response) => {
   const { getFollowers } = await import('../services/dynamo');
   const list = await getFollowers(req.user!.userId);
-  res.json(list);
+  const enriched = await Promise.all(list.map(async (f) => {
+    const user = await getUserById(f.followerId);
+    return { ...f, nickname: user?.nickname ?? f.followerId };
+  }));
+  res.json(enriched);
 });
 
 router.get('/follow-requests', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -459,7 +467,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
     const restaurantId = await lookupRestaurantByUrl(q);
     if (restaurantId) {
       const r = await getRestaurantV2(restaurantId);
-      if (r) {
+      if (r && r.visibility !== 'private' && r.visibility !== 'hidden') {
         const profile = await getInfluencerProfile(r.postedBy);
         res.json({
           users: [],
@@ -527,30 +535,32 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
 
     const isMyself = targetId === req.user!.userId;
     const isPrivate = !!settings.isPrivate;
+    const following = isMyself ? [] : await getFollowing(req.user!.userId);
+    const isFollowing = following.some((f) => f.followeeId === targetId);
 
-    if (isPrivate && !isMyself) {
-      const following = await getFollowing(req.user!.userId);
-      const isFollowing = following.some((f) => f.followeeId === targetId);
-      if (!isFollowing) {
-        res.json({
-          userId: userInfo.userId,
-          nickname: userInfo.nickname,
-          createdAt: userInfo.createdAt,
-          isPrivate: true,
-          isLockedOut: true,
-          restaurantCount: 0,
-          reviewedCount: 0,
-          influencerCount: 0,
-          restaurants: [],
-        });
-        return;
-      }
+    if (isPrivate && !isMyself && !isFollowing) {
+      res.json({
+        userId: userInfo.userId,
+        nickname: userInfo.nickname,
+        createdAt: userInfo.createdAt,
+        isPrivate: true,
+        isLockedOut: true,
+        isFollowing: false,
+        restaurantCount: 0,
+        reviewedCount: 0,
+        influencerCount: 0,
+        restaurants: [],
+      });
+      return;
     }
 
-    // レストランデータを取得
-    const restaurants = stocks.length > 0
-      ? await batchGetRestaurantsV2(stocks.map((s) => s.restaurantId))
-      : [];
+    // レストランデータ + インフルエンサープロフィールを取得
+    const [restaurants, influencerProfile] = await Promise.all([
+      stocks.length > 0
+        ? batchGetRestaurantsV2(stocks.map((s) => s.restaurantId))
+        : Promise.resolve([]),
+      getInfluencerProfile(targetId),
+    ]);
     const restMap = new Map(restaurants.map((r) => [r.restaurantId, r]));
 
     const publicRestaurants = stocks.map((stock) => {
@@ -572,10 +582,18 @@ router.get('/users/:userId/profile', requireAuth, async (req: AuthRequest, res: 
       nickname: userInfo.nickname,
       createdAt: userInfo.createdAt,
       isPrivate,
+      isFollowing: isMyself ? undefined : isFollowing,
       restaurantCount: stocks.length,
       reviewedCount: stocks.filter((s) => !!s.review).length,
       influencerCount: (settings.influencers ?? []).length,
       restaurants: publicRestaurants,
+      bio: influencerProfile?.bio ?? null,
+      instagramHandle: influencerProfile?.instagramHandle ?? null,
+      instagramUrl: influencerProfile?.instagramUrl ?? null,
+      tiktokHandle: influencerProfile?.tiktokHandle ?? null,
+      tiktokUrl: influencerProfile?.tiktokUrl ?? null,
+      youtubeHandle: influencerProfile?.youtubeHandle ?? null,
+      youtubeUrl: influencerProfile?.youtubeUrl ?? null,
     });
   } catch (err) {
     console.error('Profile fetch failed:', err);
@@ -625,7 +643,9 @@ router.get('/restaurants/by-url', requireAuth, async (req: AuthRequest, res: Res
   if (!restaurantId) { res.json({ found: false }); return; }
 
   const restaurant = await getRestaurantV2(restaurantId);
-  if (!restaurant) { res.json({ found: false }); return; }
+  if (!restaurant || restaurant.visibility === 'private' || restaurant.visibility === 'hidden') {
+    res.json({ found: false }); return;
+  }
 
   const profile = await getInfluencerProfile(restaurant.postedBy);
   res.json({
@@ -656,7 +676,7 @@ router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, r
   }
 
   const restaurant = await getRestaurantV2(restaurantId);
-  if (!restaurant) {
+  if (!restaurant || restaurant.visibility === 'private' || restaurant.visibility === 'hidden') {
     res.status(404).json({ error: 'お店が見つかりません' });
     return;
   }
