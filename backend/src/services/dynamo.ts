@@ -252,8 +252,7 @@ export function normalizeUrl(url: string): string {
     }
 
     // TikTok: /@user/video/{id} 形式から動画IDを抽出
-    // 短縮URL (vm.tiktok.com/ZShortcode) は別エントリ扱い
-    if (host === 'tiktok.com' || host === 'vm.tiktok.com' || host === 'vt.tiktok.com') {
+    if (host === 'tiktok.com') {
       const match = parsed.pathname.match(/\/video\/(\d+)/);
       if (match) return `tiktok.com/v/${match[1]}`;
       // /v/{id}.html (mobile) 形式
@@ -270,10 +269,62 @@ export function normalizeUrl(url: string): string {
   }
 }
 
+/**
+ * 短縮URLを展開する（リダイレクト先のLocationヘッダを取得）
+ * - vt.tiktok.com / vm.tiktok.com / youtu.be(短縮版) など
+ * - 失敗時は元のURLを返す
+ */
+async function expandShortUrl(url: string): Promise<string> {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    // 展開対象のホストのみ処理
+    const shortHosts = ['vt.tiktok.com', 'vm.tiktok.com'];
+    if (!shortHosts.includes(host)) return url;
+
+    // HEADでLocation取得（最大3回リダイレクト追跡）
+    let current = url;
+    for (let i = 0; i < 3; i++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      try {
+        const res = await fetch(current, {
+          method: 'HEAD',
+          redirect: 'manual',
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        const loc = res.headers.get('location');
+        if (!loc) return current;
+        current = new URL(loc, current).toString();
+        // 既にtiktok.com本体に到達したら終了
+        const nextHost = new URL(current).hostname.replace(/^www\./, '');
+        if (nextHost === 'tiktok.com') return current;
+      } catch {
+        clearTimeout(timer);
+        return url;
+      }
+    }
+    return current;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * 短縮URLを展開してから正規化する（async版）
+ */
+export async function normalizeUrlAsync(url: string): Promise<string> {
+  const expanded = await expandShortUrl(url);
+  return normalizeUrl(expanded);
+}
+
 async function putUrlIndexEntries(restaurantId: string, urls: string[]) {
-  const items = urls.filter(Boolean).map((url) => ({
+  const normalizedUrls = await Promise.all(urls.filter(Boolean).map((u) => normalizeUrlAsync(u)));
+  const items = normalizedUrls.map((normalizedUrl) => ({
     PutRequest: {
-      Item: { normalizedUrl: normalizeUrl(url), restaurantId },
+      Item: { normalizedUrl, restaurantId },
     },
   }));
   for (const chunk of chunkArray(items, 25)) {
@@ -284,9 +335,10 @@ async function putUrlIndexEntries(restaurantId: string, urls: string[]) {
 }
 
 async function deleteUrlIndexEntries(urls: string[]) {
-  const items = urls.filter(Boolean).map((url) => ({
+  const normalizedUrls = await Promise.all(urls.filter(Boolean).map((u) => normalizeUrlAsync(u)));
+  const items = normalizedUrls.map((normalizedUrl) => ({
     DeleteRequest: {
-      Key: { normalizedUrl: normalizeUrl(url) },
+      Key: { normalizedUrl },
     },
   }));
   for (const chunk of chunkArray(items, 25)) {
@@ -297,7 +349,7 @@ async function deleteUrlIndexEntries(urls: string[]) {
 }
 
 export async function lookupRestaurantByUrl(url: string): Promise<string | null> {
-  const normalized = normalizeUrl(url);
+  const normalized = await normalizeUrlAsync(url);
   const result = await db.send(new GetCommand({
     TableName: TABLE.urlIndex,
     Key: { normalizedUrl: normalized },

@@ -13,7 +13,7 @@ import {
   ScanCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { normalizeUrl } from '../services/dynamo';
+import { normalizeUrlAsync } from '../services/dynamo';
 import type { RestaurantV2, UrlIndexEntry } from '../types';
 
 const rawClient = new DynamoDBClient({ region: 'ap-northeast-1' });
@@ -80,7 +80,7 @@ async function rebuildFromRestaurants() {
 
       for (const rawUrl of item.urls) {
         if (!rawUrl) continue;
-        const key = normalizeUrl(rawUrl);
+        const key = await normalizeUrlAsync(rawUrl);
         if (seen.has(key) && seen.get(key) !== item.restaurantId) {
           collisions++;
           console.log(`   ⚠️  衝突: ${key} (restaurant ${seen.get(key)} vs ${item.restaurantId})`);
