@@ -228,12 +228,42 @@ export async function getStockUserCount(restaurantId: string): Promise<number> {
 // URL逆引きインデックス
 // =============================================
 
-function normalizeUrl(url: string): string {
+export function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '').replace(/^m\./, '');
+
+    // YouTube: 動画IDを抽出して統一
+    // youtube.com/watch?v=ID, youtu.be/ID, youtube.com/shorts/ID, youtube.com/embed/ID
+    if (host === 'youtube.com' || host === 'youtu.be') {
+      let videoId: string | null = null;
+      if (host === 'youtu.be') {
+        videoId = parsed.pathname.split('/').filter(Boolean)[0] ?? null;
+      } else if (parsed.pathname === '/watch') {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/')[2] ?? null;
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/')[2] ?? null;
+      } else if (parsed.pathname.startsWith('/v/')) {
+        videoId = parsed.pathname.split('/')[2] ?? null;
+      }
+      if (videoId) return `youtube.com/v/${videoId}`;
+    }
+
+    // TikTok: /@user/video/{id} 形式から動画IDを抽出
+    // 短縮URL (vm.tiktok.com/ZShortcode) は別エントリ扱い
+    if (host === 'tiktok.com' || host === 'vm.tiktok.com' || host === 'vt.tiktok.com') {
+      const match = parsed.pathname.match(/\/video\/(\d+)/);
+      if (match) return `tiktok.com/v/${match[1]}`;
+      // /v/{id}.html (mobile) 形式
+      const mobileMatch = parsed.pathname.match(/^\/v\/(\d+)/);
+      if (mobileMatch) return `tiktok.com/v/${mobileMatch[1]}`;
+    }
+
+    // Instagram (既存ロジック): /reels/ → /reel/ に統一
     let path = parsed.pathname.replace(/\/+$/, '');
     path = path.replace(/^\/reels\//, '/reel/');
-    const host = parsed.hostname.replace(/^www\./, '');
     return `${host}${path}`.toLowerCase();
   } catch {
     return url.toLowerCase().replace(/\/+$/, '').replace(/\?.*$/, '');
