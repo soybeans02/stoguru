@@ -764,7 +764,13 @@ router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => 
   const withProfiles = await Promise.all(ranking.map(async (r) => {
     try {
       const profile = await getInfluencerProfile(r.postedBy);
-      return { userId: r.postedBy, totalStocks: r.totalStocks, nickname: profile?.displayName || '不明', profilePhotoUrl: profile?.profilePhotoUrl || '' };
+      let nickname = profile?.displayName || '';
+      // InfluencerProfile が無い or displayName 未設定なら Cognito の nickname にフォールバック
+      if (!nickname) {
+        const userInfo = await getUserById(r.postedBy).catch(() => null);
+        nickname = userInfo?.nickname || '不明';
+      }
+      return { userId: r.postedBy, totalStocks: r.totalStocks, nickname, profilePhotoUrl: profile?.profilePhotoUrl || '' };
     } catch {
       return { userId: r.postedBy, totalStocks: r.totalStocks, nickname: '不明', profilePhotoUrl: '' };
     }
