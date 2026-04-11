@@ -270,8 +270,38 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
+ * 短縮URL展開のメモリキャッシュ
+ * - プロセス内でのみ有効（再起動でクリア）
+ * - 同じ短縮URLに対する HTTP HEAD の重複発行を抑える
+ * - サイズ上限を超えたら古いエントリから削除 (簡易LRU)
+ */
+const EXPAND_CACHE_MAX = 2000;
+const expandCache = new Map<string, string>();
+
+function cacheGetExpanded(key: string): string | undefined {
+  const v = expandCache.get(key);
+  if (v !== undefined) {
+    // 最近参照した要素を末尾に移動 (LRU更新)
+    expandCache.delete(key);
+    expandCache.set(key, v);
+  }
+  return v;
+}
+
+function cacheSetExpanded(key: string, value: string): void {
+  if (expandCache.has(key)) expandCache.delete(key);
+  expandCache.set(key, value);
+  if (expandCache.size > EXPAND_CACHE_MAX) {
+    // 最古のエントリを削除
+    const oldest = expandCache.keys().next().value;
+    if (oldest !== undefined) expandCache.delete(oldest);
+  }
+}
+
+/**
  * 短縮URLを展開する（リダイレクト先のLocationヘッダを取得）
- * - vt.tiktok.com / vm.tiktok.com / youtu.be(短縮版) など
+ * - vt.tiktok.com / vm.tiktok.com など
+ * - 結果をメモリキャッシュして HTTP 叩く回数を抑える
  * - 失敗時は元のURLを返す
  */
 async function expandShortUrl(url: string): Promise<string> {
@@ -281,6 +311,10 @@ async function expandShortUrl(url: string): Promise<string> {
     // 展開対象のホストのみ処理
     const shortHosts = ['vt.tiktok.com', 'vm.tiktok.com'];
     if (!shortHosts.includes(host)) return url;
+
+    // キャッシュヒット
+    const cached = cacheGetExpanded(url);
+    if (cached !== undefined) return cached;
 
     // HEADでLocation取得（最大3回リダイレクト追跡）
     let current = url;
@@ -296,16 +330,24 @@ async function expandShortUrl(url: string): Promise<string> {
         });
         clearTimeout(timer);
         const loc = res.headers.get('location');
-        if (!loc) return current;
+        if (!loc) {
+          cacheSetExpanded(url, current);
+          return current;
+        }
         current = new URL(loc, current).toString();
         // 既にtiktok.com本体に到達したら終了
         const nextHost = new URL(current).hostname.replace(/^www\./, '');
-        if (nextHost === 'tiktok.com') return current;
+        if (nextHost === 'tiktok.com') {
+          cacheSetExpanded(url, current);
+          return current;
+        }
       } catch {
         clearTimeout(timer);
+        // 失敗時はキャッシュしない（次回リトライさせる）
         return url;
       }
     }
+    cacheSetExpanded(url, current);
     return current;
   } catch {
     return url;
