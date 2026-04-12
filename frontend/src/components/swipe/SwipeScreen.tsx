@@ -399,14 +399,14 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
             <p className="text-gray-400 dark:text-gray-500 text-xs mb-6">また後でチェックしてね</p>
             <button
               onClick={() => refilter()}
-              className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-xs font-medium"
+              className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-full text-xs font-medium transition-colors"
             >
               もう一度見る
             </button>
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[320px] h-[460px] flex-shrink-0">
+            <div className="relative w-full max-w-[320px] lg:max-w-[400px] h-[460px] lg:h-[540px] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}
@@ -447,9 +447,9 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
               <button
                 onClick={() => handleButtonSwipe('right')}
                 disabled={!!buttonFlyOut}
-                className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                className="w-14 h-14 rounded-full bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="#f97316" stroke="#f97316" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
               </button>
               <div className="w-10" /> {/* spacer for symmetry */}
             </div>

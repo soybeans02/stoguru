@@ -227,7 +227,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
           </p>
           <div className="flex gap-1.5 flex-wrap mb-2.5">
             {(restaurant.genres && restaurant.genres.length > 0 ? restaurant.genres : [restaurant.genre]).filter(Boolean).map((g) => (
-              <span key={g} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
+              <span key={g} className="bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded text-[11px]">
                 {g}
               </span>
             ))}

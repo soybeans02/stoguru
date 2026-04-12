@@ -197,7 +197,7 @@ function SwipeableCard({
             {!s.visited && (
               <button
                 onClick={() => onMarkVisited(s.id)}
-                className="text-xs px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium active:scale-95 transition-transform"
+                className="text-xs px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium active:scale-95 transition-transform"
               >
                 行った
               </button>
@@ -260,7 +260,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     }), [stocks, filter, search, selectedGenre, sortMode, userPosition]);
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 bg-white dark:bg-gray-900">
+    <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 lg:px-8 lg:py-6 bg-white dark:bg-gray-900">
       <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">保存</h1>
       <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
         {stocks.length}件 · うち{visitedCount}件 行った
@@ -284,7 +284,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
             key={key}
             onClick={() => setFilter(filter === key ? 'all' : key)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors ${
-              filter === key ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              filter === key ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
             }`}
           >
             {label}
@@ -345,7 +345,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <p className="text-gray-400 text-sm">該当するお店がないよ</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:space-y-0">
           {filtered.map((s) => (
             <SwipeableCard
               key={s.id}

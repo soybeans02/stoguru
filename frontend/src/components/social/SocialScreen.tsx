@@ -404,11 +404,11 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   return (
     <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-3">
+      <div className="px-5 lg:px-8 pt-5 pb-3">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">検索</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-6">
         {/* Search bar - inline */}
         <div className="relative mb-4">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -473,7 +473,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
         {searchResults.restaurants.length > 0 && (
           <div className="mb-4">
             <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">登録済みのお店</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
               {searchResults.restaurants.map(r => (
                 <div key={r.restaurantId} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
                   {/* Photo */}

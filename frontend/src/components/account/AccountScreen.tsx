@@ -108,7 +108,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900">
+    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900 lg:px-8">
       {/* Profile header */}
       <div className="pt-12 pb-6 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
         {/* Avatar with gradient ring */}
@@ -157,7 +157,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               />
               {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleSaveNickname} className="text-xs px-3 py-1 bg-gray-900 text-white rounded-full">保存</button>
+                <button onClick={handleSaveNickname} className="text-xs px-3 py-1 bg-orange-500 text-white rounded-full">保存</button>
                 <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">キャンセル</button>
               </div>
             </div>
@@ -201,7 +201,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         <div className="mt-2 mb-5">
           <button
             onClick={() => setShowInfluencerDashboard(true)}
-            className="w-full px-4 py-3.5 bg-gradient-to-r from-gray-900 to-indigo-900 dark:from-indigo-900 dark:to-purple-900 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-transform"
+            className="w-full px-4 py-3.5 bg-orange-500 hover:bg-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
           >
             <div>
               <p className="text-[13px] font-bold text-white">お店を編集</p>

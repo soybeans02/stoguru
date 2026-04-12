@@ -82,7 +82,7 @@ export function FilterOverlay({
               onClick={() => toggleScene(s.id)}
               className={`rounded-xl py-3.5 text-center text-sm font-medium transition-all ${
                 selectedScenes.includes(s.id)
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  ? 'bg-orange-500 text-white'
                   : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
@@ -100,7 +100,7 @@ export function FilterOverlay({
               onClick={() => toggleGenre(g)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 selectedGenres.includes(g)
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  ? 'bg-orange-500 text-white'
                   : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
