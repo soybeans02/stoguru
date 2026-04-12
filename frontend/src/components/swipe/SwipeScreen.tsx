@@ -332,7 +332,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
   return (
     <div className="flex-1 flex flex-col items-center relative bg-white dark:bg-gray-900">
       {/* Header bar */}
-      <div className="w-full flex items-center justify-between px-4 py-3 flex-shrink-0">
+      <div className="w-full flex items-center justify-between px-4 md:px-6 py-3 flex-shrink-0">
         <button
           onClick={() => setFilterOpen(true)}
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -406,7 +406,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[320px] lg:max-w-[400px] h-[460px] lg:h-[540px] flex-shrink-0">
+            <div className="relative w-full max-w-[320px] md:max-w-[360px] lg:max-w-[400px] h-[460px] md:h-[500px] lg:h-[540px] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}

@@ -71,11 +71,7 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
     <aside className="hidden lg:flex flex-col w-[220px] min-w-[220px] border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 h-svh sticky top-0">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-6">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
-          </svg>
-        </div>
+        <img src="/app-icon.png" alt="ストグル" className="w-8 h-8 rounded-lg" />
         <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">ストグル</span>
       </div>
 
@@ -119,7 +115,7 @@ function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => vo
   ];
 
   return (
-    <nav className="lg:hidden flex items-center justify-around bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 h-14 flex-shrink-0 safe-area-bottom">
+    <nav className="lg:hidden flex items-center justify-around bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 h-14 pb-safe flex-shrink-0">
       {items.map(({ key, label, icon }) => {
         const active = tab === key;
         return (

@@ -108,7 +108,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900 lg:px-8">
+    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900 md:px-6 lg:px-8">
       {/* Profile header */}
       <div className="pt-12 pb-6 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
         {/* Avatar with gradient ring */}
@@ -196,7 +196,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </div>
       </div>
 
-      <div className="px-4 pb-8">
+      <div className="px-4 pb-8 md:max-w-lg md:mx-auto">
         {/* Influencer banner */}
         <div className="mt-2 mb-5">
           <button

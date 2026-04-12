@@ -53,7 +53,7 @@ export function AuthScreen() {
   return (
     <div className="min-h-svh flex bg-gray-50 dark:bg-gray-900">
       {/* PC: 左ブランドエリア */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 items-center justify-center relative overflow-hidden">
+      <div className="hidden md:flex md:w-2/5 lg:w-1/2 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs><pattern id="auth-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0v40" fill="none" stroke="white" strokeWidth="0.5"/></pattern></defs>
@@ -61,9 +61,7 @@ export function AuthScreen() {
           </svg>
         </div>
         <div className="relative z-10 text-center text-white px-12">
-          <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-6">
-            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
-          </svg>
+          <img src="/app-icon.png" alt="ストグル" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg" />
           <h2 className="text-4xl font-bold mb-3 tracking-tight">ストグル</h2>
           <p className="text-lg text-white/80">SNSで見つけたお店を、ストックして、行こう。</p>
         </div>
@@ -73,26 +71,18 @@ export function AuthScreen() {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           {/* Mobile: ロゴ */}
-          <h1 className="text-2xl font-bold text-center mb-1 flex flex-col items-center gap-1 lg:hidden">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <defs>
-                <linearGradient id="logo-grad-auth" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#f97316"/>
-                  <stop offset="100%" stopColor="#f59e0b"/>
-                </linearGradient>
-              </defs>
-              <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" stroke="url(#logo-grad-auth)" strokeWidth="1.5"/><path d="M7 2v20" stroke="url(#logo-grad-auth)" strokeWidth="1.5"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" stroke="url(#logo-grad-auth)" strokeWidth="1.5"/>
-            </svg>
+          <h1 className="text-2xl font-bold text-center mb-1 flex flex-col items-center gap-2 md:hidden">
+            <img src="/app-icon.png" alt="ストグル" className="w-14 h-14 rounded-xl" />
             <span className="text-gray-900 dark:text-white">ストグル</span>
           </h1>
           {/* PC: テキストタイトル */}
-          <h1 className="hidden lg:block text-2xl font-bold text-gray-900 dark:text-white text-center mb-1">
+          <h1 className="hidden md:block text-2xl font-bold text-gray-900 dark:text-white text-center mb-1">
             {modeLabel[mode]}
           </h1>
-          <p className="text-center text-gray-500 text-sm mb-8 lg:hidden">
+          <p className="text-center text-gray-500 text-sm mb-8 md:hidden">
             {modeLabel[mode]}
           </p>
-          <p className="hidden lg:block text-center text-gray-400 text-sm mb-8">
+          <p className="hidden md:block text-center text-gray-400 text-sm mb-8">
             アカウントにログインして始めましょう
           </p>
 
@@ -208,8 +198,6 @@ export function AuthScreen() {
 // Logo re-export for shared use
 export function StogulLogo({ size = 32 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
-    </svg>
+    <img src="/app-icon.png" alt="ストグル" width={size} height={size} className="rounded-lg" />
   );
 }

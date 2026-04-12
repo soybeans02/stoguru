@@ -260,7 +260,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     }), [stocks, filter, search, selectedGenre, sortMode, userPosition]);
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none px-4 py-5 lg:px-8 lg:py-6 bg-white dark:bg-gray-900">
+    <div className="flex-1 overflow-y-auto overscroll-none px-4 md:px-6 py-5 lg:px-8 lg:py-6 bg-white dark:bg-gray-900">
       <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">保存</h1>
       <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
         {stocks.length}件 · うち{visitedCount}件 行った
@@ -345,7 +345,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <p className="text-gray-400 text-sm">該当するお店がないよ</p>
         </div>
       ) : (
-        <div className="space-y-2 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:space-y-0">
+        <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 xl:grid-cols-3">
           {filtered.map((s) => (
             <SwipeableCard
               key={s.id}
