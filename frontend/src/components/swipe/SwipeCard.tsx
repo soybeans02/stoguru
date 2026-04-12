@@ -91,18 +91,23 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     handleMove(e.touches[0].clientX, e.touches[0].clientY);
   };
   const onTouchEnd = () => handleEnd();
-  const onMouseDown = (e: React.MouseEvent) => handleStart(e.clientX, e.clientY);
-  const onMouseMove = (e: React.MouseEvent) => handleMove(e.clientX, e.clientY);
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleStart(e.clientX, e.clientY);
+  };
 
   useEffect(() => {
+    const move = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
     const up = () => handleEnd();
+    window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
     window.addEventListener('touchend', up, { passive: true });
     return () => {
+      window.removeEventListener('mousemove', move);
       window.removeEventListener('mouseup', up);
       window.removeEventListener('touchend', up);
     };
-  }, [handleEnd]);
+  }, [handleMove, handleEnd]);
 
   let transform: string;
   let opacity = 1;
@@ -137,7 +142,6 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         willChange: 'transform, opacity',
       }}
       onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
