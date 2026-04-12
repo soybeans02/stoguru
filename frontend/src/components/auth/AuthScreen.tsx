@@ -118,7 +118,7 @@ export function AuthScreen() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="8文字以上（英小文字+数字）"
+                placeholder="8文字以上"
               />
             </>
           ) : (
@@ -145,7 +145,7 @@ export function AuthScreen() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="8文字以上（英小文字+数字）"
+                placeholder="8文字以上"
               />
             </>
           )}

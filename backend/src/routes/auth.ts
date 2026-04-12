@@ -78,7 +78,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     if (msg.includes('CodeMismatch') || msg.includes('ExpiredCode')) {
       res.status(400).json({ error: '確認コードが正しくないか、期限切れです' });
     } else if (msg.includes('InvalidPassword') || msg.includes('Password')) {
-      res.status(400).json({ error: 'パスワードの要件を満たしていません（8文字以上、英小文字+数字）' });
+      res.status(400).json({ error: 'パスワードの要件を満たしていません（8文字以上）' });
     } else {
       res.status(400).json({ error: 'パスワード再設定に失敗しました' });
     }

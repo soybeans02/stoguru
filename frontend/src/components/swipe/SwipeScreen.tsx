@@ -19,15 +19,23 @@ function getAudioContext(): AudioContext {
   return sharedAudioCtx;
 }
 
-// スワイプ効果音（Web Audio API）
+// Nope風切り音（mp3）
+let whooshBuffer: AudioBuffer | null = null;
+fetch('/sounds/whoosh.mp3')
+  .then(r => r.arrayBuffer())
+  .then(buf => getAudioContext().decodeAudioData(buf))
+  .then(decoded => { whooshBuffer = decoded; })
+  .catch(() => {});
+
+// スワイプ効果音
 function createSwipeSound(type: 'like' | 'nope') {
   const ctx = getAudioContext();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
 
   if (type === 'like') {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
     osc.type = 'sine';
     osc.frequency.setValueAtTime(400, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
@@ -36,30 +44,14 @@ function createSwipeSound(type: 'like' | 'nope') {
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.3);
-  } else {
-    osc.disconnect();
-    const dur = 0.25;
-    const bufferSize = ctx.sampleRate * dur;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.setValueAtTime(1000, ctx.currentTime);
-    bp.frequency.exponentialRampToValueAtTime(6000, ctx.currentTime + 0.08);
-    bp.frequency.exponentialRampToValueAtTime(10000, ctx.currentTime + dur);
-    bp.Q.setValueAtTime(0.5, ctx.currentTime);
+  } else if (whooshBuffer) {
+    const source = ctx.createBufferSource();
+    source.buffer = whooshBuffer;
+    const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.setValueAtTime(0.5, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
-    noise.connect(bp);
-    bp.connect(gain);
-    noise.start(ctx.currentTime);
-    noise.stop(ctx.currentTime + dur);
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(ctx.currentTime);
   }
 }
 
