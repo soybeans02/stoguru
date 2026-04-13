@@ -31,6 +31,8 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
   const v = validate(nearbySchema, req.query);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { lat, lng, radius } = v.data;
+  const limit = Math.min(Number(req.query.limit) || 50, 200);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
   const userId = req.user!.userId;
 
   // geohash precision 4の9セルをクエリ（約40km×20km × 9 = 広域カバー）
@@ -100,7 +102,14 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
     };
   });
 
-  res.json(feed);
+  const paged = feed.slice(offset, offset + limit);
+  res.json({
+    items: paged,
+    total: feed.length,
+    offset,
+    limit,
+    hasMore: offset + limit < feed.length,
+  });
 });
 
 // ─── ユーザーの保存レストラン一覧（UserStocks → BatchGet RestaurantsV2） ───

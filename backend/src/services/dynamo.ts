@@ -405,7 +405,7 @@ export async function lookupRestaurantByUrl(url: string): Promise<string | null>
 
 let searchCache: RestaurantV2[] = [];
 let searchCacheExpiry = 0;
-const SEARCH_CACHE_TTL = 60_000; // 60秒
+const SEARCH_CACHE_TTL = 5 * 60_000; // 5分
 
 async function getSearchCache(): Promise<RestaurantV2[]> {
   if (Date.now() < searchCacheExpiry && searchCache.length > 0) return searchCache;
@@ -450,9 +450,15 @@ export async function searchRestaurantsV2(query: string, limit = 20): Promise<Re
 // ランキング（V2: stockCountベース）
 // =============================================
 
+let rankingCache: { postedBy: string; totalStocks: number }[] = [];
+let rankingCacheExpiry = 0;
+const RANKING_CACHE_TTL = 10 * 60_000; // 10分
+
 export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string; totalStocks: number }[]> {
-  // 全レストランのstockCountを投稿者別に集計
-  // TODO: データ量が増えたらGSIまたはアグリゲーションテーブルに移行
+  if (Date.now() < rankingCacheExpiry && rankingCache.length > 0) {
+    return rankingCache.slice(0, limit);
+  }
+
   const items: RestaurantV2[] = [];
   let lastKey: Record<string, unknown> | undefined;
   do {
@@ -472,10 +478,11 @@ export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string;
     }
   }
 
-  return [...counts.entries()]
+  rankingCache = [...counts.entries()]
     .map(([postedBy, totalStocks]) => ({ postedBy, totalStocks }))
-    .sort((a, b) => b.totalStocks - a.totalStocks)
-    .slice(0, limit);
+    .sort((a, b) => b.totalStocks - a.totalStocks);
+  rankingCacheExpiry = Date.now() + RANKING_CACHE_TTL;
+  return rankingCache.slice(0, limit);
 }
 
 // =============================================
