@@ -316,42 +316,59 @@ async function expandShortUrl(url: string): Promise<string> {
     const cached = cacheGetExpanded(url);
     if (cached !== undefined) return cached;
 
-    // HEADでLocation取得（最大3回リダイレクト追跡）
-    let current = url;
-    for (let i = 0; i < 3; i++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
-      try {
-        const res = await fetch(current, {
-          method: 'HEAD',
-          redirect: 'manual',
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        const loc = res.headers.get('location');
-        if (!loc) {
-          cacheSetExpanded(url, current);
-          return current;
-        }
-        current = new URL(loc, current).toString();
-        // 既にtiktok.com本体に到達したら終了
-        const nextHost = new URL(current).hostname.replace(/^www\./, '');
-        if (nextHost === 'tiktok.com') {
-          cacheSetExpanded(url, current);
-          return current;
-        }
-      } catch {
-        clearTimeout(timer);
-        // 失敗時はキャッシュしない（次回リトライさせる）
-        return url;
-      }
+    // 同じURLを同時に複数展開しない（in-flight dedup）
+    const inflight = expandInflight.get(url);
+    if (inflight) return inflight;
+
+    const promise = doExpandShortUrl(url);
+    expandInflight.set(url, promise);
+    try {
+      return await promise;
+    } finally {
+      expandInflight.delete(url);
     }
-    cacheSetExpanded(url, current);
-    return current;
   } catch {
     return url;
   }
+}
+
+// in-flight dedup: 同時リクエストの重複排除
+const expandInflight = new Map<string, Promise<string>>();
+
+async function doExpandShortUrl(url: string): Promise<string> {
+  // HEADでLocation取得（最大3回リダイレクト追跡、タイムアウト短縮）
+  let current = url;
+  for (let i = 0; i < 3; i++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    try {
+      const res = await fetch(current, {
+        method: 'HEAD',
+        redirect: 'manual',
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const loc = res.headers.get('location');
+      if (!loc) {
+        cacheSetExpanded(url, current);
+        return current;
+      }
+      current = new URL(loc, current).toString();
+      // 既にtiktok.com本体に到達したら終了
+      const nextHost = new URL(current).hostname.replace(/^www\./, '');
+      if (nextHost === 'tiktok.com') {
+        cacheSetExpanded(url, current);
+        return current;
+      }
+    } catch {
+      clearTimeout(timer);
+      // 失敗時はキャッシュしない（次回リトライさせる）
+      return url;
+    }
+  }
+  cacheSetExpanded(url, current);
+  return current;
 }
 
 /**
@@ -391,12 +408,74 @@ async function deleteUrlIndexEntries(urls: string[]) {
 }
 
 export async function lookupRestaurantByUrl(url: string): Promise<string | null> {
-  const normalized = await normalizeUrlAsync(url);
-  const result = await db.send(new GetCommand({
-    TableName: TABLE.urlIndex,
-    Key: { normalizedUrl: normalized },
-  }));
-  return (result.Item as UrlIndexEntry)?.restaurantId ?? null;
+  // まず同期的に正規化して即座にDB照合を開始
+  const syncNormalized = normalizeUrl(url);
+  const lookups: Promise<string | null>[] = [
+    db.send(new GetCommand({
+      TableName: TABLE.urlIndex,
+      Key: { normalizedUrl: syncNormalized },
+    })).then(r => (r.Item as UrlIndexEntry)?.restaurantId ?? null),
+  ];
+
+  // 短縮URLの場合は展開版も並列で照合
+  const parsed = tryParseUrl(url);
+  const host = parsed?.hostname.replace(/^www\./, '').replace(/^m\./, '') ?? '';
+  const isShortUrl = ['vt.tiktok.com', 'vm.tiktok.com'].includes(host);
+
+  if (isShortUrl) {
+    lookups.push((async () => {
+      const expanded = await normalizeUrlAsync(url);
+      if (expanded === syncNormalized) return null;
+      const result = await db.send(new GetCommand({
+        TableName: TABLE.urlIndex,
+        Key: { normalizedUrl: expanded },
+      }));
+      return (result.Item as UrlIndexEntry)?.restaurantId ?? null;
+    })());
+  }
+
+  // 動画URLからプロフィールURLを推測してフォールバック照合
+  // 例: tiktok.com/@user/video/123 → tiktok.com/@user
+  //     instagram.com/reel/ABC → (ハンドル不明なのでスキップ)
+  const profileUrl = extractProfileUrl(url, host, parsed);
+  if (profileUrl && profileUrl !== syncNormalized) {
+    lookups.push(
+      db.send(new GetCommand({
+        TableName: TABLE.urlIndex,
+        Key: { normalizedUrl: profileUrl },
+      })).then(r => (r.Item as UrlIndexEntry)?.restaurantId ?? null),
+    );
+  }
+
+  const results = await Promise.all(lookups);
+  return results.find(r => r !== null) ?? null;
+}
+
+/**
+ * 動画URLからプロフィールURL（正規化済み）を推測する
+ * TikTok: /@user/video/123 → tiktok.com/@user
+ * YouTube: /watch?v=xxx のチャンネルURLは不明なのでスキップ
+ * Instagram: /reel/xxx はハンドル含まないのでスキップ
+ */
+function extractProfileUrl(url: string, host: string, parsed: URL | null): string | null {
+  if (!parsed) return null;
+
+  if (host === 'tiktok.com') {
+    const match = parsed.pathname.match(/^\/@([^/]+)/);
+    if (match) return `tiktok.com/@${match[1]}`.toLowerCase();
+  }
+
+  // YouTube: /@handle/video → /@handle
+  if (host === 'youtube.com') {
+    const match = parsed.pathname.match(/^\/@([^/]+)/);
+    if (match) return `youtube.com/@${match[1]}`.toLowerCase();
+  }
+
+  return null;
+}
+
+function tryParseUrl(url: string): URL | null {
+  try { return new URL(url); } catch { return null; }
 }
 
 // =============================================
