@@ -13,7 +13,7 @@ import {
   followUser, unfollowUser, getFollowing,
   createFollowRequest, getFollowRequests, deleteFollowRequest,
   createNotification, getNotifications, markNotificationsRead,
-  createShare, getSharesFeed, deleteShare,
+  createShare, getSharesFeed, getRecentShares, deleteShare,
   getInfluencerProfile,
   saveGenreRequest,
 } from '../services/dynamo';
@@ -639,11 +639,33 @@ router.post('/shares', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 router.get('/shares/feed', requireAuth, async (req: AuthRequest, res: Response) => {
-  const following = await getFollowing(req.user!.userId);
-  const followeeIds = following.map((f) => f.followeeId);
-  followeeIds.push(req.user!.userId);
-  const feed = await getSharesFeed(followeeIds);
-  res.json(feed);
+  const userId = req.user!.userId;
+  const following = await getFollowing(userId);
+  const followeeIds = new Set(following.map((f) => f.followeeId));
+  followeeIds.add(userId);
+
+  // フォロー中のシェア + 全体の最新シェアを並行取得
+  const [followingFeed, recentFeed] = await Promise.all([
+    getSharesFeed([...followeeIds]),
+    getRecentShares(50),
+  ]);
+
+  // マージ: フォロー中を先頭に、重複排除
+  const seen = new Set<string>();
+  const merged = [];
+
+  // フォロー中を優先
+  for (const s of followingFeed) {
+    const key = `${s.userId}:${s.createdAt}`;
+    if (!seen.has(key)) { seen.add(key); merged.push(s); }
+  }
+  // 残りの公開シェアを追加
+  for (const s of recentFeed) {
+    const key = `${s.userId}:${s.createdAt}`;
+    if (!seen.has(key)) { seen.add(key); merged.push(s); }
+  }
+
+  res.json(merged.slice(0, 50));
 });
 
 router.delete('/shares/:createdAt', requireAuth, async (req: AuthRequest, res: Response) => {

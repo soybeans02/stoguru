@@ -882,6 +882,19 @@ export async function getSharesFeed(followeeIds: string[], limit = 50) {
   return results.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
 }
 
+/** 全ユーザーの最新シェアを取得（Scan） */
+export async function getRecentShares(limit = 50) {
+  const res = await db.send(new ScanCommand({
+    TableName: TABLE.shares,
+    Limit: limit * 2, // Scanは均等に返さないので多めに取る
+  }));
+  return ((res.Items ?? []) as Array<{
+    userId: string; shareId: string; restaurantName: string;
+    restaurantAddress?: string; lat?: number; lng?: number;
+    comment?: string; createdAt: number; userNickname: string;
+  }>).sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+}
+
 export async function deleteShare(userId: string, createdAt: number) {
   await db.send(new DeleteCommand({
     TableName: TABLE.shares,
