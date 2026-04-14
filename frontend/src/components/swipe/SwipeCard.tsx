@@ -13,6 +13,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<'left' | 'right' | 'up' | null>(null);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const startPos = useRef({ x: 0, y: 0 });
   const offsetRef = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
@@ -22,8 +23,11 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   onSwipeRef.current = onSwipeComplete;
 
   const SWIPE_THRESHOLD = 80;
+  const SWIPE_UP_THRESHOLD = 100;
 
-  // Button-triggered fly out
+  const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0 ? restaurant.photoUrls : [];
+  const photoCount = Math.max(photos.length, 1);
+
   useEffect(() => {
     if (flyOut && !exiting) {
       setExiting(flyOut);
@@ -32,13 +36,13 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     return () => { if (flyOutTimer.current) clearTimeout(flyOutTimer.current); };
   }, [flyOut, exiting]);
 
-  // Reset on card change
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
     offsetRef.current = { x: 0, y: 0 };
     setDragging(false);
     draggingRef.current = false;
     setExiting(null);
+    setPhotoIndex(0);
     if (flyOutTimer.current) { clearTimeout(flyOutTimer.current); flyOutTimer.current = null; }
     if (swipeTimer.current) { clearTimeout(swipeTimer.current); swipeTimer.current = null; }
   }, [restaurant.id]);
@@ -61,15 +65,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     setOffset(newOffset);
   }, []);
 
-  const SWIPE_UP_THRESHOLD = 100;
-
   const handleEnd = useCallback(() => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     setDragging(false);
     const ox = offsetRef.current.x;
     const oy = offsetRef.current.y;
-    // 上スワイプ: Y方向が閾値超え && X方向より大きい
     if (oy < -SWIPE_UP_THRESHOLD && Math.abs(oy) > Math.abs(ox)) {
       setExiting('up');
       swipeTimer.current = setTimeout(() => onSwipeRef.current('up'), 300);
@@ -83,18 +84,10 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     }
   }, []);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    handleStart(e.touches[0].clientX, e.touches[0].clientY);
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    handleMove(e.touches[0].clientX, e.touches[0].clientY);
-  };
+  const onTouchStart = (e: React.TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  const onTouchMove = (e: React.TouchEvent) => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); };
   const onTouchEnd = () => handleEnd();
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    handleStart(e.clientX, e.clientY);
-  };
+  const onMouseDown = (e: React.MouseEvent) => { e.preventDefault(); handleStart(e.clientX, e.clientY); };
 
   useEffect(() => {
     const move = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
@@ -109,6 +102,27 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     };
   }, [handleMove, handleEnd]);
 
+  // 写真左右タップナビゲーション
+  const handlePhotoTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!active || exiting) return;
+    // ドラッグ後はスキップ
+    if (Math.abs(offsetRef.current.x) > 5 || Math.abs(offsetRef.current.y) > 5) return;
+
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
+    const relX = clientX - rect.left;
+    const half = rect.width / 2;
+
+    if (relX < half) {
+      // 左タップ → 前の写真
+      setPhotoIndex(prev => Math.max(0, prev - 1));
+    } else {
+      // 右タップ → 次の写真
+      setPhotoIndex(prev => Math.min(photoCount - 1, prev + 1));
+    }
+  }, [active, exiting, photoCount]);
+
   let transform: string;
   let opacity = 1;
   let transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
@@ -121,13 +135,16 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         : 'translateX(-120%) rotate(-15deg)';
     opacity = 0;
   } else if (active) {
-    transform = `translate(${offset.x}px, ${offset.y}px) rotate(${offset.x * 0.08}deg)`;
+    transform = `translate(${offset.x}px, ${offset.y}px) rotate(${offset.x * 0.06}deg)`;
     opacity = Math.max(0.3, 1 - Math.abs(offset.x) / 400);
     if (dragging) transition = 'none';
   } else {
-    transform = 'scale(0.95) translateY(6px)';
-    opacity = 0.6;
+    transform = 'scale(0.97) translateY(4px)';
+    opacity = 0.5;
   }
+
+  const hasPhoto = photos.length > 0;
+  const currentPhoto = hasPhoto ? photos[photoIndex] || photos[0] : null;
 
   return (
     <div
@@ -146,48 +163,41 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-700">
-        {/* Swipe overlay labels */}
-        {offset.x > 30 && !exiting && (
-          <div className="absolute top-4 left-4 z-20 bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-bold -rotate-12">
-            LIKE
-          </div>
-        )}
-        {offset.x < -30 && !exiting && (
-          <div className="absolute top-4 right-4 z-20 bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold rotate-12">
-            NOPE
-          </div>
-        )}
-        {offset.y < -40 && Math.abs(offset.y) > Math.abs(offset.x) && !exiting && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            MAP
-          </div>
-        )}
-        {exiting === 'right' && (
-          <div className="absolute top-4 left-4 z-20 bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-bold -rotate-12">
-            LIKE
-          </div>
-        )}
-        {exiting === 'left' && (
-          <div className="absolute top-4 right-4 z-20 bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-bold rotate-12">
-            NOPE
-          </div>
-        )}
-        {exiting === 'up' && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            MAP
+      <div
+        className="w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden relative"
+        onClick={handlePhotoTap}
+      >
+        {/* Photo */}
+        {currentPhoto ? (
+          <img
+            src={currentPhoto}
+            alt={restaurant.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+            <span className="text-[120px]">{restaurant.photoEmoji}</span>
           </div>
         )}
 
-        {/* Photo area */}
-        <div className="w-full h-[68%] bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative overflow-hidden">
-          {restaurant.photoUrls && restaurant.photoUrls.length > 0 ? (
-            <img src={restaurant.photoUrls[0]} alt={restaurant.name} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-9xl">{restaurant.photoEmoji}</span>
-          )}
+        {/* 下部グラデーション（濃いめ） */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/[0.88] via-black/50 via-[35%] to-transparent to-[55%]" />
+
+        {/* 写真バー（上端） */}
+        {photoCount > 1 && (
+          <div className="absolute top-1.5 left-2.5 right-2.5 flex gap-[3px] z-[8]">
+            {Array.from({ length: photoCount }).map((_, i) => (
+              <div
+                key={i}
+                className={`flex-1 h-[3px] rounded-sm ${i === photoIndex ? 'bg-white/90' : 'bg-white/30'}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 上部バー（バッジ・動画ボタン） */}
+        <div className="absolute top-0 left-0 right-0 z-[6] flex items-center justify-between px-3.5 pt-4 pb-3">
           {restaurant.influencer?.handle && (
             <a
               href={
@@ -200,7 +210,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm z-10"
+              className="bg-black/60 backdrop-blur-xl text-white px-3 py-1 rounded-full text-[11px] font-semibold max-w-[120px] truncate"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
@@ -208,35 +218,63 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
               {restaurant.influencer.handle}
             </a>
           )}
+          {!restaurant.influencer?.handle && <div />}
           {restaurant.videoUrl && (
             <button
-              className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(restaurant.videoUrl, '_blank');
-              }}
+              className="bg-black/60 backdrop-blur-xl text-white w-[34px] h-[34px] rounded-full flex items-center justify-center"
+              onClick={(e) => { e.stopPropagation(); window.open(restaurant.videoUrl, '_blank'); }}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
             </button>
           )}
+          {!restaurant.videoUrl && <div />}
         </div>
 
-        {/* Info area */}
-        <div className="px-4 py-3">
-          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-0.5">{restaurant.name}</h3>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2.5">
-            {distance} · {restaurant.priceRange}
-          </p>
-          <div className="flex gap-1.5 flex-wrap mb-2.5">
+        {/* Swipe labels */}
+        {offset.x > 30 && !exiting && (
+          <div className="absolute top-8 left-6 z-20 border-[3px] border-green-400 text-green-400 px-4 py-1.5 rounded-lg text-2xl font-black -rotate-12">
+            LIKE
+          </div>
+        )}
+        {offset.x < -30 && !exiting && (
+          <div className="absolute top-8 right-6 z-20 border-[3px] border-red-400 text-red-400 px-4 py-1.5 rounded-lg text-2xl font-black rotate-12">
+            NOPE
+          </div>
+        )}
+        {offset.y < -40 && Math.abs(offset.y) > Math.abs(offset.x) && !exiting && (
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 border-[3px] border-blue-400 text-blue-400 px-4 py-1.5 rounded-lg text-2xl font-black flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            MAP
+          </div>
+        )}
+        {exiting === 'right' && (
+          <div className="absolute top-8 left-6 z-20 border-[3px] border-green-400 text-green-400 px-4 py-1.5 rounded-lg text-2xl font-black -rotate-12">LIKE</div>
+        )}
+        {exiting === 'left' && (
+          <div className="absolute top-8 right-6 z-20 border-[3px] border-red-400 text-red-400 px-4 py-1.5 rounded-lg text-2xl font-black rotate-12">NOPE</div>
+        )}
+        {exiting === 'up' && (
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 border-[3px] border-blue-400 text-blue-400 px-4 py-1.5 rounded-lg text-2xl font-black">MAP</div>
+        )}
+
+        {/* 店名・距離・値段・タグ */}
+        <div className="absolute bottom-[72px] left-0 right-0 px-5 z-10">
+          <div className="flex items-baseline gap-2 mb-2">
+            <h3 className="text-xl font-bold text-white drop-shadow-lg">{restaurant.name}</h3>
+            <span className="text-xs text-white/55 whitespace-nowrap">
+              {distance}{restaurant.priceRange ? ` · ${restaurant.priceRange}` : ''}
+            </span>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
             {(restaurant.genres && restaurant.genres.length > 0 ? restaurant.genres : [restaurant.genre]).filter(Boolean).map((g) => (
-              <span key={g} className="bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded text-[11px]">
+              <span key={g} className="bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-medium">
                 {g}
               </span>
             ))}
             {restaurant.scene.slice(0, 2).map((s) => (
-              <span key={s} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-[11px]">
+              <span key={s} className="bg-white/15 backdrop-blur-sm text-white/80 px-2.5 py-1 rounded-full text-xs">
                 {s}
               </span>
             ))}

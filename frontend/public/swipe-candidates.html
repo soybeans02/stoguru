@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スワイプカード候補</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f5f5f5; color: #333; font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 10px; font-size: 18px; color: #666; }
+  .row-label { text-align: center; color: #999; font-size: 13px; margin: 30px 0 16px; }
+  .grid { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; }
+  .candidate { width: 300px; }
+  .candidate h2 { text-align: center; margin-bottom: 10px; font-size: 13px; color: #888; }
+
+  .card { width: 300px; height: 500px; border-radius: 20px; overflow: hidden; position: relative; }
+  .card img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* カード内スワイプボタン */
+  .swipe-buttons {
+    position: absolute; bottom: 14px; left: 0; right: 0; z-index: 20;
+    display: flex; justify-content: center; align-items: center; gap: 12px;
+  }
+  .sw-btn {
+    border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.15s;
+    backdrop-filter: blur(12px);
+  }
+  .sw-btn:active { transform: scale(0.9); }
+  .sw-btn.sm { width: 36px; height: 36px; background: rgba(255,255,255,0.2); }
+  .sw-btn.md { width: 48px; height: 48px; }
+  .sw-btn.nope { background: rgba(255,255,255,0.2); }
+  .sw-btn.like { background: rgba(249,115,22,0.35); }
+  .sw-btn.map { background: rgba(59,130,246,0.25); }
+
+  /* 上部バー共通 */
+  .top-row {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 6;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 14px 12px;
+  }
+  /* 写真バー（カード上端） */
+  .photo-bars {
+    position: absolute; top: 6px; left: 10px; right: 10px;
+    display: flex; gap: 3px; z-index: 8;
+  }
+  .bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.3); }
+  .bar.active { background: rgba(255,255,255,0.9); }
+
+  /* 共通パーツ */
+  .influencer-badge {
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(12px);
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; color: #fff;
+    flex-shrink: 0;
+    max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .video-btn {
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(12px);
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: none; color: #fff; cursor: pointer; flex-shrink: 0;
+  }
+
+  /* ── B1: 現行ベース ── */
+  .card-b1 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b1 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 20px; }
+  .card-b1 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b1 .name { font-size: 20px; font-weight: 700; color: #fff; }
+  .card-b1 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b1 .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .card-b1 .tag {
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; color: #fff;
+  }
+
+  /* ── B2: 距離バッジ上部 ── */
+  .card-b2 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b2 .distance-pill {
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(12px);
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; color: #fff;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .card-b2 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 20px; }
+  .card-b2 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b2 .name { font-size: 20px; font-weight: 700; color: #fff; }
+  .card-b2 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b2 .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .card-b2 .tag {
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; color: #fff;
+  }
+
+  /* ── B3: ストック数バッジ ── */
+  .card-b3 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b3 .stock-pill {
+    background: rgba(249,115,22,0.85); backdrop-filter: blur(12px);
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff;
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  }
+  .card-b3 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 20px; }
+  .card-b3 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b3 .name { font-size: 20px; font-weight: 800; color: #fff; }
+  .card-b3 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b3 .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .card-b3 .tag {
+    background: rgba(255,255,255,0.18); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; color: #fff;
+  }
+
+  /* ── B4: ボーダータグ + 大きめ店名 ── */
+  .card-b4 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b4 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 22px; }
+  .card-b4 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b4 .name { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+  .card-b4 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b4 .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-b4 .tag {
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ── B5: 写真ドット付き ── */
+  .card-b5 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b5 .photo-counter {
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; color: #fff;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .card-b5 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 20px; }
+  .card-b5 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b5 .name { font-size: 20px; font-weight: 700; color: #fff; }
+  .card-b5 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b5 .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .card-b5 .tag {
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; color: #fff;
+  }
+
+  /* ── B6: アクセントライン ── */
+  .card-b6 .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 35%, transparent 55%);
+  }
+  .card-b6 .info { position: absolute; bottom: 72px; left: 0; right: 0; padding: 0 22px; }
+  .card-b6 .accent-line {
+    width: 32px; height: 3px; background: #f97316; border-radius: 2px; margin-bottom: 10px;
+  }
+  .card-b6 .name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-b6 .name { font-size: 22px; font-weight: 800; color: #fff; }
+  .card-b6 .sub { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
+  .card-b6 .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .card-b6 .tag {
+    background: rgba(255,255,255,0.18); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; color: #fff;
+  }
+</style>
+</head>
+<body>
+<h1>Bベース候補（ボタン一体型）</h1>
+
+<div class="row-label">─── Row 1 ───</div>
+<div class="grid">
+
+  <!-- B1 -->
+  <div class="candidate">
+    <h2>B1: 現行ベース</h2>
+    <div class="card card-b1">
+      <img src="https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@ramen_taro</div>
+        <button class="video-btn">▶</button>
+      </div>
+      <div class="info">
+        <div class="name-row">
+          <div class="name">麺屋 一燈</div>
+          <div class="sub">350m · ¥1,000〜2,000</div>
+        </div>
+        <div class="tags">
+          <span class="tag">ラーメン</span>
+          <span class="tag">つけ麺</span>
+          <span class="tag">行列店</span>
+          <span class="tag">深夜営業</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm" title="戻す"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B2 -->
+  <div class="candidate">
+    <h2>B2: 距離バッジ上部</h2>
+    <div class="card card-b2">
+      <img src="https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@ramen_taro</div>
+        <div class="distance-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          350m
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="name-row">
+          <div class="name">麺屋 一燈</div>
+          <div class="sub">350m · ¥1,000〜2,000</div>
+        </div>
+        <div class="tags">
+          <span class="tag">ラーメン</span>
+          <span class="tag">つけ麺</span>
+          <span class="tag">行列店</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B3 -->
+  <div class="candidate">
+    <h2>B3: ストック数バッジ</h2>
+    <div class="card card-b3">
+      <img src="https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@ramen_taro</div>
+        <div class="stock-pill">🔥 128</div>
+      </div>
+      <div class="info">
+        <div class="name-row">
+          <div class="name">麺屋 一燈</div>
+          <div class="sub">350m · ¥1,000〜2,000</div>
+        </div>
+        <div class="tags">
+          <span class="tag">つけ麺</span>
+          <span class="tag">行列店</span>
+          <span class="tag">深夜営業</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row-label">─── Row 2 ───</div>
+<div class="grid">
+
+  <!-- B4 -->
+  <div class="candidate">
+    <h2>B4: ボーダータグ + 大文字</h2>
+    <div class="card card-b4">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@sushi_master</div>
+        <button class="video-btn">▶</button>
+      </div>
+      <div class="info">
+        <div class="name-row">
+          <div class="name">鮨 さいとう</div>
+          <div class="sub">1.2km · ¥15,000〜</div>
+        </div>
+        <div class="tags">
+          <span class="tag">寿司</span>
+          <span class="tag">カウンター</span>
+          <span class="tag">予約困難</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B5 -->
+  <div class="candidate">
+    <h2>B5: 写真ドット付き</h2>
+    <div class="card card-b5">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@sushi_master</div>
+        <div class="photo-counter">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          1/4
+        </div>
+      </div>
+      <div class="info">
+        <div class="name-row">
+          <div class="name">鮨 さいとう</div>
+          <div class="sub">1.2km · ¥15,000〜</div>
+        </div>
+        <div class="tags">
+          <span class="tag">寿司</span>
+          <span class="tag">カウンター</span>
+          <span class="tag">予約困難</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B6 -->
+  <div class="candidate">
+    <h2>B6: アクセントライン</h2>
+    <div class="card card-b6">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=900&fit=crop" alt="">
+      <div class="overlay"></div>
+      <div class="photo-bars"><div class="bar active"></div><div class="bar"></div><div class="bar"></div></div>
+      <div class="top-row">
+        <div class="influencer-badge">@sushi_master</div>
+        <div style="width:34px"></div>
+      </div>
+      <div class="info">
+        <div class="accent-line"></div>
+        <div class="name-row">
+          <div class="name">鮨 さいとう</div>
+          <div class="sub">1.2km · ¥15,000〜</div>
+        </div>
+        <div class="tags">
+          <span class="tag">寿司</span>
+          <span class="tag">カウンター</span>
+          <span class="tag">予約困難</span>
+        </div>
+      </div>
+      <div class="swipe-buttons">
+        <button class="sw-btn sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="sw-btn md nope"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="sw-btn md like"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+        <button class="sw-btn sm map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -418,32 +418,41 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
                   flyOut={buttonFlyOut}
                 />
               )}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-10 pt-6 pb-4 flex-shrink-0">
-              <button
-                onClick={handleUndo}
-                disabled={history.length === 0}
-                className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+              {/* Swipe Buttons (overlaid inside card) */}
+              <div
+                className="absolute bottom-3.5 left-0 right-0 z-20 flex items-center justify-center gap-5"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-              </button>
-              <button
-                onClick={() => handleButtonSwipe('left')}
-                disabled={!!buttonFlyOut}
-                className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-              <button
-                onClick={() => handleButtonSwipe('right')}
-                disabled={!!buttonFlyOut}
-                className="w-14 h-14 rounded-full bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="#f97316" stroke="#f97316" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-              </button>
-              <div className="w-10" /> {/* spacer for symmetry */}
+                <button
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                  className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
+                <button
+                  onClick={() => handleButtonSwipe('left')}
+                  disabled={!!buttonFlyOut}
+                  className="w-[52px] h-[52px] rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <button
+                  onClick={() => handleButtonSwipe('right')}
+                  disabled={!!buttonFlyOut}
+                  className="w-[52px] h-[52px] rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#f97316" stroke="#f97316" strokeWidth="0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                </button>
+                <button
+                  onClick={() => handleButtonSwipe('up')}
+                  disabled={!!buttonFlyOut}
+                  className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </button>
+              </div>
             </div>
           </>
         )}
