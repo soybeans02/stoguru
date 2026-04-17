@@ -791,7 +791,7 @@ router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Respons
 // ─── 保存ランキング（投稿者別） ───
 
 router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
-  const ranking = await getStockRankingV2(30);
+  const ranking = await getStockRankingV2(5);
   const withProfiles = await Promise.all(ranking.map(async (r) => {
     try {
       const profile = await getInfluencerProfile(r.postedBy);
