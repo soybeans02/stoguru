@@ -42,9 +42,16 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
   const results = await Promise.all(cells.map((cell) => queryRestaurantsByGeohash(cell)));
   const allRestaurants = results.flat();
 
-  // 距離フィルタ + 自分の投稿を除外 + hidden除外
+  // 距離フィルタ + 自分の投稿を除外 + hidden除外 + 写真なし除外
   const nearby = allRestaurants
-    .filter((r) => r.lat != null && r.lng != null && r.postedBy !== userId && r.visibility !== 'hidden' && r.visibility !== 'private')
+    .filter((r) =>
+      r.lat != null &&
+      r.lng != null &&
+      r.postedBy !== userId &&
+      r.visibility !== 'hidden' &&
+      r.visibility !== 'private' &&
+      Array.isArray(r.photoUrls) && r.photoUrls.length > 0
+    )
     .map((r) => ({
       ...r,
       distanceMeters: haversineDistance(lat, lng, r.lat!, r.lng!),
