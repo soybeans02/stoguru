@@ -15,6 +15,9 @@ import {
   AdminEnableUserCommand,
   AdminResetUserPasswordCommand,
   AdminDeleteUserCommand,
+  UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
+  GetUserAttributeVerificationCodeCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const client = new CognitoIdentityProviderClient({ region: 'ap-northeast-1' });
@@ -218,16 +221,32 @@ export async function updateNickname(userId: string, nickname: string) {
 
 // ─── メールアドレス変更 ───
 
-export async function changeEmail(userId: string, newEmail: string) {
-  const user = await getUserById(userId);
-  if (!user?.username) throw new Error('ユーザーが見つかりません');
-  await client.send(new AdminUpdateUserAttributesCommand({
-    UserPoolId: getUserPoolId(),
-    Username: user.username,
+// 新しいメールアドレスに確認コードを送信する
+// ユーザー自身のaccessTokenで更新すると、Cognitoが自動的に新アドレスへ
+// 検証コードをメール送信する（email_verifiedは自動的にfalseになる）
+export async function requestEmailChange(accessToken: string, newEmail: string) {
+  await client.send(new UpdateUserAttributesCommand({
+    AccessToken: accessToken,
     UserAttributes: [
       { Name: 'email', Value: newEmail },
-      { Name: 'email_verified', Value: 'true' },
     ],
+  }));
+}
+
+// 新しいメールアドレスに届いたコードで確認してメール変更を確定する
+export async function verifyEmailChange(accessToken: string, code: string) {
+  await client.send(new VerifyUserAttributeCommand({
+    AccessToken: accessToken,
+    AttributeName: 'email',
+    Code: code,
+  }));
+}
+
+// 確認コードを再送信する
+export async function resendEmailVerificationCode(accessToken: string) {
+  await client.send(new GetUserAttributeVerificationCodeCommand({
+    AccessToken: accessToken,
+    AttributeName: 'email',
   }));
 }
 

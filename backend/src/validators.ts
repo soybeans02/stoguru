@@ -46,6 +46,10 @@ export const changeEmailSchema = z.object({
   currentPassword: z.string().min(1, '現在のパスワードは必須です').max(128),
 });
 
+export const verifyEmailSchema = z.object({
+  code: z.string().min(1, '確認コードは必須です').max(20).trim(),
+});
+
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({
@@ -83,7 +87,7 @@ export const restaurantSchema = z.object({
   status: z.enum(['wishlist', 'visited']).default('wishlist'),
   visitedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
+  updatedAt: z.union([z.string(), z.number()]).optional(),
 });
 
 // ─── ユーザー設定 ───

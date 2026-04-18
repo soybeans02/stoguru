@@ -26,7 +26,11 @@ import type {
 import { encode as geohashEncode } from '../utils/geohash';
 
 const rawClient = new DynamoDBClient({ region: 'ap-northeast-1' });
-const db = DynamoDBDocumentClient.from(rawClient);
+const db = DynamoDBDocumentClient.from(rawClient, {
+  marshallOptions: {
+    removeUndefinedValues: true,
+  },
+});
 
 const TABLE = {
   // 新テーブル（V2）

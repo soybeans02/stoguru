@@ -261,17 +261,20 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
   const existingStock = await getUserStock(userId, restaurantId);
   const isNew = !existingStock;
 
-  await putUserStock(userId, {
+  // undefined を除去（DynamoDB DocumentClient は undefined を marshal できない）
+  const stockPayload: Record<string, unknown> = {
     restaurantId,
-    pinned: data.pinned,
-    notes: data.notes,
-    landmarkMemo: data.landmarkMemo,
-    review: data.review,
     status: data.status || 'wishlist',
-    visitedAt: data.visitedAt,
-    photoEmoji: data.photoEmoji,
     createdAt: existingStock?.createdAt || data.createdAt || new Date().toISOString(),
-  });
+  };
+  if (data.pinned !== undefined) stockPayload.pinned = data.pinned;
+  if (data.notes !== undefined) stockPayload.notes = data.notes;
+  if (data.landmarkMemo !== undefined) stockPayload.landmarkMemo = data.landmarkMemo;
+  if (data.review !== undefined && data.review !== null) stockPayload.review = data.review;
+  if (data.visitedAt !== undefined && data.visitedAt !== null) stockPayload.visitedAt = data.visitedAt;
+  if (data.photoEmoji !== undefined) stockPayload.photoEmoji = data.photoEmoji;
+
+  await putUserStock(userId, stockPayload as any);
 
   // 新規保存の場合stockCountを+1
   if (isNew) {
