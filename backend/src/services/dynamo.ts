@@ -520,12 +520,13 @@ export async function searchRestaurantsV2(query: string, limit = 20): Promise<Re
   const q = query.toLowerCase();
   const cache = await getSearchCache();
   return cache
-    .filter((r) =>
-      r.visibility !== 'hidden' &&
-      (r.nameLower.includes(q) ||
-       r.address?.toLowerCase().includes(q) ||
-       r.genres?.some((g) => g.toLowerCase().includes(q)))
-    )
+    .filter((r) => {
+      if (r.visibility === 'hidden') return false;
+      const nameLower = (r.nameLower ?? r.name?.toLowerCase() ?? '');
+      const addressLower = r.address?.toLowerCase() ?? '';
+      const genreMatch = (r.genres ?? []).some((g) => g?.toLowerCase().includes(q));
+      return nameLower.includes(q) || addressLower.includes(q) || genreMatch;
+    })
     .slice(0, limit);
 }
 

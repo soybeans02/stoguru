@@ -255,6 +255,8 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+    // 新規作成時は検索キャッシュを無効化して次回検索で反映
+    invalidateSearchCache();
   }
 
   // UserStock を作成/更新
