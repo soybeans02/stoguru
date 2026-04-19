@@ -31,8 +31,14 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
   const v = validate(nearbySchema, req.query);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { lat, lng, radius } = v.data;
-  const limit = Math.min(Number(req.query.limit) || 50, 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const limit = Math.min(Number(req.query.limit) || 20, 100);
+  // 既に取得済みの ID を除外するためのパラメータ（カンマ区切り）
+  const excludeIds = new Set(
+    ((req.query.exclude as string) ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
   const userId = req.user!.userId;
 
   // geohash precision 4の9セルをクエリ（約40km×20km × 9 = 広域カバー）
@@ -42,7 +48,7 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
   const results = await Promise.all(cells.map((cell) => queryRestaurantsByGeohash(cell)));
   const allRestaurants = results.flat();
 
-  // 距離フィルタ + 自分の投稿を除外 + hidden除外 + 写真なし除外
+  // 距離フィルタ + 自分の投稿を除外 + hidden除外 + 写真なし除外 + 既取得除外
   const nearby = allRestaurants
     .filter((r) =>
       r.lat != null &&
@@ -50,14 +56,20 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       r.postedBy !== userId &&
       r.visibility !== 'hidden' &&
       r.visibility !== 'private' &&
-      Array.isArray(r.photoUrls) && r.photoUrls.length > 0
+      Array.isArray(r.photoUrls) && r.photoUrls.length > 0 &&
+      !excludeIds.has(r.restaurantId)
     )
     .map((r) => ({
       ...r,
       distanceMeters: haversineDistance(lat, lng, r.lat!, r.lng!),
     }))
-    .filter((r) => r.distanceMeters <= radius)
-    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+    .filter((r) => r.distanceMeters <= radius);
+
+  // ランダム順にシャッフル（Fisher-Yates）
+  for (let i = nearby.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nearby[i], nearby[j]] = [nearby[j], nearby[i]];
+  }
 
   // インフルエンサープロフィールをまとめて取得
   const influencerIds = [...new Set(nearby.map((r) => r.postedBy))];
@@ -109,13 +121,13 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
     };
   });
 
-  const paged = feed.slice(offset, offset + limit);
+  // シャッフル済みの先頭 limit 件を返す
+  const paged = feed.slice(0, limit);
   res.json({
     items: paged,
     total: feed.length,
-    offset,
     limit,
-    hasMore: offset + limit < feed.length,
+    hasMore: feed.length > limit,
   });
 });
 
