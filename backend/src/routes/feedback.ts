@@ -20,8 +20,10 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
       replyEmail: v.data.replyEmail,
     });
     res.json({ message: 'フィードバックを送信しました', id: fb.id });
-  } catch {
-    res.status(500).json({ error: '送信に失敗しました' });
+  } catch (err) {
+    console.error('Feedback save failed:', err);
+    const msg = err instanceof Error ? err.message : '送信に失敗しました';
+    res.status(500).json({ error: msg });
   }
 });
 
