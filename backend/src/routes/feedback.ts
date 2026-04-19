@@ -17,6 +17,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
       email: req.user!.email,
       message: v.data.message,
       category: v.data.category,
+      replyEmail: v.data.replyEmail,
     });
     res.json({ message: 'フィードバックを送信しました', id: fb.id });
   } catch {

@@ -1000,6 +1000,7 @@ export interface FeedbackItem {
   category: string;
   createdAt: number;
   read: boolean;
+  replyEmail?: string;
 }
 
 export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt' | 'read'>): Promise<FeedbackItem> {

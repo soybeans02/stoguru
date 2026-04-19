@@ -28,6 +28,7 @@ interface FeedbackItem {
   category: 'bug' | 'feature' | 'support' | 'other';
   createdAt: number;
   read: boolean;
+  replyEmail?: string;
 }
 
 const FEEDBACK_META = {
@@ -37,7 +38,102 @@ const FEEDBACK_META = {
   other: { label: 'その他', icon: MessageCircle, color: 'text-blue-300', bg: 'bg-blue-900/30' },
 } as const;
 
-function FeedbackSection({ token }: { token: string }) {
+// 共通のアイテム表示コンポーネント
+function FeedbackCard({
+  item,
+  onMarkRead,
+  onRemove,
+  showReplyEmail,
+}: {
+  item: FeedbackItem;
+  onMarkRead: (id: string) => void;
+  onRemove: (id: string) => void;
+  showReplyEmail?: boolean;
+}) {
+  const meta = FEEDBACK_META[item.category] ?? FEEDBACK_META.other;
+  const Icon = meta.icon;
+  return (
+    <div className={`bg-gray-800 rounded-xl p-4 space-y-2 border ${item.read ? 'border-gray-700' : 'border-orange-500/50'}`}>
+      <div className="flex items-center gap-2">
+        <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${meta.bg} ${meta.color} font-medium`}>
+          <Icon size={11} /> {meta.label}
+        </span>
+        {!item.read && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">NEW</span>
+        )}
+        <span className="text-xs text-gray-500 ml-auto">
+          {new Date(item.createdAt).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+
+      <div className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+        {item.message}
+      </div>
+
+      <div className="flex flex-col gap-1 text-xs text-gray-500 pt-1 border-t border-gray-700">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-400">{item.nickname}</span>
+          <span>{item.email}</span>
+        </div>
+        {showReplyEmail && item.replyEmail && (
+          <div className="flex items-center gap-1 text-orange-300">
+            <Mail size={11} />
+            <span>返信用: </span>
+            <a href={`mailto:${item.replyEmail}`} className="underline hover:text-orange-200">
+              {item.replyEmail}
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        {!item.read ? (
+          <button
+            onClick={() => onMarkRead(item.id)}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/50 text-blue-300 hover:bg-blue-900"
+          >
+            <MailOpen size={12} /> 既読にする
+          </button>
+        ) : (
+          <span className="flex items-center gap-1 text-xs px-2 py-1 text-gray-500">
+            <Mail size={12} /> 既読
+          </span>
+        )}
+        {showReplyEmail && (item.replyEmail || item.email) && (
+          <a
+            href={`mailto:${item.replyEmail || item.email}?subject=${encodeURIComponent('Re: stoguru サポート')}`}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-green-900/50 text-green-300 hover:bg-green-900"
+          >
+            <Mail size={12} /> 返信する
+          </a>
+        )}
+        <button
+          onClick={() => onRemove(item.id)}
+          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-red-900/50 text-red-300 hover:bg-red-900"
+        >
+          <Trash2 size={12} /> 削除
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// フィードバック / サポート の共通ベースセクション
+function FeedbackBaseSection({
+  token,
+  title,
+  icon: HeaderIcon,
+  categories,
+  showReplyEmail,
+  emptyLabel,
+}: {
+  token: string;
+  title: string;
+  icon: typeof MessageSquare;
+  categories: FeedbackItem['category'][];
+  showReplyEmail?: boolean;
+  emptyLabel: string;
+}) {
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('unread');
@@ -50,11 +146,11 @@ function FeedbackSection({ token }: { token: string }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setItems(data.items ?? []);
+        setItems((data.items ?? []).filter((i: FeedbackItem) => categories.includes(i.category)));
       }
     } catch {/* noop */}
     finally { setLoading(false); }
-  }, [token]);
+  }, [token, categories]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -69,7 +165,7 @@ function FeedbackSection({ token }: { token: string }) {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('このフィードバックを削除しますか？')) return;
+    if (!confirm('この項目を削除しますか？')) return;
     try {
       await fetch(`${API}/feedback/${id}`, {
         method: 'DELETE',
@@ -88,8 +184,8 @@ function FeedbackSection({ token }: { token: string }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
-        <MessageSquare size={18} />
-        <h2 className="text-lg font-semibold">フィードバック</h2>
+        <HeaderIcon size={18} />
+        <h2 className="text-lg font-semibold">{title}</h2>
         {unreadCount > 0 && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">
             {unreadCount}件未読
@@ -119,63 +215,47 @@ function FeedbackSection({ token }: { token: string }) {
 
       {visible.length === 0 ? (
         <p className="text-gray-500 text-center py-8 text-sm">
-          {filter === 'unread' ? '未読のフィードバックはありません' : 'フィードバックはまだありません'}
+          {filter === 'unread' ? `未読の${emptyLabel}はありません` : `${emptyLabel}はまだありません`}
         </p>
       ) : (
         <div className="space-y-2">
-          {visible.map((f) => {
-            const meta = FEEDBACK_META[f.category] ?? FEEDBACK_META.other;
-            const Icon = meta.icon;
-            return (
-              <div key={f.id} className={`bg-gray-800 rounded-xl p-4 space-y-2 border ${f.read ? 'border-gray-700' : 'border-orange-500/50'}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${meta.bg} ${meta.color} font-medium`}>
-                    <Icon size={11} /> {meta.label}
-                  </span>
-                  {!f.read && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">NEW</span>
-                  )}
-                  <span className="text-xs text-gray-500 ml-auto">
-                    {new Date(f.createdAt).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-
-                <div className="text-sm text-gray-300 whitespace-pre-wrap break-words">
-                  {f.message}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-gray-500 pt-1 border-t border-gray-700">
-                  <span className="font-medium text-gray-400">{f.nickname}</span>
-                  <span>{f.email}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  {!f.read && (
-                    <button
-                      onClick={() => markRead(f.id)}
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/50 text-blue-300 hover:bg-blue-900"
-                    >
-                      <MailOpen size={12} /> 既読にする
-                    </button>
-                  )}
-                  {f.read && (
-                    <span className="flex items-center gap-1 text-xs px-2 py-1 text-gray-500">
-                      <Mail size={12} /> 既読
-                    </span>
-                  )}
-                  <button
-                    onClick={() => remove(f.id)}
-                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-red-900/50 text-red-300 hover:bg-red-900"
-                  >
-                    <Trash2 size={12} /> 削除
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {visible.map((item) => (
+            <FeedbackCard
+              key={item.id}
+              item={item}
+              onMarkRead={markRead}
+              onRemove={remove}
+              showReplyEmail={showReplyEmail}
+            />
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+function FeedbackSection({ token }: { token: string }) {
+  return (
+    <FeedbackBaseSection
+      token={token}
+      title="フィードバック"
+      icon={MessageSquare}
+      categories={['bug', 'feature', 'other']}
+      emptyLabel="フィードバック"
+    />
+  );
+}
+
+function SupportSection({ token }: { token: string }) {
+  return (
+    <FeedbackBaseSection
+      token={token}
+      title="サポート"
+      icon={Mail}
+      categories={['support']}
+      showReplyEmail
+      emptyLabel="サポート問い合わせ"
+    />
   );
 }
 
@@ -400,6 +480,7 @@ export function AdminPage() {
       </header>
 
       <div className="p-4 space-y-6 overflow-y-auto flex-1">
+        <SupportSection token={token} />
         <FeedbackSection token={token} />
 
         {stats && <StatsSection stats={stats} userCount={users.length} />}
