@@ -153,7 +153,7 @@ export const influencerRestaurantSchema = z.object({
 // ─── フィードバック ───
 
 export const feedbackSchema = z.object({
-  category: z.enum(['bug', 'feature', 'other']).default('other'),
+  category: z.enum(['bug', 'feature', 'support', 'other']).default('other'),
   message: z.string().min(1, 'メッセージを入力してください').max(2000, 'メッセージは2000文字以内にしてください').trim(),
 });
 

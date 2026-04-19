@@ -25,7 +25,7 @@ interface FeedbackItem {
   nickname: string;
   email: string;
   message: string;
-  category: 'bug' | 'feature' | 'other';
+  category: 'bug' | 'feature' | 'support' | 'other';
   createdAt: number;
   read: boolean;
 }
@@ -33,6 +33,7 @@ interface FeedbackItem {
 const FEEDBACK_META = {
   bug: { label: '不具合', icon: Bug, color: 'text-red-300', bg: 'bg-red-900/30' },
   feature: { label: '機能要望', icon: Lightbulb, color: 'text-yellow-300', bg: 'bg-yellow-900/30' },
+  support: { label: 'サポート', icon: Mail, color: 'text-orange-300', bg: 'bg-orange-900/30' },
   other: { label: 'その他', icon: MessageCircle, color: 'text-blue-300', bg: 'bg-blue-900/30' },
 } as const;
 
