@@ -150,6 +150,13 @@ export const influencerRestaurantSchema = z.object({
   visibility: z.enum(['public', 'mutual', 'hidden']).default('public'),
 });
 
+// ─── フィードバック ───
+
+export const feedbackSchema = z.object({
+  category: z.enum(['bug', 'feature', 'other']).default('other'),
+  message: z.string().min(1, 'メッセージを入力してください').max(2000, 'メッセージは2000文字以内にしてください').trim(),
+});
+
 // ─── 写真アップロード ───
 
 export const presignSchema = z.object({

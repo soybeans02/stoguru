@@ -6,7 +6,7 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
-import { deleteAllUserData, saveStats } from '../services/dynamo';
+import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback } from '../services/dynamo';
 import { invalidateTokenCache } from '../middleware/auth';
 import { stats, userActivity } from '../state';
 
@@ -169,6 +169,39 @@ router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'ユーザーの削除に失敗しました' });
+  }
+});
+
+// フィードバック一覧
+router.get('/feedback', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const items = await listFeedback();
+    res.json({ items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'フィードバック取得に失敗しました' });
+  }
+});
+
+// フィードバック既読化
+router.patch('/feedback/:id/read', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await markFeedbackRead(req.params.id as string);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '更新に失敗しました' });
+  }
+});
+
+// フィードバック削除
+router.delete('/feedback/:id', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await deleteFeedback(req.params.id as string);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '削除に失敗しました' });
   }
 });
 

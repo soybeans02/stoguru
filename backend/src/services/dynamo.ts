@@ -47,6 +47,7 @@ const TABLE = {
   shares: 'GourmetStock_Shares',
   influencerProfiles: 'GourmetStock_InfluencerProfiles',
   influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
+  feedback: 'GourmetStock_Feedback',
 } as const;
 
 // =============================================
@@ -983,6 +984,62 @@ export async function deleteShare(userId: string, createdAt: number) {
   await db.send(new DeleteCommand({
     TableName: TABLE.shares,
     Key: { userId, createdAt },
+  }));
+}
+
+// =============================================
+// フィードバック
+// =============================================
+
+export interface FeedbackItem {
+  id: string;
+  userId: string;
+  nickname: string;
+  email: string;
+  message: string;
+  category: string;
+  createdAt: number;
+  read: boolean;
+}
+
+export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt' | 'read'>): Promise<FeedbackItem> {
+  const id = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const record: FeedbackItem = {
+    ...item,
+    id,
+    createdAt: Date.now(),
+    read: false,
+  };
+  await db.send(new PutCommand({
+    TableName: TABLE.feedback,
+    Item: record,
+  }));
+  return record;
+}
+
+export async function listFeedback(limit = 200): Promise<FeedbackItem[]> {
+  const result = await db.send(new ScanCommand({
+    TableName: TABLE.feedback,
+    Limit: limit,
+  }));
+  const items = (result.Items ?? []) as FeedbackItem[];
+  return items.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function markFeedbackRead(id: string) {
+  await db.send(new UpdateCommand({
+    TableName: TABLE.feedback,
+    Key: { id },
+    UpdateExpression: 'SET #r = :r',
+    ExpressionAttributeNames: { '#r': 'read' },
+    ExpressionAttributeValues: { ':r': true },
+  }));
+}
+
+export async function deleteFeedback(id: string) {
+  await db.send(new DeleteCommand({
+    TableName: TABLE.feedback,
+    Key: { id },
   }));
 }
 
