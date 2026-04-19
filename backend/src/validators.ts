@@ -155,7 +155,11 @@ export const influencerRestaurantSchema = z.object({
 export const feedbackSchema = z.object({
   category: z.enum(['bug', 'feature', 'support', 'other']).default('other'),
   message: z.string().min(1, 'メッセージを入力してください').max(2000, 'メッセージは2000文字以内にしてください').trim(),
-  replyEmail: z.string().email('有効なメールアドレスを入力してください').max(254).optional(),
+  // Swift の JSONEncoder は nil を null として送るので nullable で受ける
+  replyEmail: z.union([
+    z.string().email('有効なメールアドレスを入力してください').max(254),
+    z.null(),
+  ]).optional().transform(v => v ?? undefined),
 });
 
 // ─── 写真アップロード ───
