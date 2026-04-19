@@ -1005,24 +1005,24 @@ export interface FeedbackItem {
 
 export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt' | 'read'>): Promise<FeedbackItem> {
   const id = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  // id を先頭に配置し、spread で上書きされないよう明示
-  const itemToWrite: Record<string, unknown> = {
+  const createdAt = Date.now();
+  const record: FeedbackItem = {
     id,
     userId: item.userId,
     nickname: item.nickname,
     email: item.email,
     message: item.message,
     category: item.category,
-    createdAt: Date.now(),
+    createdAt,
     read: false,
+    ...(item.replyEmail ? { replyEmail: item.replyEmail } : {}),
   };
-  if (item.replyEmail) itemToWrite.replyEmail = item.replyEmail;
-
+  console.log('[Feedback] writing item with id:', id, 'keys:', Object.keys(record));
   await db.send(new PutCommand({
     TableName: TABLE.feedback,
-    Item: itemToWrite,
+    Item: record,
   }));
-  return itemToWrite as unknown as FeedbackItem;
+  return record;
 }
 
 export async function listFeedback(limit = 200): Promise<FeedbackItem[]> {
