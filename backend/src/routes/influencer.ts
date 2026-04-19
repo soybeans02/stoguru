@@ -45,8 +45,9 @@ router.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
 
 router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
   const items = await queryRestaurantsByPostedBy(req.user!.userId);
-  // privateはストック由来（本人が投稿したものではない）なので除外
-  const filtered = items.filter((r) => r.visibility !== 'private');
+  // private はストック由来（本人が投稿したものではない）なので除外
+  // hidden は削除済み（論理削除）なので一覧に表示しない
+  const filtered = items.filter((r) => r.visibility !== 'private' && r.visibility !== 'hidden');
   // 旧APIとの互換性のためフィールドをマッピング
   const mapped = filtered.map((r) => ({
     restaurantId: r.restaurantId,
