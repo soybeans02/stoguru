@@ -1,4 +1,5 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
 import {
   DynamoDBDocumentClient,
   PutCommand,
@@ -1017,10 +1018,14 @@ export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt'
     read: false,
     ...(item.replyEmail ? { replyEmail: item.replyEmail } : {}),
   };
-  console.log('[Feedback] writing item with id:', id, 'keys:', Object.keys(record));
-  await db.send(new PutCommand({
+
+  // DocumentClient 経由だと id が消える問題があったので raw DynamoDBClient で明示マーシャル
+  const marshalled = marshall(record, { removeUndefinedValues: true });
+  console.log('[Feedback] marshalled keys:', Object.keys(marshalled), 'id attr:', marshalled.id);
+
+  await rawClient.send(new PutItemCommand({
     TableName: TABLE.feedback,
-    Item: record,
+    Item: marshalled,
   }));
   return record;
 }
