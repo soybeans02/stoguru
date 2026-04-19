@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Shield, LogOut, Users, BarChart3, Database, Key, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2 } from 'lucide-react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2, MessageSquare, Bug, Lightbulb, MessageCircle, Mail, MailOpen } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -17,6 +17,165 @@ interface Stats {
   startedAt: string;
   byEndpoint: [string, number][];
   byHour: Record<string, number>;
+}
+
+interface FeedbackItem {
+  id: string;
+  userId: string;
+  nickname: string;
+  email: string;
+  message: string;
+  category: 'bug' | 'feature' | 'other';
+  createdAt: number;
+  read: boolean;
+}
+
+const FEEDBACK_META = {
+  bug: { label: '不具合', icon: Bug, color: 'text-red-300', bg: 'bg-red-900/30' },
+  feature: { label: '機能要望', icon: Lightbulb, color: 'text-yellow-300', bg: 'bg-yellow-900/30' },
+  other: { label: 'その他', icon: MessageCircle, color: 'text-blue-300', bg: 'bg-blue-900/30' },
+} as const;
+
+function FeedbackSection({ token }: { token: string }) {
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'unread'>('unread');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/feedback`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+      }
+    } catch {/* noop */}
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const markRead = async (id: string) => {
+    try {
+      await fetch(`${API}/feedback/${id}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems((prev) => prev.map((f) => f.id === id ? { ...f, read: true } : f));
+    } catch {/* noop */}
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('このフィードバックを削除しますか？')) return;
+    try {
+      await fetch(`${API}/feedback/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems((prev) => prev.filter((f) => f.id !== id));
+    } catch {/* noop */}
+  };
+
+  const visible = useMemo(
+    () => filter === 'unread' ? items.filter((f) => !f.read) : items,
+    [items, filter]
+  );
+  const unreadCount = items.filter((f) => !f.read).length;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare size={18} />
+        <h2 className="text-lg font-semibold">フィードバック</h2>
+        {unreadCount > 0 && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">
+            {unreadCount}件未読
+          </span>
+        )}
+        <button
+          onClick={load}
+          className="ml-auto text-xs text-gray-400 hover:text-white"
+        >
+          {loading ? '読込中…' : '更新'}
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {(['unread', 'all'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`text-xs px-3 py-1 rounded-full ${
+              filter === f ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            {f === 'unread' ? '未読のみ' : 'すべて'}
+          </button>
+        ))}
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="text-gray-500 text-center py-8 text-sm">
+          {filter === 'unread' ? '未読のフィードバックはありません' : 'フィードバックはまだありません'}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {visible.map((f) => {
+            const meta = FEEDBACK_META[f.category] ?? FEEDBACK_META.other;
+            const Icon = meta.icon;
+            return (
+              <div key={f.id} className={`bg-gray-800 rounded-xl p-4 space-y-2 border ${f.read ? 'border-gray-700' : 'border-orange-500/50'}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${meta.bg} ${meta.color} font-medium`}>
+                    <Icon size={11} /> {meta.label}
+                  </span>
+                  {!f.read && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">NEW</span>
+                  )}
+                  <span className="text-xs text-gray-500 ml-auto">
+                    {new Date(f.createdAt).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                <div className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+                  {f.message}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-gray-500 pt-1 border-t border-gray-700">
+                  <span className="font-medium text-gray-400">{f.nickname}</span>
+                  <span>{f.email}</span>
+                </div>
+
+                <div className="flex gap-2">
+                  {!f.read && (
+                    <button
+                      onClick={() => markRead(f.id)}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-900/50 text-blue-300 hover:bg-blue-900"
+                    >
+                      <MailOpen size={12} /> 既読にする
+                    </button>
+                  )}
+                  {f.read && (
+                    <span className="flex items-center gap-1 text-xs px-2 py-1 text-gray-500">
+                      <Mail size={12} /> 既読
+                    </span>
+                  )}
+                  <button
+                    onClick={() => remove(f.id)}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-red-900/50 text-red-300 hover:bg-red-900"
+                  >
+                    <Trash2 size={12} /> 削除
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function classifyEndpoint(ep: string): 'cognito' | 'dynamodb' {
@@ -240,6 +399,8 @@ export function AdminPage() {
       </header>
 
       <div className="p-4 space-y-6 overflow-y-auto flex-1">
+        <FeedbackSection token={token} />
+
         {stats && <StatsSection stats={stats} userCount={users.length} />}
 
         {activity.length > 0 && (
