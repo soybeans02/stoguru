@@ -21,9 +21,9 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
     });
     res.json({ message: 'フィードバックを送信しました', id: fb.id });
   } catch (err) {
+    // 内部エラー詳細はサーバーログのみ、クライアントには汎用メッセージ
     console.error('Feedback save failed:', err);
-    const msg = err instanceof Error ? err.message : '送信に失敗しました';
-    res.status(500).json({ error: msg });
+    res.status(500).json({ error: '送信に失敗しました' });
   }
 });
 

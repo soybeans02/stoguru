@@ -39,7 +39,10 @@ export async function signUp(email: string, password: string, nickname: string) 
   const result = await client.send(command);
 
   // 開発環境のみ: メール確認をスキップして自動確認
-  if (process.env.NODE_ENV !== 'production') {
+  // 本番で誤ってスキップしないよう、明示的な環境変数でも制御
+  const skipVerification = process.env.NODE_ENV !== 'production'
+    && process.env.SKIP_EMAIL_VERIFICATION !== 'false';
+  if (skipVerification) {
     await client.send(new AdminConfirmSignUpCommand({
       UserPoolId: getUserPoolId(),
       Username: email,

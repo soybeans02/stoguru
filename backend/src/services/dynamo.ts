@@ -1021,8 +1021,6 @@ export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt'
 
   // DocumentClient 経由だと id が消える問題があったので raw DynamoDBClient で明示マーシャル
   const marshalled = marshall(record, { removeUndefinedValues: true });
-  console.log('[Feedback] marshalled keys:', Object.keys(marshalled), 'id attr:', marshalled.id);
-
   await rawClient.send(new PutItemCommand({
     TableName: TABLE.feedback,
     Item: marshalled,
