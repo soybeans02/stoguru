@@ -9,6 +9,7 @@ import uploadRouter from './routes/upload';
 import adminRouter from './routes/admin';
 import influencerRouter from './routes/influencer';
 import feedbackRouter from './routes/feedback';
+import publicRouter from './routes/public';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 import { stats, userActivity } from './state';
 // rate limiter uses `any` for keyGenerator to avoid Express type conflicts
@@ -139,6 +140,7 @@ app.use('/api', dataRouter);
 app.use('/api', uploadRouter);
 app.use('/api/influencer', influencerRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 

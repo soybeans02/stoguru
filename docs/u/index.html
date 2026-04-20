@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-itunes-app" content="app-argument=">
+<title>stoguru profile</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --sub: #6b6b6b;
+    --border: #e5e5e5;
+    --accent: #f4800f;
+    --accent-grad-1: #f97316;
+    --accent-grad-2: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --card: #171717;
+      --text: #f5f5f5;
+      --sub: #a3a3a3;
+      --border: #262626;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+  .brand {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .avatar-wrap {
+    display: inline-block;
+    padding: 3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-grad-1), var(--accent-grad-2));
+    margin-bottom: 16px;
+  }
+  .avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #fcd34d, #f97316);
+    border: 3px solid var(--card);
+    object-fit: cover;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .bio {
+    font-size: 14px;
+    color: var(--sub);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .stat-num { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--sub); margin-top: 2px; }
+  .cta {
+    display: block;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--accent-grad-1), var(--accent-grad-2));
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    transition: transform 0.15s ease;
+  }
+  .cta:hover { transform: translateY(-1px); }
+  .cta-sub {
+    display: block;
+    text-decoration: none;
+    color: var(--sub);
+    font-size: 13px;
+    padding: 10px;
+  }
+  .error {
+    color: #dc2626;
+    font-size: 14px;
+    padding: 20px;
+  }
+  .loading {
+    color: var(--sub);
+    font-size: 13px;
+    padding: 40px 0;
+  }
+  .private-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="loading">Loading…</div>
+</div>
+
+<script>
+const API_BASE = 'https://stoguru-api.onrender.com/api';
+const APPSTORE_URL = 'https://apps.apple.com/app/stoguru/id0000000000'; // 公開後に置き換え
+
+function getUserIdFromPath() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  // /stoguru/u/{userId} or /u/{userId}
+  const uIndex = parts.indexOf('u');
+  if (uIndex >= 0 && parts[uIndex + 1]) return parts[uIndex + 1];
+  return null;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function initial(nickname) {
+  const s = String(nickname || '').trim();
+  return s ? s.charAt(0).toUpperCase() : '?';
+}
+
+async function render() {
+  const card = document.getElementById('card');
+  const userId = getUserIdFromPath();
+
+  if (!userId) {
+    card.innerHTML = '<div class="error">Invalid profile URL.</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/public/profile/${encodeURIComponent(userId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const nickname = data.nickname || 'User';
+    document.title = `${nickname} · stoguru`;
+
+    if (data.isPrivate) {
+      card.innerHTML = `
+        <div class="brand">stoguru</div>
+        <div class="private-icon">🔒</div>
+        <h1>${escapeHtml(nickname)}</h1>
+        <div class="bio">This profile is private.</div>
+        <a class="cta" href="${APPSTORE_URL}">Get stoguru on the App Store</a>
+      `;
+      return;
+    }
+
+    const avatarHtml = data.profilePhotoUrl
+      ? `<img src="${escapeHtml(data.profilePhotoUrl)}" alt="${escapeHtml(nickname)}">`
+      : escapeHtml(initial(nickname));
+
+    card.innerHTML = `
+      <div class="brand">stoguru</div>
+      <div class="avatar-wrap"><div class="avatar">${avatarHtml}</div></div>
+      <h1>${escapeHtml(nickname)}</h1>
+      ${data.bio ? `<div class="bio">${escapeHtml(data.bio)}</div>` : ''}
+      <div class="stats">
+        <div><div class="stat-num">${data.stockCount ?? 0}</div><div class="stat-label">Saved</div></div>
+        <div><div class="stat-num">${data.visitedCount ?? 0}</div><div class="stat-label">Visited</div></div>
+      </div>
+      <a class="cta" href="${APPSTORE_URL}">Open in stoguru</a>
+      <a class="cta-sub" href="${APPSTORE_URL}">Don't have the app? Get it here</a>
+    `;
+  } catch (err) {
+    card.innerHTML = `
+      <div class="brand">stoguru</div>
+      <div class="error">Profile not found or temporarily unavailable.</div>
+      <a class="cta" href="${APPSTORE_URL}">Get stoguru on the App Store</a>
+    `;
+  }
+}
+
+render();
+</script>
+</body>
+</html>

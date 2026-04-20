@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["LX9G3QQ4SF.com.stoguru.app"],
+        "components": [
+          {
+            "/": "/stoguru/u/*",
+            "comment": "User profile deep link"
+          }
+        ]
+      }
+    ]
+  }
+}
