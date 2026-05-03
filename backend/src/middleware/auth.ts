@@ -44,6 +44,34 @@ export function invalidateTokenCache(token?: string) {
   }
 }
 
+/// 認証は任意（ログインしてれば user セット、未ログインでも次へ進む）
+export const optionalAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    next();
+    return;
+  }
+  try {
+    const token = header.slice(7);
+    const cached = TOKEN_CACHE.get(token);
+    if (cached && cached.expiresAt > Date.now()) {
+      (req as AuthRequest).user = cached.user;
+      next();
+      return;
+    }
+    const user = await getUserFromToken(token);
+    if (user.userId) {
+      TOKEN_CACHE.set(token, { user, expiresAt: Date.now() + CACHE_TTL });
+      cleanupCache();
+      (req as AuthRequest).user = user;
+    }
+    next();
+  } catch {
+    // トークン期限切れでも匿名として通す
+    next();
+  }
+};
+
 // Use RequestHandler so Express accepts this directly without `as any`
 export const requireAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;

@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import {
   // V2
   putRestaurantV2, getRestaurantV2, batchGetRestaurantsV2,
@@ -27,7 +27,7 @@ const router = Router();
 
 // ─── スワイプ用フィード（geohashベース、スキャン不要） ───
 
-router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Response) => {
   const v = validate(nearbySchema, req.query);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { lat, lng, radius } = v.data;
@@ -39,7 +39,8 @@ router.get('/restaurants/feed', requireAuth, async (req: AuthRequest, res: Respo
       .map((s) => s.trim())
       .filter(Boolean)
   );
-  const userId = req.user!.userId;
+  // 未ログインの場合はユーザーフィルタなし
+  const userId = req.user?.userId ?? '';
 
   // geohash precision 4の9セルをクエリ（約40km×20km × 9 = 広域カバー）
   const centerHash4 = geohashEncode(lat, lng, 4);
