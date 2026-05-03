@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as api from '../../utils/api';
 import { InfluencerRestaurantForm } from './InfluencerRestaurantForm';
+import { useTranslation } from '../../context/LanguageContext';
 
 interface InfluencerProfile {
   influencerId: string;
@@ -41,12 +42,57 @@ interface Props {
 }
 
 export function InfluencerDashboard({ onBack }: Props) {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<InfluencerProfile | null>(null);
   const [restaurants, setRestaurants] = useState<InfluencerRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [restaurantForm, setRestaurantForm] = useState<{ open: boolean; editing?: InfluencerRestaurant }>({ open: false });
   const [previewRestaurant, setPreviewRestaurant] = useState<InfluencerRestaurant | null>(null);
+  // Sort menu (newest / oldest / name)
+  type SortKey = 'newest' | 'oldest' | 'name';
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    const saved = localStorage.getItem('influencerSort');
+    return (saved === 'newest' || saved === 'oldest' || saved === 'name') ? saved : 'newest';
+  });
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+  // 2-stage delete confirm: 'idle' → 'first' → 'second'
+  const [deleteState, setDeleteState] = useState<{ id: string | null; stage: 'first' | 'second' | null }>({ id: null, stage: null });
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('influencerSort', sortKey);
+  }, [sortKey]);
+
+  // Close sort menu on outside click
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!sortMenuRef.current?.contains(e.target as Node)) setSortOpen(false);
+    };
+    setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => document.removeEventListener('click', handler);
+  }, [sortOpen]);
+
+  // Reset delete confirm if user doesn't proceed in 4s
+  function startDeleteTimer() {
+    if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    deleteTimer.current = setTimeout(() => setDeleteState({ id: null, stage: null }), 4000);
+  }
+  useEffect(() => () => { if (deleteTimer.current) clearTimeout(deleteTimer.current); }, []);
+
+  const sortedRestaurants = useMemo(() => {
+    const arr = [...restaurants];
+    if (sortKey === 'newest') {
+      arr.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    } else if (sortKey === 'oldest') {
+      arr.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+    } else {
+      arr.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    }
+    return arr;
+  }, [restaurants, sortKey]);
 
   // Profile edit state
   const [displayName, setDisplayName] = useState('');
@@ -136,8 +182,26 @@ export function InfluencerDashboard({ onBack }: Props) {
     }
   }
 
-  async function handleDeleteRestaurant(restaurantId: string) {
-    if (!confirm('このレストランを削除しますか？')) return;
+  function handleDeleteClick(restaurantId: string) {
+    if (deleteState.id !== restaurantId) {
+      // 1段階目
+      setDeleteState({ id: restaurantId, stage: 'first' });
+      startDeleteTimer();
+      return;
+    }
+    if (deleteState.stage === 'first') {
+      // 2段階目
+      setDeleteState({ id: restaurantId, stage: 'second' });
+      startDeleteTimer();
+      return;
+    }
+    // 2段階目以降 → 実削除
+    handleDeleteRestaurantConfirmed(restaurantId);
+  }
+
+  async function handleDeleteRestaurantConfirmed(restaurantId: string) {
+    if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    setDeleteState({ id: null, stage: null });
     try {
       await api.deleteInfluencerRestaurant(restaurantId);
       setRestaurants(restaurants.filter(r => r.restaurantId !== restaurantId));
@@ -319,14 +383,54 @@ export function InfluencerDashboard({ onBack }: Props) {
       )}
 
       {/* Restaurants Section */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-base font-bold text-gray-900">おすすめレストラン</h2>
-        <button
-          onClick={() => setRestaurantForm({ open: true })}
-          className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
-        >
-          + 追加
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Sort menu */}
+          <div className="relative" ref={sortMenuRef}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setSortOpen(v => !v); }}
+              className="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1"
+              aria-label={t('influencer.sortTitle')}
+              aria-haspopup="menu"
+              aria-expanded={sortOpen}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/>
+              </svg>
+              <span>
+                {sortKey === 'newest' ? t('influencer.sortNewest') : sortKey === 'oldest' ? t('influencer.sortOldest') : t('influencer.sortName')}
+              </span>
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 top-full mt-1 z-30 w-36 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden" role="menu">
+                {([
+                  { k: 'newest' as const, label: t('influencer.sortNewest') },
+                  { k: 'oldest' as const, label: t('influencer.sortOldest') },
+                  { k: 'name' as const, label: t('influencer.sortName') },
+                ]).map(opt => (
+                  <button
+                    key={opt.k}
+                    onClick={() => { setSortKey(opt.k); setSortOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                      sortKey === opt.k ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                    role="menuitemradio"
+                    aria-checked={sortKey === opt.k}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setRestaurantForm({ open: true })}
+            className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
+          >
+            + 追加
+          </button>
+        </div>
       </div>
 
       {restaurants.length === 0 ? (
@@ -336,7 +440,7 @@ export function InfluencerDashboard({ onBack }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {restaurants.map(r => (
+          {sortedRestaurants.map(r => (
             <div key={r.restaurantId} className="bg-white rounded-xl overflow-hidden shadow border border-gray-100 flex flex-col">
               {/* Photo area */}
               <div className="w-full aspect-square bg-gray-100 relative overflow-hidden">
@@ -345,6 +449,21 @@ export function InfluencerDashboard({ onBack }: Props) {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-4xl opacity-30">🍽️</span>
+                  </div>
+                )}
+                {/* Delete confirmation banner overlay */}
+                {deleteState.id === r.restaurantId && (
+                  <div className="absolute inset-x-0 bottom-0 bg-red-500/95 backdrop-blur-sm text-white px-2.5 py-2 flex items-center justify-between gap-1.5 z-10">
+                    <span className="text-[11px] font-bold flex-1 truncate">
+                      {deleteState.stage === 'second' ? t('influencer.deleteConfirm') : t('influencer.deleteFirst')}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteState({ id: null, stage: null }); if (deleteTimer.current) clearTimeout(deleteTimer.current); }}
+                      className="text-[10px] underline opacity-90 hover:opacity-100 flex-shrink-0"
+                      aria-label={t('influencer.deleteCancel')}
+                    >
+                      {t('influencer.deleteCancel')}
+                    </button>
                   </div>
                 )}
                 {/* Preview / Edit / Delete overlay */}
@@ -363,8 +482,19 @@ export function InfluencerDashboard({ onBack }: Props) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
                   </button>
                   <button
-                    onClick={() => handleDeleteRestaurant(r.restaurantId)}
-                    className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-colors"
+                    onClick={() => handleDeleteClick(r.restaurantId)}
+                    className={`p-1.5 backdrop-blur-sm rounded-full transition-colors ${
+                      deleteState.id === r.restaurantId
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-white/80 text-gray-600 hover:text-red-500 hover:bg-white'
+                    }`}
+                    aria-label={
+                      deleteState.id === r.restaurantId && deleteState.stage === 'second'
+                        ? t('influencer.deleteConfirm')
+                        : deleteState.id === r.restaurantId
+                          ? t('influencer.deleteFirst')
+                          : 'Delete'
+                    }
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>

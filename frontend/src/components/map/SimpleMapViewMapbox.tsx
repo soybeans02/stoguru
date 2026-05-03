@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
-import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
+import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants, fetchRestaurantFeed } from '../../utils/api';
+import { useTranslation } from '../../context/LanguageContext';
+import { GENRE_TAGS } from '../../constants/genre';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
@@ -415,6 +417,7 @@ function buildPopupHTML(p: { name: string; genre: string; distance: string; vide
 }
 
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
@@ -433,6 +436,41 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const myPostedLoaded = useRef(false);
   const initialCenterSet = useRef(false);
   const mapLoadedRef = useRef(false);
+  // Filter state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterGenres, setFilterGenres] = useState<string[]>([]);
+  // 0 = no limit, otherwise meters (100..10000)
+  const [filterDistance, setFilterDistance] = useState<number>(0);
+  // visited filter: 'all' | 'wishlist' | 'visited'
+  const [filterVisited, setFilterVisited] = useState<'all' | 'wishlist' | 'visited'>('all');
+  // Nearby banner dismissal (so user can hide it)
+  const [nearbyDismissed, setNearbyDismissed] = useState(false);
+  // Explore-this-area button
+  const [showExploreButton, setShowExploreButton] = useState(false);
+  const [exploring, setExploring] = useState(false);
+  const [exploreResult, setExploreResult] = useState<{ count: number; items: Record<string, unknown>[] } | null>(null);
+  const initialCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Nearby (100m) detection
+  const nearbyStock = useMemo(() => {
+    if (!userPosition) return null;
+    const matches = stocks
+      .filter(s => s.lat && s.lng)
+      .map(s => ({ s, d: distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng) }))
+      .filter(({ d }) => d <= 100)
+      .sort((a, b) => a.d - b.d);
+    return matches.length > 0 ? matches[0].s : null;
+  }, [stocks, userPosition]);
+
+  // Reset banner dismissal when nearby stock changes
+  useEffect(() => {
+    setNearbyDismissed(false);
+  }, [nearbyStock?.id]);
+
+  // Active filter count
+  const activeFilterCount =
+    filterGenres.length +
+    (filterDistance > 0 ? 1 : 0) +
+    (filterVisited !== 'all' ? 1 : 0);
 
   // GPS取得時に日の出/日の入り時刻を更新 → テーマを即再適用
   useEffect(() => {
@@ -745,12 +783,31 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     if (mapRef.current && userPosition && !initialCenterSet.current) {
       initialCenterSet.current = true;
       mapRef.current.jumpTo({ center: [userPosition.lng, userPosition.lat], zoom: 15 });
+      // ベース中心を記録（このエリアを探索ボタンの判定用）
+      initialCenterRef.current = { lat: userPosition.lat, lng: userPosition.lng };
     }
   }, [userPosition]);
 
+  // フィルター適用済みのストック
+  const filteredStocks = useMemo(() => {
+    let list = stocks;
+    if (filterGenres.length > 0) {
+      list = list.filter(r => filterGenres.includes(r.genre));
+    }
+    if (filterVisited === 'visited') {
+      list = list.filter(r => r.visited);
+    } else if (filterVisited === 'wishlist') {
+      list = list.filter(r => !r.visited);
+    }
+    if (filterDistance > 0 && userPosition) {
+      list = list.filter(r => distanceMetres(userPosition.lat, userPosition.lng, r.lat, r.lng) <= filterDistance);
+    }
+    return list;
+  }, [stocks, filterGenres, filterVisited, filterDistance, userPosition]);
+
   // Refs for accessing latest data inside map event handlers
-  const stocksRef = useRef(stocks);
-  stocksRef.current = stocks;
+  const stocksRef = useRef(filteredStocks);
+  stocksRef.current = filteredStocks;
   const userPosRef = useRef(userPosition);
   userPosRef.current = userPosition;
 
@@ -826,8 +883,71 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   }, []);
 
   useEffect(() => {
-    updateData(stocks, userPosition);
-  }, [stocks, userPosition, updateData]);
+    updateData(filteredStocks, userPosition);
+  }, [filteredStocks, userPosition, updateData]);
+
+  // ユーザー操作で地図を動かしたら「このエリアを探索」ボタンを表示
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const checkMoved = () => {
+      if (!initialCenterRef.current) {
+        const c = map.getCenter();
+        initialCenterRef.current = { lat: c.lat, lng: c.lng };
+        return;
+      }
+      const c = map.getCenter();
+      const moved = distanceMetres(initialCenterRef.current.lat, initialCenterRef.current.lng, c.lat, c.lng);
+      // 200m以上動いたらボタン表示
+      if (moved > 200) setShowExploreButton(true);
+    };
+    const onMoveStart = () => {
+      if (!initialCenterRef.current) {
+        const c = map.getCenter();
+        initialCenterRef.current = { lat: c.lat, lng: c.lng };
+      }
+    };
+    const onMoveEnd = (e: { originalEvent?: unknown }) => {
+      // ユーザー操作のみ反応 (programmatic flyTo は originalEvent が undefined)
+      if (!e.originalEvent) return;
+      checkMoved();
+    };
+    map.on('movestart', onMoveStart);
+    map.on('moveend', onMoveEnd);
+    return () => {
+      map.off('movestart', onMoveStart);
+      map.off('moveend', onMoveEnd);
+    };
+  }, []);
+
+  const handleExploreThisArea = useCallback(async () => {
+    const map = mapRef.current;
+    if (!map) return;
+    setExploring(true);
+    try {
+      const c = map.getCenter();
+      const data: Record<string, unknown>[] = await fetchRestaurantFeed(c.lat, c.lng, 2000, 50, 0);
+      setExploreResult({ count: data?.length ?? 0, items: data ?? [] });
+      // ベース中心を更新（ボタンを再表示するため）
+      initialCenterRef.current = { lat: c.lat, lng: c.lng };
+      setShowExploreButton(false);
+    } catch {
+      setExploreResult({ count: 0, items: [] });
+    } finally {
+      setExploring(false);
+    }
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilterGenres([]);
+    setFilterDistance(0);
+    setFilterVisited('all');
+  }, []);
+
+  const handleFocusNearby = useCallback(() => {
+    if (!nearbyStock) return;
+    mapRef.current?.flyTo({ center: [nearbyStock.lng, nearbyStock.lat], zoom: 17, duration: 800 });
+  }, [nearbyStock]);
 
 
   // Toggle labels
@@ -965,6 +1085,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       <button
         onClick={() => setModePickerOpen(!modePickerOpen)}
         className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center"
+        aria-label="Map style"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
       </button>
@@ -975,9 +1096,222 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         className={`absolute top-16 right-4 z-10 w-10 h-10 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center transition-colors ${
           selectedFollowUser ? 'bg-purple-500 text-white' : 'bg-white/90 text-gray-500'
         }`}
+        aria-label={t('account.following')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="-3 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       </button>
+
+      {/* Filter button */}
+      <button
+        onClick={() => setFilterOpen(v => !v)}
+        className={`absolute top-28 right-4 z-10 w-10 h-10 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center transition-colors ${
+          activeFilterCount > 0 ? 'bg-[var(--accent-orange)] text-white' : 'bg-white/90 text-gray-500'
+        }`}
+        aria-label={t('map.filter')}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/>
+          <line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/>
+          <line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/>
+          <line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/>
+        </svg>
+        {activeFilterCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            {activeFilterCount}
+          </span>
+        )}
+      </button>
+
+      {/* Filter panel */}
+      {filterOpen && (
+        <>
+          <div className="absolute inset-0 z-20" onClick={() => setFilterOpen(false)} />
+          <div className="absolute top-40 right-4 z-30 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-xl w-[260px] max-h-[70vh] overflow-y-auto border border-gray-100 dark:border-gray-700" role="dialog" aria-label={t('map.filter')}>
+            {/* Genre */}
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.genre')}</p>
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {GENRE_TAGS.map((tag) => {
+                const active = filterGenres.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setFilterGenres(prev => prev.includes(tag) ? prev.filter(g => g !== tag) : [...prev, tag])}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                      active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Distance */}
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.distance')}</p>
+            <div className="mb-4">
+              <input
+                type="range"
+                min={0}
+                max={10000}
+                step={100}
+                value={filterDistance}
+                onChange={(e) => setFilterDistance(Number(e.target.value))}
+                className="w-full accent-[var(--accent-orange)]"
+                aria-label={t('map.distance')}
+              />
+              <div className="flex justify-between mt-1">
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {filterDistance === 0
+                    ? t('map.distanceUnlimited')
+                    : filterDistance < 1000
+                      ? `${filterDistance}m`
+                      : `${(filterDistance / 1000).toFixed(1)}km`}
+                </span>
+                {filterDistance > 0 && (
+                  <button onClick={() => setFilterDistance(0)} className="text-[10px] text-[var(--accent-orange)] font-medium">
+                    {t('map.distanceUnlimited')}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Visited */}
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.visitedFilter')}</p>
+            <div className="grid grid-cols-3 gap-1.5 mb-4">
+              {([
+                { v: 'all' as const, label: t('map.all') },
+                { v: 'wishlist' as const, label: t('map.visitedNotYet') },
+                { v: 'visited' as const, label: t('map.visitedDone') },
+              ]).map(opt => {
+                const active = filterVisited === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    onClick={() => setFilterVisited(opt.v)}
+                    className={`py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                      active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Clear */}
+            <button
+              onClick={handleClearFilters}
+              disabled={activeFilterCount === 0}
+              className="w-full py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50"
+            >
+              {t('map.clearFilters')}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* 100m banner */}
+      {nearbyStock && !nearbyDismissed && (
+        <div
+          className="absolute top-4 left-4 right-16 z-10 bg-[var(--accent-orange)] text-white rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2"
+          role="status"
+          aria-live="polite"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <button
+            onClick={handleFocusNearby}
+            className="flex-1 text-left min-w-0"
+            aria-label={`${t('map.nearby100m')} ${nearbyStock.name}`}
+          >
+            <p className="text-[11px] font-medium opacity-90 truncate">{t('map.nearby100m')}</p>
+            <p className="text-[13px] font-bold truncate">{nearbyStock.name}</p>
+          </button>
+          <button
+            onClick={() => setNearbyDismissed(true)}
+            aria-label={t('common.close')}
+            className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      )}
+
+      {/* Explore this area button */}
+      {showExploreButton && !exploring && (
+        <button
+          onClick={handleExploreThisArea}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 z-10 px-4 py-2.5 rounded-full bg-[var(--accent-orange)] text-white text-[13px] font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2"
+          style={{ marginTop: '-18px' }}
+          aria-label={t('map.exploreThisArea')}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          {t('map.exploreThisArea')}
+        </button>
+      )}
+
+      {/* Exploring indicator */}
+      {exploring && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 z-10 px-4 py-2.5 rounded-full bg-white/95 dark:bg-gray-800/95 text-gray-700 dark:text-gray-200 text-[13px] font-medium shadow-lg flex items-center gap-2" style={{ marginTop: '-18px' }}>
+          <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[var(--accent-orange)] rounded-full animate-spin" />
+          {t('map.exploring')}
+        </div>
+      )}
+
+      {/* Explore result panel */}
+      {exploreResult && (
+        <div className="absolute bottom-32 left-4 right-4 z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-[40vh] flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-[13px] font-bold text-gray-900 dark:text-white">
+              {exploreResult.count > 0
+                ? t('map.foundSpots').replace('{count}', String(exploreResult.count))
+                : t('map.noFoundSpots')}
+            </span>
+            <button
+              onClick={() => setExploreResult(null)}
+              className="w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-500"
+              aria-label={t('common.close')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+          {exploreResult.items.length > 0 && (
+            <div className="overflow-y-auto">
+              {exploreResult.items.slice(0, 20).map((r, idx) => {
+                const lat = Number(r.lat);
+                const lng = Number(r.lng);
+                if (!lat || !lng) return null;
+                const name = String(r.name ?? '');
+                const genre = String(r.genre ?? '');
+                const photoUrl = Array.isArray(r.photoUrls) && (r.photoUrls as string[])[0] ? (r.photoUrls as string[])[0] : '';
+                return (
+                  <button
+                    key={`${r.id ?? idx}`}
+                    onClick={() => mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 600 })}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800/50 text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden">
+                      {photoUrl ? (
+                        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-lg">🍽️</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">{name}</p>
+                      {genre && <p className="text-[11px] text-gray-400 truncate">{genre}</p>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Following user picker */}
       {showFollowingPicker && (

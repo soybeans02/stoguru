@@ -586,18 +586,17 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
               )}
             </div>
 
-            {/* 保存ランキング */}
+            {/* 保存ランキング — Top 3 のみ表示（合計 3 人固定、4位以降は除外）*/}
             <div className="mt-6">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">保存ランキング</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">保存ランキング Top 3</h2>
               {rankingLoading ? (
                 <p className="text-center text-gray-400 text-sm py-6">読み込み中...</p>
               ) : ranking.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-6">まだデータがありません</p>
               ) : (
                 <div className="space-y-1">
-                  {ranking.map((r, i) => {
-                    const rank = i === 0 ? 1 : (r.totalStocks === ranking[i - 1].totalStocks ? ranking.findIndex(x => x.totalStocks === r.totalStocks) + 1 : i + 1);
-                    const isFirstOfRank = i === 0 || r.totalStocks !== ranking[i - 1].totalStocks;
+                  {ranking.slice(0, 3).map((r, i) => {
+                    const rank = i + 1;
                     return (
                     <button
                       key={r.userId}
@@ -605,9 +604,9 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <span className={`w-6 text-center font-bold text-sm ${
-                        rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : rank === 3 ? 'text-amber-700' : 'text-gray-300'
+                        rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : 'text-amber-700'
                       }`}>
-                        {isFirstOfRank ? rank : ''}
+                        {rank}
                       </span>
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
                         {r.profilePhotoUrl ? (

@@ -751,50 +751,146 @@ function ChangeEmailPanel({ currentEmail, onSuccess, onClose }: { currentEmail: 
   );
 }
 
-/* ─── アカウント削除パネル ─── */
+/* ─── アカウント削除パネル (iOS DeleteAccountSheet 同等の 3 段階確認) ─── */
+
+type DeleteStep = 'warning' | 'typeConfirm' | 'finalConfirm';
 
 function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
-  const [confirmText, setConfirmText] = useState('');
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const nickname = user?.nickname ?? '';
+  const [step, setStep] = useState<DeleteStep>('warning');
+  const [typedNickname, setTypedNickname] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const stepIndex = step === 'warning' ? 1 : step === 'typeConfirm' ? 2 : 3;
+  const nicknameMatches = typedNickname.trim() === nickname.trim() && nickname.trim().length > 0;
+
   async function handleDelete() {
-    if (confirmText !== '削除') {
-      setError('「削除」と入力してください');
-      return;
-    }
     setLoading(true);
+    setError('');
     try {
       await api.deleteAccount();
       onDeleted();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : t('common.error'));
       setLoading(false);
     }
   }
 
   return (
-    <Overlay title="アカウント削除" onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-sm text-gray-600">
-          アカウントを削除すると、全てのデータが完全に削除されます。この操作は取り消せません。
-        </p>
-        <FormInput
-          label="確認のため「削除」と入力"
-          value={confirmText}
-          onChange={setConfirmText}
-          placeholder="削除"
-          autoFocus
-        />
-        {error && <p className="text-red-500 text-xs">{error}</p>}
-        <button
-          onClick={handleDelete}
-          disabled={loading || confirmText !== '削除'}
-          className="w-full py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
-        >
-          {loading ? '...' : 'アカウントを削除する'}
-        </button>
+    <Overlay title={t('account.deleteAccount')} onClose={onClose}>
+      {/* Step indicator (3 bars) */}
+      <div className="flex gap-1.5 mb-5" role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={stepIndex} aria-label={t('deleteAccount.progress').replace('{current}', String(stepIndex))}>
+        {[1, 2, 3].map(i => (
+          <div
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              i <= stepIndex ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          />
+        ))}
       </div>
+
+      {step === 'warning' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('deleteAccount.step1Title')}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{t('deleteAccount.step1Warning')}</p>
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl px-4 py-3">
+            <p className="text-[12px] font-semibold text-red-600 dark:text-red-400 mb-2">{t('deleteAccount.step1ListTitle')}</p>
+            <ul className="text-[13px] text-gray-700 dark:text-gray-300 space-y-1.5">
+              <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">·</span><span>{t('deleteAccount.step1Item1')}</span></li>
+              <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">·</span><span>{t('deleteAccount.step1Item2')}</span></li>
+              <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">·</span><span>{t('deleteAccount.step1Item3')}</span></li>
+              <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">·</span><span>{t('deleteAccount.step1Item4')}</span></li>
+            </ul>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium"
+            >
+              {t('common.close')}
+            </button>
+            <button
+              onClick={() => setStep('typeConfirm')}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+            >
+              {t('deleteAccount.step1Continue')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'typeConfirm' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('deleteAccount.step2Title')}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{t('deleteAccount.step2Description')}</p>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">{t('auth.nickname')}</p>
+            <p className="text-[15px] font-bold text-gray-900 dark:text-white">{nickname || '—'}</p>
+          </div>
+          <FormInput
+            label={t('deleteAccount.step2Placeholder')}
+            value={typedNickname}
+            onChange={setTypedNickname}
+            placeholder={nickname}
+            autoFocus
+          />
+          {typedNickname.length > 0 && !nicknameMatches && (
+            <p className="text-red-500 text-xs">{t('deleteAccount.step2Mismatch')}</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium"
+            >
+              {t('common.close')}
+            </button>
+            <button
+              onClick={() => setStep('finalConfirm')}
+              disabled={!nicknameMatches}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t('common.next')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'finalConfirm' && (
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('deleteAccount.step3Title')}</h3>
+          <div className="flex flex-col items-center py-3">
+            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <p className="text-sm text-gray-700 dark:text-gray-200 text-center leading-relaxed">{t('deleteAccount.step3Description')}</p>
+          </div>
+          {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {t('common.close')}
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {loading ? '...' : t('deleteAccount.step3Delete')}
+            </button>
+          </div>
+        </div>
+      )}
     </Overlay>
   );
 }
