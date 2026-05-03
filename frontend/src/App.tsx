@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { AuthModal } from './components/auth/AuthModal';
 import { SignUpGate } from './components/auth/SignUpGate';
 import { SwipeScreen } from './components/swipe/SwipeScreen';
+import { DiscoveryHome } from './components/home/DiscoveryHome';
 import { StockScreen } from './components/stock/StockScreen';
 import type { StockedRestaurant } from './components/stock/StockScreen';
 import { AccountScreen } from './components/account/AccountScreen';
@@ -20,7 +21,7 @@ const LazyMapView = lazy(() =>
 import type { SwipeRestaurant } from './data/mockRestaurants';
 import { MOCK_RESTAURANTS } from './data/mockRestaurants';
 import * as api from './utils/api';
-type Tab = 'home' | 'stock' | 'map' | 'social' | 'account';
+type Tab = 'home' | 'swipe' | 'stock' | 'map' | 'social' | 'account';
 
 /* ─── SVG Icons ─── */
 function IconHome({ active }: { active: boolean }) {
@@ -142,7 +143,7 @@ function MainApp() {
   const isAnonymous = !user;
   const [tab, setTabState] = useState<Tab>(() => {
     const saved = sessionStorage.getItem('activeTab') as Tab | null;
-    return saved && ['home', 'stock', 'map', 'social', 'account'].includes(saved) ? saved : 'home';
+    return saved && ['home', 'swipe', 'stock', 'map', 'social', 'account'].includes(saved) ? saved : 'home';
   });
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const setTab = (t: Tab) => {
@@ -253,6 +254,7 @@ function MainApp() {
   }, []);
 
   const stockedIds = useMemo(() => stocks.map(s => s.id), [stocks]);
+  const visitedIds = useMemo(() => stocks.filter(s => s.visited).map(s => s.id), [stocks]);
   const refreshFeed = useCallback(() => setFeedRefreshKey(k => k + 1), []);
   const [socialInitView, setSocialInitView] = useState<string | null>(null);
 
@@ -269,7 +271,31 @@ function MainApp() {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <main className="flex-1 flex flex-col overflow-hidden">
-          {tab === 'home' && <SwipeScreen onStock={handleStock} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
+          {tab === 'home' && (
+            <DiscoveryHome
+              onStock={handleStock}
+              onRemoveStock={handleRemoveStock}
+              onOpenMap={() => setTab('map')}
+              onOpenSwipe={() => setTab('swipe')}
+              onOpenAccount={() => setTab('account')}
+              onOpenSaved={() => setTab('stock')}
+              userPosition={position}
+              stockedIds={stockedIds}
+              visitedIds={visitedIds}
+              refreshKey={feedRefreshKey}
+            />
+          )}
+          {tab === 'swipe' && (
+            <SwipeScreen
+              onStock={handleStock}
+              onRemoveStock={handleRemoveStock}
+              onShowOnMap={handleShowOnMap}
+              onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }}
+              userPosition={position}
+              stockedIds={stockedIds}
+              refreshKey={feedRefreshKey}
+            />
+          )}
           {tab === 'stock' && (
             isAnonymous ? (
               <SignUpGate
