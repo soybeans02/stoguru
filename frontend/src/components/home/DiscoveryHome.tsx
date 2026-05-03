@@ -10,6 +10,7 @@ import { UserProfileModal } from '../user/UserProfileModal';
 import { AuthModal } from '../auth/AuthModal';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
+  UsersIcon, HelpIcon,
   PlateIcon, NoodleIcon, SushiIcon, BurgerIcon, ItalianIcon, CafeIcon, MeatIcon, BeerIcon, CurryIcon, ChineseIcon, EthnicIcon,
 } from '../ui/icons';
 import type { ComponentType, SVGProps } from 'react';
@@ -574,8 +575,9 @@ function DiscoveryTopBar({
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4 sm:gap-6">
+        {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示 */}
         <div
-          className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block"
+          className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden"
           style={{
             background:
               'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
@@ -609,9 +611,10 @@ function DiscoveryTopBar({
         </div>
         {/* Right side */}
         <div className="hidden md:flex items-center gap-5">
+          {/* PC では左サイドバーに「マップ」タブがあるため、二重化を避けて lg 以上では非表示 */}
           <button
             onClick={onOpenMap}
-            className="text-[14px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="lg:hidden text-[14px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
             {t('home.navMap')}
           </button>
@@ -958,35 +961,70 @@ function FooterCol({ heading, items }: { heading: string; items: string[] }) {
    ───────────────────────────────────── */
 function HowToGuideModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const steps = [
+  const steps: { Icon: SvgIcon; title: string; desc: string; details: string[] }[] = [
     {
       Icon: BurgerIcon,
       title: t('home.howStep1Title'),
       desc: t('home.howStep1Desc'),
+      details: [
+        t('home.howStep1Detail1'),
+        t('home.howStep1Detail2'),
+        t('home.howStep1Detail3'),
+      ],
     },
     {
       Icon: CheckCircleIcon,
       title: t('home.howStep2Title'),
       desc: t('home.howStep2Desc'),
+      details: [
+        t('home.howStep2Detail1'),
+        t('home.howStep2Detail2'),
+        t('home.howStep2Detail3'),
+      ],
     },
     {
       Icon: MapPinIcon,
       title: t('home.howStep3Title'),
       desc: t('home.howStep3Desc'),
+      details: [
+        t('home.howStep3Detail1'),
+        t('home.howStep3Detail2'),
+        t('home.howStep3Detail3'),
+      ],
     },
     {
       Icon: StarIcon,
       title: t('home.howStep4Title'),
       desc: t('home.howStep4Desc'),
+      details: [
+        t('home.howStep4Detail1'),
+        t('home.howStep4Detail2'),
+        t('home.howStep4Detail3'),
+      ],
     },
+    {
+      Icon: UsersIcon,
+      title: t('home.howStep5Title'),
+      desc: t('home.howStep5Desc'),
+      details: [
+        t('home.howStep5Detail1'),
+        t('home.howStep5Detail2'),
+        t('home.howStep5Detail3'),
+      ],
+    },
+  ];
+  const faqs = [
+    { q: t('home.howFaq1Q'), a: t('home.howFaq1A') },
+    { q: t('home.howFaq2Q'), a: t('home.howFaq2A') },
+    { q: t('home.howFaq3Q'), a: t('home.howFaq3A') },
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] max-w-[560px] w-full max-h-[90vh] overflow-auto shadow-[var(--shadow-xl)]"
+        className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] max-w-[600px] w-full max-h-[90vh] overflow-auto shadow-[var(--shadow-xl)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-[18px] font-extrabold tracking-[-0.015em]">{t('home.howToTitle')}</h2>
           <button onClick={onClose} aria-label="Close" className="w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg-soft)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -994,21 +1032,64 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
             </svg>
           </button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="px-6 pt-5 pb-2">
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">
+            {t('home.howIntro')}
+          </p>
+        </div>
+        <div className="p-6 space-y-6">
           {steps.map((s, i) => (
             <div key={i} className="flex gap-4">
-              <div
-                className="w-12 h-12 rounded-2xl grid place-items-center flex-shrink-0"
-                style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
-              >
-                <s.Icon size={22} />
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div
+                  className="w-12 h-12 rounded-2xl grid place-items-center"
+                  style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
+                >
+                  <s.Icon size={22} />
+                </div>
+                {i < steps.length - 1 && (
+                  <div className="w-px flex-1 mt-2" style={{ background: 'var(--border)' }} />
+                )}
               </div>
-              <div>
+              <div className="flex-1 pb-2">
                 <div className="text-[15px] font-bold mb-1">{i + 1}. {s.title}</div>
-                <div className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{s.desc}</div>
+                <div className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-2.5">{s.desc}</div>
+                <ul className="space-y-1.5">
+                  {s.details.map((d, j) => (
+                    <li key={j} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+                      <CheckIcon
+                        size={14}
+                        className="mt-0.5 flex-shrink-0"
+                        style={{ color: 'var(--accent-orange)' }}
+                      />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           ))}
+        </div>
+        {/* FAQ */}
+        <div className="px-6 pb-6">
+          <div className="border-t border-[var(--border)] pt-5">
+            <div className="flex items-center gap-2 mb-4">
+              <HelpIcon size={18} style={{ color: 'var(--accent-orange)' }} />
+              <h3 className="text-[15px] font-extrabold tracking-[-0.01em]">{t('home.howFaqTitle')}</h3>
+            </div>
+            <div className="space-y-3">
+              {faqs.map((f, i) => (
+                <div
+                  key={i}
+                  className="rounded-[var(--radius-md)] px-4 py-3"
+                  style={{ background: 'var(--bg-soft)' }}
+                >
+                  <div className="text-[13.5px] font-bold mb-1">Q. {f.q}</div>
+                  <div className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{f.a}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

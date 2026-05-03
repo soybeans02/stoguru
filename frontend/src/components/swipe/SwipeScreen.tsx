@@ -92,6 +92,8 @@ interface Props {
   onRemoveStock: (id: string) => void;
   onShowOnMap?: (lat: number, lng: number, restaurant?: any) => void;
   onOpenNotifications?: () => void;
+  /// 任意：戻るボタン用ハンドラ。Discovery Home から開かれた時のみ渡す
+  onBack?: () => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   refreshKey?: number;
@@ -102,7 +104,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
   return formatDistance(distanceMetres(userPos.lat, userPos.lng, r.lat, r.lng));
 }
 
-export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, userPosition, stockedIds, refreshKey }: Props) {
+export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, onBack, userPosition, stockedIds, refreshKey }: Props) {
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [unreadNotif, setUnreadNotif] = useState(0);
@@ -325,18 +327,29 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
     <div className="flex-1 flex flex-col items-center relative bg-white dark:bg-gray-900">
       {/* Header bar */}
       <div className="w-full flex items-center justify-between px-4 md:px-6 py-3 flex-shrink-0">
-        <button
-          onClick={() => setFilterOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
-          絞り込み
-          {filterCount > 0 && (
-            <span className="bg-orange-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-              {filterCount}
-            </span>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="戻る"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
           )}
-        </button>
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+            絞り込み
+            {filterCount > 0 && (
+              <span className="bg-orange-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                {filterCount}
+              </span>
+            )}
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           {/* 通知ベル */}
           <button onClick={onOpenNotifications} className="relative p-1.5 text-gray-500 dark:text-gray-400">
