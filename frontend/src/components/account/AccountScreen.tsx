@@ -37,9 +37,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<api.UploadApplicationStatus>('none');
-  const [uploadStatusLoading, setUploadStatusLoading] = useState(false);
-  const [applyingUpload, setApplyingUpload] = useState(false);
 
   const safeStocks = stocks ?? [];
   const visitedCount = safeStocks.filter((s) => s.visited).length;
@@ -82,25 +79,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       }));
       setFollowersList(withNicks);
     }).catch(() => {});
-    setUploadStatusLoading(true);
-    api.getUploadApplication()
-      .then((r) => setUploadStatus(r.status))
-      .catch(() => setUploadStatus('none'))
-      .finally(() => setUploadStatusLoading(false));
   }, []);
-
-  async function handleApplyToPost() {
-    if (applyingUpload) return;
-    setApplyingUpload(true);
-    try {
-      const r = await api.submitUploadApplication();
-      setUploadStatus(r.status);
-    } catch {
-      // 失敗しても UI は維持
-    } finally {
-      setApplyingUpload(false);
-    }
-  }
 
   async function handleSaveNickname() {
     if (!nicknameInput.trim()) return;
@@ -203,14 +182,12 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             >
               {t('account.editProfile')}
             </button>
-            {uploadStatus === 'approved' && (
-              <button
-                onClick={() => setShowInfluencerDashboard(true)}
-                className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
-              >
-                {t('account.editSpots')}
-              </button>
-            )}
+            <button
+              onClick={() => setShowInfluencerDashboard(true)}
+              className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
+            >
+              {t('account.editSpots')}
+            </button>
             <button
               onClick={async () => {
                 const url = `https://soybeans02.github.io/stoguru/u/${user?.userId ?? ''}`;
@@ -257,42 +234,15 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       </div>
 
       <div className="px-4 pb-8 md:max-w-lg md:mx-auto">
-        {/* Influencer banner — uploadStatus に応じて出し分け */}
+        {/* Edit spots banner — 誰でも投稿可能 */}
         <div className="mt-2 mb-5">
-          {uploadStatusLoading ? (
-            <div className="w-full px-4 py-3.5 bg-gray-100 dark:bg-gray-800 rounded-[14px] flex items-center justify-center">
-              <p className="text-[13px] text-gray-400">...</p>
-            </div>
-          ) : uploadStatus === 'approved' ? (
-            <button
-              onClick={() => setShowInfluencerDashboard(true)}
-              className="w-full px-4 py-3.5 bg-orange-500 hover:bg-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
-            >
-              <p className="text-[13px] font-bold text-white">{t('account.editSpots')}</p>
-              <span className="text-white/40 text-lg">›</span>
-            </button>
-          ) : uploadStatus === 'pending' ? (
-            <button
-              disabled
-              className="w-full px-4 py-3.5 bg-gray-200 dark:bg-gray-700 rounded-[14px] flex items-center justify-between cursor-not-allowed opacity-90"
-            >
-              <p className="text-[13px] font-bold text-gray-500 dark:text-gray-300">{t('account.pendingReview')}</p>
-              <span className="text-gray-400 text-lg">…</span>
-            </button>
-          ) : uploadStatus === 'rejected' ? (
-            <div className="w-full px-4 py-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[14px] flex items-center justify-between">
-              <p className="text-[13px] font-bold text-red-500">{t('account.applicationRejected')}</p>
-            </div>
-          ) : (
-            <button
-              onClick={handleApplyToPost}
-              disabled={applyingUpload}
-              className="w-full px-4 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
-            >
-              <p className="text-[13px] font-bold text-white">{applyingUpload ? '...' : t('account.applyToPost')}</p>
-              <span className="text-white/40 text-lg">›</span>
-            </button>
-          )}
+          <button
+            onClick={() => setShowInfluencerDashboard(true)}
+            className="w-full px-4 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
+          >
+            <p className="text-[13px] font-bold text-white">{t('account.editSpots')}</p>
+            <span className="text-white/40 text-lg">›</span>
+          </button>
         </div>
 
         {/* Settings section */}

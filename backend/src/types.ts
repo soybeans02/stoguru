@@ -85,10 +85,6 @@ export interface UserSettings {
   categories: string[];
   isPrivate?: boolean;
   role?: 'user' | 'influencer';
-  /// 投稿許可ステータス（管理者が承認した時のみ public 投稿可能）
-  /// 'none' = 申請未提出 / 'pending' = 申請中 / 'approved' = 承認済 / 'rejected' = 却下
-  uploadStatus?: 'none' | 'pending' | 'approved' | 'rejected';
-  uploadAppliedAt?: number;
   profilePhotoUrl?: string;
   updatedAt?: number;
 }

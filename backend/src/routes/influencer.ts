@@ -4,9 +4,8 @@ import {
   putInfluencerProfile, getInfluencerProfile,
   // V2
   putRestaurantV2, getRestaurantV2, queryRestaurantsByPostedBy,
-  deleteRestaurantV2, updateRestaurantV2Visibility,
+  updateRestaurantV2Visibility,
   invalidateSearchCache,
-  getUserSettings, putUserSettings,
 } from '../services/dynamo';
 import { validate, influencerProfileSchema, influencerRestaurantSchema } from '../validators';
 
@@ -71,26 +70,8 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
 
 // ─── レストラン追加/更新（V2: Restaurants_v2に直接書き込み） ───
 
-// 投稿許可チェック（管理者承認済みのユーザーのみ投稿可）
-async function ensureUploadApproved(userId: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  try {
-    const settings = await getUserSettings(userId);
-    const status = settings?.uploadStatus ?? 'none';
-    if (status === 'approved') return { ok: true };
-    if (status === 'pending') return { ok: false, status: 403, error: '投稿申請を確認中です。承認をお待ちください。' };
-    if (status === 'rejected') return { ok: false, status: 403, error: '投稿申請が却下されています。' };
-    return { ok: false, status: 403, error: '投稿には事前申請と管理者の承認が必要です。' };
-  } catch {
-    return { ok: false, status: 500, error: '投稿権限の確認に失敗しました' };
-  }
-}
-
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
-  // 投稿許可チェック
-  const approval = await ensureUploadApproved(userId);
-  if (!approval.ok) { res.status(approval.status).json({ error: approval.error }); return; }
-
   const restaurantId = req.params.id as string;
   const v = validate(influencerRestaurantSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
@@ -162,27 +143,6 @@ router.patch('/restaurants/:id/visibility', requireAuth, async (req: AuthRequest
 });
 
 // ─── レストラン削除 ───
-
-// ─── 投稿申請 ───
-
-router.post('/upload-application', requireAuth, async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-  const settings = await getUserSettings(userId);
-  if (settings.uploadStatus === 'approved') {
-    res.json({ status: 'approved' }); return;
-  }
-  await putUserSettings(userId, {
-    ...settings,
-    uploadStatus: 'pending',
-    uploadAppliedAt: Date.now(),
-  });
-  res.json({ status: 'pending' });
-});
-
-router.get('/upload-application', requireAuth, async (req: AuthRequest, res: Response) => {
-  const settings = await getUserSettings(req.user!.userId);
-  res.json({ status: settings.uploadStatus ?? 'none' });
-});
 
 router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const restaurantId = req.params.id as string;
