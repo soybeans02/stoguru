@@ -214,11 +214,17 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Focus-visible: orange ring for keyboard users (Phase 5) */
-:where(button, [role="button"], a, input, select, textarea, [tabindex]):focus-visible {
+/* Focus-visible: orange ring for keyboard users (Phase 5)
+   text 入力 (input/textarea/[contenteditable]) は除外して、フォーカス時にオレンジ枠が出ないように */
+:where(button, [role="button"], a, select, [tabindex]):focus-visible {
   outline: 2px solid var(--accent-orange);
   outline-offset: 2px;
   border-radius: 4px;
+}
+input:focus,
+textarea:focus,
+[contenteditable]:focus {
+  outline: none;
 }
 
 /* Google Maps InfoWindow パディング縮小 */

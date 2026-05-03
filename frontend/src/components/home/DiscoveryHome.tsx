@@ -105,6 +105,8 @@ export function DiscoveryHome({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showHowTo, setShowHowTo] = useState(false);
+  const [showThemes, setShowThemes] = useState(false);
 
   // Feed
   const [feed, setFeed] = useState<FeedRestaurant[]>([]);
@@ -217,7 +219,7 @@ export function DiscoveryHome({
                 {isAnonymous ? t('home.ctaSignUp') : t('home.ctaStartSwipe')}
               </button>
               <button
-                onClick={onOpenSwipe}
+                onClick={() => setShowHowTo(true)}
                 className="px-[22px] py-[11px] rounded-full text-[14px] font-semibold border border-[var(--border-strong)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 transition-transform"
               >
                 {t('home.ctaHowItWorks')}
@@ -354,11 +356,11 @@ export function DiscoveryHome({
             title={t('home.editorialTitle')}
             subtitle={t('home.editorialSubtitle')}
             link={t('home.editorialViewAll')}
+            onLinkClick={() => setShowThemes(true)}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] gap-4 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
             <Story
-              large
-              image="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900"
+              image="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600"
               tag={t('home.editorialTag1')}
               title={t('home.editorialTitle1')}
               desc={t('home.editorialDesc1')}
@@ -539,6 +541,8 @@ export function DiscoveryHome({
           onClose={() => setProfileUserId(null)}
         />
       )}
+      {showHowTo && <HowToGuideModal onClose={() => setShowHowTo(false)} />}
+      {showThemes && <ThemesListModal onClose={() => setShowThemes(false)} />}
     </div>
   );
 }
@@ -738,13 +742,11 @@ function RankCard({
 }
 
 function Story({
-  large,
   image,
   tag,
   title,
   desc,
 }: {
-  large?: boolean;
   image: string;
   tag: string;
   title: string;
@@ -752,9 +754,7 @@ function Story({
 }) {
   return (
     <button
-      className={`relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left ${
-        large ? 'lg:row-span-1' : ''
-      }`}
+      className="relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left"
     >
       <img src={image} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
       <div
@@ -768,9 +768,7 @@ function Story({
           {tag}
         </span>
         <div
-          className={`font-bold leading-[1.35] tracking-[-0.01em] mb-1.5 whitespace-pre-line ${
-            large ? 'text-[20px] sm:text-[24px]' : 'text-[16px] sm:text-[18px]'
-          }`}
+          className="font-bold leading-[1.35] tracking-[-0.01em] mb-1.5 whitespace-pre-line text-[16px] sm:text-[18px]"
         >
           {title}
         </div>
@@ -951,6 +949,135 @@ function FooterCol({ heading, items }: { heading: string; items: string[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   How-to guide modal
+   ───────────────────────────────────── */
+function HowToGuideModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const steps = [
+    {
+      Icon: BurgerIcon,
+      title: t('home.howStep1Title'),
+      desc: t('home.howStep1Desc'),
+    },
+    {
+      Icon: CheckCircleIcon,
+      title: t('home.howStep2Title'),
+      desc: t('home.howStep2Desc'),
+    },
+    {
+      Icon: MapPinIcon,
+      title: t('home.howStep3Title'),
+      desc: t('home.howStep3Desc'),
+    },
+    {
+      Icon: StarIcon,
+      title: t('home.howStep4Title'),
+      desc: t('home.howStep4Desc'),
+    },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] max-w-[560px] w-full max-h-[90vh] overflow-auto shadow-[var(--shadow-xl)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
+          <h2 className="text-[18px] font-extrabold tracking-[-0.015em]">{t('home.howToTitle')}</h2>
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg-soft)]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-6 space-y-5">
+          {steps.map((s, i) => (
+            <div key={i} className="flex gap-4">
+              <div
+                className="w-12 h-12 rounded-2xl grid place-items-center flex-shrink-0"
+                style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
+              >
+                <s.Icon size={22} />
+              </div>
+              <div>
+                <div className="text-[15px] font-bold mb-1">{i + 1}. {s.title}</div>
+                <div className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   Themes list modal (拡張版エディトリアル)
+   ───────────────────────────────────── */
+function ThemesListModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const themes = [
+    {
+      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600',
+      tag: t('home.editorialTag1'),
+      title: t('home.editorialTitle1'),
+      desc: t('home.editorialDesc1'),
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600',
+      tag: t('home.editorialTag2'),
+      title: t('home.editorialTitle2'),
+      desc: t('home.editorialDesc2'),
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600',
+      tag: t('home.editorialTag3'),
+      title: t('home.editorialTitle3'),
+      desc: t('home.editorialDesc3'),
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+      tag: t('home.themeMoreTag1'),
+      title: t('home.themeMoreTitle1'),
+      desc: t('home.themeMoreDesc1'),
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600',
+      tag: t('home.themeMoreTag2'),
+      title: t('home.themeMoreTitle2'),
+      desc: t('home.themeMoreDesc2'),
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600',
+      tag: t('home.themeMoreTag3'),
+      title: t('home.themeMoreTitle3'),
+      desc: t('home.themeMoreDesc3'),
+    },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto" onClick={onClose}>
+      <div className="max-w-[1200px] mx-auto p-4 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em]">{t('home.themesAllTitle')}</h2>
+            <p className="text-[13px] text-[var(--text-tertiary)] mt-1">{t('home.themesAllSubtitle')}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="w-10 h-10 grid place-items-center rounded-full bg-[var(--card-bg)] border border-[var(--border)] hover:bg-[var(--bg-soft)] shadow-[var(--shadow-sm)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {themes.map((th, i) => (
+            <Story key={i} image={th.image} tag={th.tag} title={th.title} desc={th.desc} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
