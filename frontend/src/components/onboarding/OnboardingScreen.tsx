@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from '../../context/LanguageContext';
 
 interface OnboardingScreenProps {
   onComplete: (selectedScenes: string[]) => void;
@@ -11,13 +12,16 @@ const SCENES = [
   { id: 'drinks', label: '飲み', emoji: '\u{1F37B}' },
 ] as const;
 
+const TOTAL_STEPS = 5;
+
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
 
   const goNext = useCallback(() => {
-    if (step < 2) {
+    if (step < TOTAL_STEPS - 1) {
       setDirection('next');
       setStep((s) => s + 1);
     }
@@ -44,46 +48,72 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     );
   }, []);
 
+  const isLast = step === TOTAL_STEPS - 1;
+
   return (
-    <div className="flex flex-col h-svh bg-white max-w-xl mx-auto overflow-hidden">
-      {/* Skip link */}
-      {step < 2 && (
-        <div className="flex justify-end p-4">
-          <button
-            onClick={handleSkip}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            スキップ
-          </button>
-        </div>
-      )}
-      {step === 2 && (
-        <div className="flex justify-start p-4">
+    <div className="flex flex-col h-svh bg-[var(--bg)] text-[var(--text-primary)] max-w-xl mx-auto overflow-hidden">
+      {/* Top row: skip / back */}
+      <div className="flex justify-between items-center p-4 h-12">
+        {step > 0 ? (
           <button
             onClick={goBack}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
           >
-            ← 戻る
+            ← {t('common.back')}
           </button>
-        </div>
-      )}
+        ) : <span />}
+        {!isLast && (
+          <button
+            onClick={handleSkip}
+            className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+          >
+            {t('common.skip')}
+          </button>
+        )}
+      </div>
 
       {/* Slide area */}
       <div className="flex-1 flex items-center justify-center overflow-hidden relative">
         <div
           key={step}
           className={`w-full px-8 ${
-            direction === 'next'
-              ? 'animate-slide-in-right'
-              : 'animate-slide-in-left'
+            direction === 'next' ? 'animate-slide-in-right' : 'animate-slide-in-left'
           }`}
         >
-          {step === 0 && <StepWelcome />}
-          {step === 1 && <StepHowItWorks />}
+          {step === 0 && (
+            <Step
+              emoji="🃏"
+              title={t('onboarding.swipeTitle')}
+              description={t('onboarding.swipeDescription')}
+            />
+          )}
+          {step === 1 && (
+            <Step
+              emoji="🔖"
+              title={t('onboarding.saveTitle')}
+              description={t('onboarding.saveDescription')}
+            />
+          )}
           {step === 2 && (
+            <Step
+              emoji="🗺️"
+              title={t('onboarding.mapTitle')}
+              description={t('onboarding.mapDescription')}
+            />
+          )}
+          {step === 3 && (
+            <Step
+              emoji="✈️"
+              title={t('onboarding.destinationTitle')}
+              description={t('onboarding.destinationDescription')}
+            />
+          )}
+          {step === 4 && (
             <StepGetStarted
               selectedScenes={selectedScenes}
               onToggleScene={toggleScene}
+              title={t('onboarding.doneTitle')}
+              description={t('onboarding.doneDescription')}
             />
           )}
         </div>
@@ -91,37 +121,36 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
       {/* Dots + Button */}
       <div className="pb-12 pt-4 flex flex-col items-center gap-6">
-        {/* Dots */}
         <div className="flex gap-2">
-          {[0, 1, 2].map((i) => (
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === step ? 'bg-gray-900 w-6' : 'bg-gray-200'
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i === step
+                  ? 'bg-[var(--accent-orange)] w-6'
+                  : 'bg-[var(--border-strong)] w-2'
               }`}
             />
           ))}
         </div>
 
-        {/* Action button */}
-        {step < 2 ? (
+        {!isLast ? (
           <button
             onClick={goNext}
-            className="w-64 py-3 rounded-full bg-orange-500 text-white font-medium text-base transition-transform active:scale-95"
+            className="w-64 py-3 rounded-full bg-[var(--accent-orange)] text-[var(--text-on-accent)] font-medium text-base transition-transform active:scale-95"
           >
-            次へ
+            {t('common.next')}
           </button>
         ) : (
           <button
             onClick={handleStart}
-            className="w-64 py-3 rounded-full bg-orange-500 text-white font-medium text-base transition-transform active:scale-95"
+            className="w-64 py-3 rounded-full bg-[var(--accent-orange)] text-[var(--text-on-accent)] font-medium text-base transition-transform active:scale-95"
           >
-            始める
+            {t('onboarding.start')}
           </button>
         )}
       </div>
 
-      {/* Inline keyframe styles */}
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(60px); opacity: 0; }
@@ -142,77 +171,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   );
 }
 
-function StepWelcome() {
+function Step({ emoji, title, description }: { emoji: string; title: string; description: string }) {
   return (
     <div className="flex flex-col items-center text-center gap-4">
-      <span className="text-7xl" role="img" aria-label="restaurant">
-        🍽️
-      </span>
-      <h1 className="text-2xl font-bold text-gray-900 mt-4">
-        ストグルへようこそ
-      </h1>
-      <p className="text-base text-gray-500 leading-relaxed">
-        インフルエンサーが紹介したお店を
-        <br />
-        スワイプで保存しよう
+      <span className="text-7xl" role="img" aria-label={title}>{emoji}</span>
+      <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-4">{title}</h1>
+      <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-xs">
+        {description}
       </p>
-    </div>
-  );
-}
-
-function StepHowItWorks() {
-  return (
-    <div className="flex flex-col items-center text-center gap-6">
-      <h1 className="text-2xl font-bold text-gray-900">使い方</h1>
-      <div className="flex flex-col gap-5 w-full max-w-xs">
-        {/* Right swipe */}
-        <div className="flex items-center gap-4 bg-green-50 rounded-2xl px-5 py-4">
-          <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <p className="font-semibold text-gray-900">
-              右スワイプ →
-            </p>
-            <p className="text-sm text-gray-500">保存</p>
-          </div>
-        </div>
-        {/* Left swipe */}
-        <div className="flex items-center gap-4 bg-red-50 rounded-2xl px-5 py-4">
-          <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <p className="font-semibold text-gray-900">
-              左スワイプ ←
-            </p>
-            <p className="text-sm text-gray-500">スキップ</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -220,17 +186,19 @@ function StepHowItWorks() {
 function StepGetStarted({
   selectedScenes,
   onToggleScene,
+  title,
+  description,
 }: {
   selectedScenes: string[];
   onToggleScene: (id: string) => void;
+  title: string;
+  description: string;
 }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
-      <h1 className="text-2xl font-bold text-gray-900">さっそく始めよう</h1>
-      <p className="text-base text-gray-500 leading-relaxed">
-        気になるシーンを選んでね
-        <br />
-        <span className="text-sm">（あとで変更できるよ）</span>
+      <h1 className="text-2xl font-bold text-[var(--text-primary)]">{title}</h1>
+      <p className="text-base text-[var(--text-secondary)] leading-relaxed">
+        {description}
       </p>
       <div className="flex flex-wrap justify-center gap-3 mt-2">
         {SCENES.map((scene) => {
@@ -241,8 +209,8 @@ function StepGetStarted({
               onClick={() => onToggleScene(scene.id)}
               className={`px-5 py-2.5 rounded-full text-base font-medium transition-all duration-200 border-2 ${
                 selected
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+                  ? 'bg-[var(--accent-orange)] text-[var(--text-on-accent)] border-[var(--accent-orange)]'
+                  : 'bg-[var(--card-bg)] text-[var(--text-secondary)] border-[var(--border-strong)] hover:border-[var(--accent-orange)]'
               }`}
             >
               {scene.emoji} {scene.label}

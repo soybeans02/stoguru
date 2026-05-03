@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useDarkMode } from '../../hooks/useDarkMode';
+import { useTheme, type Theme } from '../../context/ThemeContext';
+import { useTranslation } from '../../context/LanguageContext';
+import type { Language } from '../../i18n';
 import * as api from '../../utils/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
+import { Sheet } from '../ui/Sheet';
+import { Toggle } from '../ui/Toggle';
+import { FeedbackSheet } from '../feedback/FeedbackSheet';
 
 interface Props {
   stocks: StockedRestaurant[];
   onRestaurantEdited?: () => void;
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount';
+type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms';
 type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
-  const { isDark, toggle: toggleDarkMode } = useDarkMode();
+  const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useTranslation();
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
   const [profileImage, setProfileImage] = useState(() => localStorage.getItem('cache:profileImage') || '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -31,6 +37,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<api.UploadApplicationStatus>('none');
+  const [uploadStatusLoading, setUploadStatusLoading] = useState(false);
+  const [applyingUpload, setApplyingUpload] = useState(false);
 
   const safeStocks = stocks ?? [];
   const visitedCount = safeStocks.filter((s) => s.visited).length;
@@ -73,7 +82,25 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       }));
       setFollowersList(withNicks);
     }).catch(() => {});
+    setUploadStatusLoading(true);
+    api.getUploadApplication()
+      .then((r) => setUploadStatus(r.status))
+      .catch(() => setUploadStatus('none'))
+      .finally(() => setUploadStatusLoading(false));
   }, []);
+
+  async function handleApplyToPost() {
+    if (applyingUpload) return;
+    setApplyingUpload(true);
+    try {
+      const r = await api.submitUploadApplication();
+      setUploadStatus(r.status);
+    } catch {
+      // 失敗しても UI は維持
+    } finally {
+      setApplyingUpload(false);
+    }
+  }
 
   async function handleSaveNickname() {
     if (!nicknameInput.trim()) return;
@@ -168,106 +195,185 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           )}
           <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
 
-          {/* Edit profile button */}
-          <button
-            onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
-            className="mt-4 px-8 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[13px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform"
-          >
-            プロフィール編集
-          </button>
+          {/* Edit profile / Edit spots / Share — 3 button row (iOS parity) */}
+          <div className="flex gap-2 mt-4 px-8 max-w-md mx-auto">
+            <button
+              onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
+              className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
+            >
+              {t('account.editProfile')}
+            </button>
+            {uploadStatus === 'approved' && (
+              <button
+                onClick={() => setShowInfluencerDashboard(true)}
+                className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
+              >
+                {t('account.editSpots')}
+              </button>
+            )}
+            <button
+              onClick={async () => {
+                const url = `https://soybeans02.github.io/stoguru/u/${user?.userId ?? ''}`;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: 'stoguru', url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    alert(t('account.profileShareCopied'));
+                  }
+                } catch {
+                  /* user cancelled */
+                }
+              }}
+              className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
+            >
+              {t('account.share')}
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="flex justify-center gap-8 mt-5">
-          <button onClick={() => setListPanel('visited')} className="text-center">
+        <div className="flex justify-center gap-6 mt-5">
+          <button onClick={() => setListPanel('stocks')} className="text-center" aria-label={t('account.saved')}>
+            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{safeStocks.length}</p>
+            <p className="text-[11px] text-gray-400">{t('account.saved')}</p>
+          </button>
+          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
+          <button onClick={() => setListPanel('visited')} className="text-center" aria-label={t('account.visited')}>
             <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{visitedCount}</p>
-            <p className="text-[11px] text-gray-400">行った</p>
+            <p className="text-[11px] text-gray-400">{t('account.visited')}</p>
           </button>
           <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
-          <button onClick={() => setListPanel('following')} className="text-center">
+          <button onClick={() => setListPanel('following')} className="text-center" aria-label={t('account.following')}>
             <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followingCount}</p>
-            <p className="text-[11px] text-gray-400">フォロー</p>
+            <p className="text-[11px] text-gray-400">{t('account.following')}</p>
           </button>
           <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
-          <button onClick={() => setListPanel('followers')} className="text-center">
+          <button onClick={() => setListPanel('followers')} className="text-center" aria-label={t('account.followers')}>
             <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followersCount}</p>
-            <p className="text-[11px] text-gray-400">フォロワー</p>
+            <p className="text-[11px] text-gray-400">{t('account.followers')}</p>
           </button>
         </div>
       </div>
 
       <div className="px-4 pb-8 md:max-w-lg md:mx-auto">
-        {/* Influencer banner */}
+        {/* Influencer banner — uploadStatus に応じて出し分け */}
         <div className="mt-2 mb-5">
-          <button
-            onClick={() => setShowInfluencerDashboard(true)}
-            className="w-full px-4 py-3.5 bg-orange-500 hover:bg-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
-          >
-            <div>
-              <p className="text-[13px] font-bold text-white">お店を編集</p>
+          {uploadStatusLoading ? (
+            <div className="w-full px-4 py-3.5 bg-gray-100 dark:bg-gray-800 rounded-[14px] flex items-center justify-center">
+              <p className="text-[13px] text-gray-400">...</p>
             </div>
-            <span className="text-white/40 text-lg">›</span>
-          </button>
+          ) : uploadStatus === 'approved' ? (
+            <button
+              onClick={() => setShowInfluencerDashboard(true)}
+              className="w-full px-4 py-3.5 bg-orange-500 hover:bg-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
+            >
+              <p className="text-[13px] font-bold text-white">{t('account.editSpots')}</p>
+              <span className="text-white/40 text-lg">›</span>
+            </button>
+          ) : uploadStatus === 'pending' ? (
+            <button
+              disabled
+              className="w-full px-4 py-3.5 bg-gray-200 dark:bg-gray-700 rounded-[14px] flex items-center justify-between cursor-not-allowed opacity-90"
+            >
+              <p className="text-[13px] font-bold text-gray-500 dark:text-gray-300">{t('account.pendingReview')}</p>
+              <span className="text-gray-400 text-lg">…</span>
+            </button>
+          ) : uploadStatus === 'rejected' ? (
+            <div className="w-full px-4 py-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[14px] flex items-center justify-between">
+              <p className="text-[13px] font-bold text-red-500">{t('account.applicationRejected')}</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleApplyToPost}
+              disabled={applyingUpload}
+              className="w-full px-4 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+            >
+              <p className="text-[13px] font-bold text-white">{applyingUpload ? '...' : t('account.applyToPost')}</p>
+              <span className="text-white/40 text-lg">›</span>
+            </button>
+          )}
         </div>
 
         {/* Settings section */}
         <div className="mb-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">設定</p>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.settings')}</p>
           <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-                </div>
-                <span className="text-[14px] text-gray-700 dark:text-gray-200">ダークモード</span>
-              </div>
-              <button
-                onClick={toggleDarkMode}
-                className={`relative w-11 h-[26px] rounded-full transition-colors ${isDark ? 'bg-gray-900 dark:bg-orange-500' : 'bg-gray-200'}`}
-              >
-                <span
-                  className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-[18px]' : ''}`}
-                />
-              </button>
-            </div>
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-[8px] bg-gray-500 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
                 <div>
-                  <span className="text-[14px] text-gray-700 dark:text-gray-200">非公開アカウント</span>
-                  <p className="text-[11px] text-gray-400 mt-0.5">フォロー承認制になります</p>
+                  <span className="text-[14px] text-gray-700 dark:text-gray-200">{t('account.privateAccount')}</span>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{t('account.privateAccountHint')}</p>
                 </div>
               </div>
-              <button
-                onClick={async () => {
-                  const next = !isPrivate;
+              <Toggle
+                checked={isPrivate}
+                ariaLabel={t('account.privateAccount')}
+                onChange={async (next) => {
                   setIsPrivate(next);
                   localStorage.setItem('cache:isPrivate', next ? '1' : '0');
                   try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
                 }}
-                className={`relative w-11 h-[26px] rounded-full transition-colors ${isPrivate ? 'bg-gray-900 dark:bg-orange-500' : 'bg-gray-200'}`}
-              >
-                <span
-                  className={`absolute top-[2px] left-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm transition-transform ${isPrivate ? 'translate-x-[18px]' : ''}`}
-                />
-              </button>
+              />
             </div>
             <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></div>}
+              label={t('account.theme')}
+              value={t(`account.theme${theme === 'white' ? 'White' : theme === 'black' ? 'Black' : theme === 'wood' ? 'Wood' : 'Auto'}`)}
+              onClick={() => setPanel('theme')}
+              border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-blue-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>}
+              label={t('account.language')}
+              value={language === 'ja' ? '日本語' : 'English'}
+              onClick={() => setPanel('language')}
+              border
+            />
+            <MenuItemCard
               icon={<div className="w-8 h-8 rounded-[8px] bg-amber-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
-              label="パスワード変更" onClick={() => setPanel('password')} border
+              label={t('account.changePassword')} onClick={() => setPanel('password')} border
             />
             <MenuItemCard
               icon={<div className="w-8 h-8 rounded-[8px] bg-emerald-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>}
-              label="メールアドレス変更" onClick={() => setPanel('email')}
+              label={t('account.changeEmail')} onClick={() => setPanel('email')}
+            />
+          </div>
+        </div>
+
+        {/* Support section */}
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.support')}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-purple-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>}
+              label={t('account.howToUse')} onClick={() => setPanel('howto')} border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-pink-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>}
+              label={t('account.feedback')} onClick={() => setPanel('feedback')} border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>}
+              label={t('account.contactUs')} onClick={() => setPanel('support')} border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-gray-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
+              label={t('account.privacyPolicy')} onClick={() => setPanel('privacy')} border
+            />
+            <MenuItemCard
+              icon={<div className="w-8 h-8 rounded-[8px] bg-slate-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>}
+              label={t('account.termsOfService')} onClick={() => setPanel('terms')}
             />
           </div>
         </div>
 
         {/* Danger section */}
         <div className="mb-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">その他</p>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.other')}</p>
           <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
             <button
               onClick={() => setPanel('deleteAccount')}
@@ -276,7 +382,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <div className="w-8 h-8 rounded-[8px] bg-red-500 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
               </div>
-              <span className="text-[14px] text-red-500">アカウント削除</span>
+              <span className="text-[14px] text-red-500">{t('account.deleteAccount')}</span>
             </button>
             <button
               onClick={logout}
@@ -285,7 +391,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <div className="w-8 h-8 rounded-[8px] bg-gray-900 dark:bg-gray-600 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
               </div>
-              <span className="text-[14px] text-gray-700 dark:text-gray-300">ログアウト</span>
+              <span className="text-[14px] text-gray-700 dark:text-gray-300">{t('auth.logOut')}</span>
             </button>
           </div>
         </div>
@@ -306,6 +412,55 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       )}
       {panel === 'deleteAccount' && (
         <DeleteAccountPanel onClose={() => setPanel(null)} onDeleted={logout} />
+      )}
+      {panel === 'theme' && (
+        <ThemeSheet
+          onClose={() => setPanel(null)}
+          theme={theme}
+          setTheme={setTheme}
+          t={t}
+        />
+      )}
+      {panel === 'language' && (
+        <LanguageSheet
+          onClose={() => setPanel(null)}
+          language={language}
+          setLanguage={setLanguage}
+          t={t}
+        />
+      )}
+      {panel === 'feedback' && (
+        <FeedbackSheet category="general" onClose={() => setPanel(null)} />
+      )}
+      {panel === 'support' && (
+        <FeedbackSheet category="support" onClose={() => setPanel(null)} />
+      )}
+      {panel === 'howto' && (
+        <StaticTextSheet
+          onClose={() => setPanel(null)}
+          title={t('account.howToUse')}
+          body={t('howto.body',
+`1. ホームでスワイプ → 気になったお店を保存
+2. 保存タブで一覧管理 (ピン留め・行った)
+3. マップタブで近くのお店を確認
+4. 検索タブでユーザー・お店・URL から探す
+5. 投稿は「投稿を申請」から審査後に可能`
+          )}
+        />
+      )}
+      {panel === 'privacy' && (
+        <StaticTextSheet
+          onClose={() => setPanel(null)}
+          title={t('account.privacyPolicy')}
+          body={'本アプリは、利用に必要な範囲で位置情報・利用ログを取得します。詳細は https://soybeans02.github.io/stoguru/privacy.html を参照してください。'}
+        />
+      )}
+      {panel === 'terms' && (
+        <StaticTextSheet
+          onClose={() => setPanel(null)}
+          title={t('account.termsOfService')}
+          body={'ストグルをご利用いただきありがとうございます。利用規約の全文は https://soybeans02.github.io/stoguru/terms.html を参照してください。'}
+        />
       )}
       {/* List panels */}
       {listPanel === 'stocks' && (
@@ -382,7 +537,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   );
 }
 
-function MenuItemCard({ icon, label, onClick, border }: { icon: React.ReactNode; label: string; onClick: () => void; border?: boolean }) {
+function MenuItemCard({ icon, label, value, onClick, border }: { icon: React.ReactNode; label: string; value?: string; onClick: () => void; border?: boolean }) {
   return (
     <button
       onClick={onClick}
@@ -392,8 +547,101 @@ function MenuItemCard({ icon, label, onClick, border }: { icon: React.ReactNode;
         {icon}
         <span className="text-[14px] text-gray-700 dark:text-gray-200">{label}</span>
       </div>
-      <span className="text-gray-300 dark:text-gray-600 text-base">›</span>
+      <div className="flex items-center gap-1.5">
+        {value && <span className="text-[12px] text-gray-400 dark:text-gray-500">{value}</span>}
+        <span className="text-gray-300 dark:text-gray-600 text-base">›</span>
+      </div>
     </button>
+  );
+}
+
+/* ─── テーマ選択シート ─── */
+function ThemeSheet({ onClose, theme, setTheme, t }: {
+  onClose: () => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const options: { value: Theme; preview: string; gradient: string; }[] = [
+    { value: 'white', preview: t('account.themeWhite'), gradient: 'bg-gradient-to-br from-gray-100 to-white border-gray-200' },
+    { value: 'black', preview: t('account.themeBlack'), gradient: 'bg-gradient-to-br from-gray-900 to-black border-gray-700' },
+    { value: 'wood', preview: t('account.themeWood'), gradient: 'bg-gradient-to-br from-amber-200 to-amber-700 border-amber-300' },
+    { value: 'auto', preview: t('account.themeAuto'), gradient: 'bg-gradient-to-br from-gray-100 via-gray-500 to-black border-gray-300' },
+  ];
+  return (
+    <Sheet isOpen onClose={onClose} title={t('account.theme')}>
+      <p className="text-[13px] text-gray-500 mb-4">{t('account.themeDescription')}</p>
+      <div className="grid grid-cols-2 gap-3">
+        {options.map((opt) => {
+          const active = theme === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => { setTheme(opt.value); onClose(); }}
+              className={`flex flex-col items-stretch gap-2 p-2 rounded-[14px] border transition-all ${active ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+            >
+              <div className={`w-full aspect-[4/3] rounded-[10px] border ${opt.gradient}`} />
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{opt.preview}</span>
+                {active && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </Sheet>
+  );
+}
+
+/* ─── 言語選択シート ─── */
+function LanguageSheet({ onClose, language, setLanguage, t }: {
+  onClose: () => void;
+  language: Language;
+  setLanguage: (l: Language) => void;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const options: { value: Language; label: string; sub: string }[] = [
+    { value: 'ja', label: '日本語', sub: 'Japanese' },
+    { value: 'en', label: 'English', sub: 'English' },
+  ];
+  return (
+    <Sheet isOpen onClose={onClose} title={t('account.language')}>
+      <div className="space-y-2">
+        {options.map((opt) => {
+          const active = language === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => { setLanguage(opt.value); onClose(); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-[12px] border transition-colors ${active ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+            >
+              <div className="text-left">
+                <p className="text-[14px] font-medium text-gray-900 dark:text-white">{opt.label}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{opt.sub}</p>
+              </div>
+              {active && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </Sheet>
+  );
+}
+
+/* ─── 静的テキストシート (privacy/terms/howto) ─── */
+function StaticTextSheet({ onClose, title, body }: { onClose: () => void; title: string; body: string }) {
+  return (
+    <Sheet isOpen onClose={onClose} title={title} maxWidth="lg">
+      <div className="text-[13px] leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-line">{body}</div>
+    </Sheet>
   );
 }
 

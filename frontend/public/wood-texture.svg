@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="base" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d2a36b"/>
+      <stop offset="50%" stop-color="#b9854a"/>
+      <stop offset="100%" stop-color="#9b6a35"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.7" numOctaves="3" seed="3"/>
+      <feColorMatrix values="0 0 0 0 0.55  0 0 0 0 0.35  0 0 0 0 0.18  0 0 0 0.4 0"/>
+      <feComposite operator="in" in2="SourceGraphic"/>
+      <feBlend mode="multiply" in="SourceGraphic" in2="grain"/>
+    </filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#base)"/>
+  <rect width="400" height="400" fill="url(#base)" filter="url(#grain)" opacity="0.85"/>
+</svg>

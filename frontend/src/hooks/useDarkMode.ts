@@ -1,23 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
+/**
+ * 既存コンポーネント互換のためのラッパー。新規コードは `useTheme` を使うこと。
+ * - isDark: 現在解決済みテーマが black なら true
+ * - toggle: black <-> white を切り替える
+ */
 export function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const stored = localStorage.getItem('darkMode');
-    if (stored !== null) return stored === 'true';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('darkMode', String(isDark));
-  }, [isDark]);
-
-  const toggle = useCallback(() => setIsDark((prev) => !prev), []);
-
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === 'black';
+  const toggle = useCallback(() => {
+    setTheme(isDark ? 'white' : 'black');
+  }, [isDark, setTheme]);
   return { isDark, toggle };
 }

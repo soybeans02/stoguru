@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useTranslation } from './context/LanguageContext';
 import { useGPS } from './hooks/useGPS';
 import { OnboardingScreen } from './components/onboarding/OnboardingScreen';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import { AuthScreen } from './components/auth/AuthScreen';
+import { AuthModal } from './components/auth/AuthModal';
+import { SignUpGate } from './components/auth/SignUpGate';
 import { SwipeScreen } from './components/swipe/SwipeScreen';
 import { StockScreen } from './components/stock/StockScreen';
 import type { StockedRestaurant } from './components/stock/StockScreen';
@@ -59,12 +61,13 @@ function IconUser({ active }: { active: boolean }) {
 
 /* ─── Sidebar (PC) ─── */
 function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
+  const { t } = useTranslation();
   const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
-    { key: 'home', label: 'ホーム', icon: (a) => <IconHome active={a} /> },
-    { key: 'map', label: 'マップ', icon: (a) => <IconMap active={a} /> },
-    { key: 'stock', label: '保存', icon: (a) => <IconBookmark active={a} /> },
-    { key: 'social', label: '検索', icon: (a) => <IconSearch active={a} /> },
-    { key: 'account', label: 'アカウント', icon: (a) => <IconUser active={a} /> },
+    { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
+    { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
+    { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
+    { key: 'social', label: t('tabs.social'), icon: (a) => <IconSearch active={a} /> },
+    { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
   ];
 
   return (
@@ -106,12 +109,13 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
 
 /* ─── Bottom Tab (Mobile) ─── */
 function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
+  const { t } = useTranslation();
   const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
-    { key: 'home', label: 'ホーム', icon: (a) => <IconHome active={a} /> },
-    { key: 'map', label: 'マップ', icon: (a) => <IconMap active={a} /> },
-    { key: 'stock', label: '保存', icon: (a) => <IconBookmark active={a} /> },
-    { key: 'social', label: '検索', icon: (a) => <IconSearch active={a} /> },
-    { key: 'account', label: 'アカウント', icon: (a) => <IconUser active={a} /> },
+    { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
+    { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
+    { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
+    { key: 'social', label: t('tabs.social'), icon: (a) => <IconSearch active={a} /> },
+    { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
   ];
 
   return (
@@ -134,6 +138,8 @@ function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => vo
 }
 
 function MainApp() {
+  const { user } = useAuth();
+  const isAnonymous = !user;
   const [tab, setTabState] = useState<Tab>(() => {
     const saved = sessionStorage.getItem('activeTab') as Tab | null;
     return saved && ['home', 'stock', 'map', 'social', 'account'].includes(saved) ? saved : 'home';
@@ -147,9 +153,11 @@ function MainApp() {
   const [stocks, setStocks] = useState<StockedRestaurant[]>([]);
   const [panTo, setPanTo] = useState<{ lat: number; lng: number; restaurant?: StockedRestaurant } | null>(null);
   const { position } = useGPS();
+  const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
 
-  // 起動時にバックエンドからストック復元
+  // 起動時にバックエンドからストック復元（ログイン済みのみ）
   useEffect(() => {
+    if (!user) { setStocks([]); return; }
     const mockMap = new Map(MOCK_RESTAURANTS.map((m) => [m.id, m]));
     api.fetchRestaurants().then((data: Record<string, unknown>[]) => {
       const restored: StockedRestaurant[] = data.map((r) => {
@@ -176,9 +184,14 @@ function MainApp() {
       });
       setStocks(restored);
     }).catch(() => {});
-  }, []);
+  }, [user]);
 
   const handleStock = useCallback((r: SwipeRestaurant) => {
+    // 匿名なら登録を促すモーダルを表示するのみ（サーバー送信しない）
+    if (!user) {
+      setAuthModal('signup');
+      return;
+    }
     setStocks((prev) => {
       if (prev.some((s) => s.id === r.id)) return prev;
       return [...prev, { ...r, visited: false, stockedAt: new Date().toISOString() }];
@@ -188,7 +201,7 @@ function MainApp() {
       genre: r.genre, scene: r.scene, priceRange: r.priceRange, distance: r.distance,
       influencer: r.influencer, videoUrl: r.videoUrl, photoEmoji: r.photoEmoji, status: 'wishlist',
     }).catch((e) => console.warn('Failed to stock:', e));
-  }, []);
+  }, [user]);
 
   const handleMarkVisited = useCallback((id: string) => {
     const now = new Date().toISOString();
@@ -249,7 +262,7 @@ function MainApp() {
   }, []);
 
   return (
-    <div className="flex h-svh bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-svh bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden">
       {/* PC: Left Sidebar */}
       <Sidebar tab={tab} onTabChange={setTab} />
 
@@ -258,15 +271,22 @@ function MainApp() {
         <main className="flex-1 flex flex-col overflow-hidden">
           {tab === 'home' && <SwipeScreen onStock={handleStock} onRemoveStock={handleRemoveStock} onShowOnMap={handleShowOnMap} onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }} userPosition={position} stockedIds={stockedIds} refreshKey={feedRefreshKey} />}
           {tab === 'stock' && (
-            <StockScreen
-              stocks={stocks}
-              onMarkVisited={handleMarkVisited}
-              onUnmarkVisited={handleUnmarkVisited}
-              onRemoveStock={handleRemoveStock}
-              onTogglePin={handleTogglePin}
-              onShowOnMap={handleShowOnMap}
-              userPosition={position}
-            />
+            isAnonymous ? (
+              <SignUpGate
+                title="Save your favorites"
+                description="Create an account to save spots you swiped and revisit them later."
+              />
+            ) : (
+              <StockScreen
+                stocks={stocks}
+                onMarkVisited={handleMarkVisited}
+                onUnmarkVisited={handleUnmarkVisited}
+                onRemoveStock={handleRemoveStock}
+                onTogglePin={handleTogglePin}
+                onShowOnMap={handleShowOnMap}
+                userPosition={position}
+              />
+            )
           )}
           {tab === 'map' && (
             <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">マップを読み込み中...</p></div>}>
@@ -282,19 +302,38 @@ function MainApp() {
             <SocialScreen initialView={socialInitView} onInitViewConsumed={() => setSocialInitView(null)} onGoHome={() => setTab('home')} />
           )}
           {tab === 'account' && (
-            <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />
+            isAnonymous ? (
+              <SignUpGate
+                icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
+                  </svg>
+                }
+                title="Create your profile"
+                description="Sign up to follow friends, post your favorite spots, and keep your stash in sync."
+              />
+            ) : (
+              <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />
+            )
           )}
         </main>
 
         {/* Mobile: Bottom Tab */}
         <BottomTab tab={tab} onTabChange={setTab} />
       </div>
+
+      {/* 匿名ユーザーが auth 必要操作（保存スワイプ等）したときに開く */}
+      <AuthModal
+        isOpen={authModal !== null}
+        initialMode={authModal ?? 'signup'}
+        onClose={() => setAuthModal(null)}
+      />
     </div>
   );
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_done') === '1'
   );
@@ -315,8 +354,7 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthScreen />;
-
+  // 匿名でもオンボーディング → メインアプリへ進める。AuthScreen 強制ガードは廃止。
   if (!onboardingDone) {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }

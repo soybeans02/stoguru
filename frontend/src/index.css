@@ -2,6 +2,137 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════
+   Design Tokens — CSS variables (theme-aware)
+   ─────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="white"] {
+  /* Brand */
+  --accent-orange: #f97316;
+  --accent-orange-grad-1: #fb923c;
+  --accent-orange-grad-2: #f97316;
+  --visited-green: #8CC740;
+
+  /* Surface / text */
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --card-bg: #ffffff;
+  --card-bg-soft: #f9fafb;
+  --header-bg: #ffffff;
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-on-accent: #ffffff;
+  --text-disabled: #d1d5db;
+
+  --border: #f3f4f6;
+  --border-strong: #e5e7eb;
+  --divider: #f3f4f6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.10);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-full: 9999px;
+
+  --bg-image: none;
+}
+
+[data-theme="black"] {
+  --accent-orange: #fb923c;
+  --accent-orange-grad-1: #fb923c;
+  --accent-orange-grad-2: #f97316;
+  --visited-green: #a3d76b;
+
+  --bg: #0b0b0d;
+  --bg-elevated: #1a1a1f;
+  --card-bg: #1a1a1f;
+  --card-bg-soft: #15151a;
+  --header-bg: #0b0b0d;
+
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-on-accent: #ffffff;
+  --text-disabled: #3f3f46;
+
+  --border: #1f1f25;
+  --border-strong: #2a2a31;
+  --divider: #1f1f25;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+  --bg-image: none;
+}
+
+[data-theme="wood"] {
+  --accent-orange: #d97706;
+  --accent-orange-grad-1: #f59e0b;
+  --accent-orange-grad-2: #d97706;
+  --visited-green: #84cc16;
+
+  /* Warm cream surfaces over the wood texture */
+  --bg: #f4e4c1;
+  --bg-elevated: #fef9ee;
+  --card-bg: rgba(255, 250, 235, 0.92);
+  --card-bg-soft: rgba(254, 243, 222, 0.85);
+  --header-bg: rgba(255, 250, 235, 0.92);
+
+  --text-primary: #3b2412;
+  --text-secondary: #6b4a2a;
+  --text-tertiary: #9b7a5a;
+  --text-on-accent: #ffffff;
+  --text-disabled: #c4a880;
+
+  --border: rgba(139, 90, 43, 0.18);
+  --border-strong: rgba(139, 90, 43, 0.32);
+  --divider: rgba(139, 90, 43, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(89, 50, 20, 0.10);
+  --shadow-md: 0 4px 12px rgba(89, 50, 20, 0.18);
+  --shadow-lg: 0 10px 30px rgba(89, 50, 20, 0.28);
+
+  --bg-image: url('/wood-texture.jpg'), url('/wood-texture.svg');
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --accent-orange: #fb923c;
+    --accent-orange-grad-1: #fb923c;
+    --accent-orange-grad-2: #f97316;
+    --visited-green: #a3d76b;
+    --bg: #0b0b0d;
+    --bg-elevated: #1a1a1f;
+    --card-bg: #1a1a1f;
+    --card-bg-soft: #15151a;
+    --header-bg: #0b0b0d;
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+    --text-on-accent: #ffffff;
+    --text-disabled: #3f3f46;
+    --border: #1f1f25;
+    --border-strong: #2a2a31;
+    --divider: #1f1f25;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+    --bg-image: none;
+  }
+}
+
+/* When data-theme="auto" + light system → use defaults from :root (no override needed) */
+
 html, body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
@@ -11,6 +142,11 @@ html, body {
   height: 100svh;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-attachment: fixed;
+  color: var(--text-primary);
 }
 
 #root {
@@ -29,12 +165,27 @@ html, body {
   animation: slide-up 0.25s ease-out;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
 /* Safe area for bottom nav on notched devices */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Google Maps InfoWindow のパディング縮小 */
+/* Focus-visible: orange ring for keyboard users (Phase 5) */
+:where(button, [role="button"], a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Google Maps InfoWindow パディング縮小 */
 .gm-style-iw-d {
   padding: 0px 2px !important;
   overflow: hidden !important;
@@ -42,7 +193,6 @@ html, body {
 .gm-style-iw.gm-style-iw-c {
   padding: 0px 2px !important;
 }
-/* InfoWindow 閉じるボタン位置調整 */
 .gm-style-iw-c button.gm-ui-hover-effect {
   top: 2px !important;
   right: 2px !important;

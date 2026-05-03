@@ -1,13 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
-export function AuthScreen() {
-  const { signUp, login, forgotPassword, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+interface AuthScreenProps {
+  initialMode?: 'login' | 'signup';
+  onClose?: () => void;
+  onAuthSuccess?: () => void;
+}
+
+export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenProps = {}) {
+  const { user, signUp, login, forgotPassword, resetPassword } = useAuth();
+  const [mode, setMode] = useState<Mode>(initialMode ?? 'login');
+
+  // ログイン成功で自動で閉じる（モーダル用途）
+  useEffect(() => {
+    if (user && onAuthSuccess) {
+      onAuthSuccess();
+    }
+  }, [user, onAuthSuccess]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
@@ -51,7 +64,17 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-svh flex bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-svh flex bg-gray-50 dark:bg-gray-900 relative">
+      {/* 閉じるボタン (モーダル用途) */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/90 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      )}
       {/* PC: 左ブランドエリア */}
       <div className="hidden md:flex md:w-2/5 lg:w-1/2 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
