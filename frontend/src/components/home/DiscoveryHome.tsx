@@ -8,6 +8,13 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { AuthModal } from '../auth/AuthModal';
+import {
+  CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
+  PlateIcon, NoodleIcon, SushiIcon, BurgerIcon, ItalianIcon, CafeIcon, MeatIcon, BeerIcon, CurryIcon, ChineseIcon, EthnicIcon,
+} from '../ui/icons';
+import type { ComponentType, SVGProps } from 'react';
+
+type SvgIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
 /* ─────────────────────────────────────
    Types
@@ -65,17 +72,17 @@ function fallbackPhoto(id: string): string {
    Categories
    ───────────────────────────────────── */
 const CATEGORIES = [
-  { id: 'all', emoji: '🍱', i18nKey: 'home.catAll', match: null as string[] | null },
-  { id: 'ramen', emoji: '🍜', i18nKey: 'home.catRamen', match: ['ラーメン', 'ramen'] },
-  { id: 'sushi', emoji: '🍣', i18nKey: 'home.catSushi', match: ['寿司', 'sushi'] },
-  { id: 'burger', emoji: '🍔', i18nKey: 'home.catBurger', match: ['ハンバーガー', 'burger'] },
-  { id: 'italian', emoji: '🍝', i18nKey: 'home.catItalian', match: ['イタリアン', 'italian'] },
-  { id: 'cafe', emoji: '🍰', i18nKey: 'home.catCafe', match: ['カフェ', 'cafe'] },
-  { id: 'yakiniku', emoji: '🥩', i18nKey: 'home.catYakiniku', match: ['焼肉', 'yakiniku'] },
-  { id: 'izakaya', emoji: '🍻', i18nKey: 'home.catIzakaya', match: ['居酒屋', 'izakaya'] },
-  { id: 'curry', emoji: '🍛', i18nKey: 'home.catCurry', match: ['カレー', 'curry'] },
-  { id: 'chinese', emoji: '🥟', i18nKey: 'home.catChinese', match: ['中華', 'chinese'] },
-  { id: 'ethnic', emoji: '🌮', i18nKey: 'home.catEthnic', match: ['エスニック', 'ethnic', 'タイ', 'ベトナム', 'メキシカン'] },
+  { id: 'all', Icon: PlateIcon as SvgIcon, i18nKey: 'home.catAll', match: null as string[] | null },
+  { id: 'ramen', Icon: NoodleIcon as SvgIcon, i18nKey: 'home.catRamen', match: ['ラーメン', 'ramen'] },
+  { id: 'sushi', Icon: SushiIcon as SvgIcon, i18nKey: 'home.catSushi', match: ['寿司', 'sushi'] },
+  { id: 'burger', Icon: BurgerIcon as SvgIcon, i18nKey: 'home.catBurger', match: ['ハンバーガー', 'burger'] },
+  { id: 'italian', Icon: ItalianIcon as SvgIcon, i18nKey: 'home.catItalian', match: ['イタリアン', 'italian'] },
+  { id: 'cafe', Icon: CafeIcon as SvgIcon, i18nKey: 'home.catCafe', match: ['カフェ', 'cafe'] },
+  { id: 'yakiniku', Icon: MeatIcon as SvgIcon, i18nKey: 'home.catYakiniku', match: ['焼肉', 'yakiniku'] },
+  { id: 'izakaya', Icon: BeerIcon as SvgIcon, i18nKey: 'home.catIzakaya', match: ['居酒屋', 'izakaya'] },
+  { id: 'curry', Icon: CurryIcon as SvgIcon, i18nKey: 'home.catCurry', match: ['カレー', 'curry'] },
+  { id: 'chinese', Icon: ChineseIcon as SvgIcon, i18nKey: 'home.catChinese', match: ['中華', 'chinese'] },
+  { id: 'ethnic', Icon: EthnicIcon as SvgIcon, i18nKey: 'home.catEthnic', match: ['エスニック', 'ethnic', 'タイ', 'ベトナム', 'メキシカン'] },
 ];
 
 /* ─────────────────────────────────────
@@ -270,23 +277,17 @@ export function DiscoveryHome({
 
             {/* Floating badges */}
             <div
-              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-2 shadow-[var(--shadow-md)] text-[13px] font-semibold"
+              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-1.5 shadow-[var(--shadow-md)] text-[13px] font-semibold"
               style={{ top: '10%', left: '4%' }}
             >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ background: 'var(--visited-green)' }}
-              />
+              <CheckCircleIcon size={16} style={{ color: 'var(--visited-green)' }} />
               {t('home.badgeVisited')}
             </div>
             <div
-              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-2 shadow-[var(--shadow-md)] text-[13px] font-semibold"
+              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-1.5 shadow-[var(--shadow-md)] text-[13px] font-semibold"
               style={{ bottom: '24%', right: 0 }}
             >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ background: 'var(--accent-orange)' }}
-              />
+              <StarIcon size={14} style={{ color: 'var(--accent-gold)' }} />
               4.8 · 大阪
             </div>
           </div>
@@ -312,12 +313,12 @@ export function DiscoveryHome({
                   }`}
                 >
                   <span
-                    className={`w-8 h-8 rounded-full grid place-items-center text-[16px] ${
+                    className={`w-8 h-8 rounded-full grid place-items-center ${
                       active ? 'bg-white/15' : ''
                     }`}
                     style={{ background: active ? 'rgba(255,255,255,0.15)' : 'var(--bg-soft)' }}
                   >
-                    {c.emoji}
+                    <c.Icon size={16} />
                   </span>
                   {t(c.i18nKey)}
                 </button>
@@ -423,16 +424,16 @@ export function DiscoveryHome({
               </p>
               <div className="flex flex-col gap-3 mb-6">
                 {[
-                  { icon: '📍', text: t('home.mapFeature1') },
-                  { icon: '🎯', text: t('home.mapFeature2') },
-                  { icon: '🗺️', text: t('home.mapFeature3') },
+                  { Icon: MapPinIcon, text: t('home.mapFeature1') },
+                  { Icon: FilterIcon, text: t('home.mapFeature2') },
+                  { Icon: MapIcon, text: t('home.mapFeature3') },
                 ].map((f, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-[13px]">
                     <span
                       className="w-7 h-7 rounded-lg grid place-items-center"
-                      style={{ background: 'var(--bg-soft)' }}
+                      style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
                     >
-                      {f.icon}
+                      <f.Icon size={14} />
                     </span>
                     <span>{f.text}</span>
                   </div>
@@ -459,16 +460,16 @@ export function DiscoveryHome({
               }}
             >
               <div className="absolute top-4 left-4 right-4 bg-[var(--card-bg)] rounded-[var(--radius-lg)] px-3.5 py-2.5 flex items-center gap-2.5 shadow-[var(--shadow-md)] text-[13px] font-semibold">
-                <span style={{ color: 'var(--visited-green)' }}>📍</span>
+                <span style={{ color: 'var(--visited-green)' }}><MapPinIcon size={16} /></span>
                 {t('home.mapBanner')}
                 <span className="ml-auto text-[var(--text-tertiary)] font-normal">2件</span>
               </div>
-              <MapPin top="35%" left="22%" color="var(--accent-orange)">🍔</MapPin>
-              <MapPin top="48%" left="38%" color="var(--visited-green)">🍜</MapPin>
-              <MapPin top="30%" left="55%" color="var(--accent-orange)">☕</MapPin>
-              <MapPin top="60%" left="48%" color="var(--accent-purple)">🍝</MapPin>
+              <MapPin top="35%" left="22%" color="var(--accent-orange)"><BurgerIcon size={14} /></MapPin>
+              <MapPin top="48%" left="38%" color="var(--visited-green)"><NoodleIcon size={14} /></MapPin>
+              <MapPin top="30%" left="55%" color="var(--accent-orange)"><CafeIcon size={14} /></MapPin>
+              <MapPin top="60%" left="48%" color="var(--accent-purple)"><ItalianIcon size={14} /></MapPin>
               <MapPin top="65%" left="68%" color="var(--text-primary)" cluster>12</MapPin>
-              <MapPin top="40%" left="75%" color="var(--accent-orange)">🥩</MapPin>
+              <MapPin top="40%" left="75%" color="var(--accent-orange)"><MeatIcon size={14} /></MapPin>
             </div>
           </div>
         </section>
@@ -681,7 +682,6 @@ function RankCard({
   user: api.RankedUser;
   onClick: () => void;
 }) {
-  const medals = ['👑', '🥈', '🥉'] as const;
   const colors = ['var(--accent-gold)', '#999', '#c47b3a'];
   const photo = user.profilePhotoUrl || fallbackPhoto(user.userId);
   // Synthesized rating + genre for visual richness (not from API)
@@ -701,10 +701,10 @@ function RankCard({
           }}
         />
         <div
-          className="absolute top-3 left-3 bg-[var(--card-bg)] text-[var(--text-primary)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
+          className="absolute top-3 left-3 bg-[var(--card-bg)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
           style={{ color: colors[rank - 1] ?? colors[2] }}
         >
-          {medals[rank - 1] ?? '🏅'} {rank}位
+          {rank === 1 ? <CrownIcon size={14} /> : <MedalIcon size={14} />} {rank}位
         </div>
         <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
           {user.totalStocks} saved
@@ -722,7 +722,7 @@ function RankCard({
             グルメ
           </span>
           <span className="flex items-center gap-1 text-[12px] font-semibold text-[var(--text-secondary)] tabular-nums">
-            <span style={{ color: 'var(--accent-gold)' }}>★</span>{' '}
+            <StarIcon size={12} style={{ color: 'var(--accent-gold)' }} />
             {ratings[rank - 1] ?? '4.5'}
           </span>
         </div>
@@ -848,8 +848,8 @@ function RestaurantCard({
           </svg>
         </button>
         {photoCount > 1 && (
-          <span className="absolute bottom-2.5 right-2.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
-            📷 {photoCount}
+          <span className="absolute bottom-2.5 right-2.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
+            <CameraIcon size={11} /> {photoCount}
           </span>
         )}
         {handle && (
@@ -881,12 +881,13 @@ function RestaurantCard({
         <div className="flex gap-1 flex-wrap">
           {visited && (
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
               style={{
                 background: 'rgba(140,199,64,0.15)',
                 color: '#5e9023',
               }}
             >
+              <CheckIcon size={10} />
               {visitedLabel}
             </span>
           )}

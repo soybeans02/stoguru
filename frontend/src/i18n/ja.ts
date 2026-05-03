@@ -75,7 +75,7 @@ export const ja = {
     statRestaurants: '登録店',
     statUsers: 'アクティブユーザー',
     statSaves: '保存数',
-    badgeVisited: '行った（黄緑）',
+    badgeVisited: '行った',
     searchPlaceholder: 'お店・エリア・ジャンルで検索…',
     navHome: 'ホーム',
     navMap: 'マップ',
