@@ -354,6 +354,35 @@ export function DiscoveryHome({
           </div>
         </section>
 
+        {/* ─── テーマで探す（静的・最優先） ─── */}
+        <section className="py-10">
+          <SectionHead
+            title="テーマで探す"
+            subtitle="気分に合わせてサクッと探す"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
+            {THEMES.map((th) => (
+              <button
+                key={th.id}
+                onClick={() => navigate(`/themes/${th.id}`)}
+                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
+              >
+                <img src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
+                />
+                <span
+                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[17px] font-extrabold tracking-[-0.01em] text-center px-2"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+                >
+                  {th.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* ─── ジャンルから探す（画像タイル） ─── */}
         <section className="py-10">
           <SectionHead
@@ -382,6 +411,30 @@ export function DiscoveryHome({
             ))}
           </div>
         </section>
+
+        {/* ─── 特集（CMS 駆動の編集記事） ─── */}
+        {themeConfigs.length > 0 && (
+          <section className="py-10">
+            <SectionHead
+              title="特集"
+              subtitle="編集部が書いてる、読み物寄りのお店紹介"
+              link={themeConfigs.length > 3 ? 'すべて見る →' : undefined}
+              onLinkClick={() => setShowThemes(true)}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+              {themeConfigs.slice(0, 3).map((th) => (
+                <Story
+                  key={th.id}
+                  image={th.image}
+                  tag={th.tag}
+                  title={th.title}
+                  desc={th.desc}
+                  onClick={() => handleThemeClick(th)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ─── Spot ranking (保存数の多いお店) ─── */}
         {spotRanking.length > 0 && (
@@ -421,59 +474,6 @@ export function DiscoveryHome({
                   rank={idx + 1}
                   user={u}
                   onClick={() => setProfileUserId(u.userId)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ─── テーマで探す（静的） ─── */}
-        <section className="py-10">
-          <SectionHead
-            title="テーマで探す"
-            subtitle="気分に合わせてサクッと探す"
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
-            {THEMES.map((th) => (
-              <button
-                key={th.id}
-                onClick={() => navigate(`/themes/${th.id}`)}
-                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
-              >
-                <img src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
-                <div
-                  className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
-                />
-                <span
-                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[17px] font-extrabold tracking-[-0.01em] text-center px-2"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
-                >
-                  {th.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ─── 特集（CMS 駆動の編集記事） ─── */}
-        {themeConfigs.length > 0 && (
-          <section className="py-10">
-            <SectionHead
-              title="特集"
-              subtitle="編集部が書いてる、読み物寄りのお店紹介"
-              link={themeConfigs.length > 3 ? 'すべて見る →' : undefined}
-              onLinkClick={() => setShowThemes(true)}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-              {themeConfigs.slice(0, 3).map((th) => (
-                <Story
-                  key={th.id}
-                  image={th.image}
-                  tag={th.tag}
-                  title={th.title}
-                  desc={th.desc}
-                  onClick={() => handleThemeClick(th)}
                 />
               ))}
             </div>
@@ -877,14 +877,41 @@ function DiscoveryTopBar({
         >
           stoguru
         </div>
-        {/* 5 セル検索バー */}
+        {/* sm 未満は単一検索（sticky 高さを抑えてモバイルのスクロールカクつき防止）。sm 以上は 5 セル */}
         <div className="flex-1 min-w-0">
-          <MultiFieldSearchBar
-            fields={searchFields}
-            onChange={onSearchFieldsChange}
-            onSubmit={() => onSubmitSearch?.()}
-            size="md"
-          />
+          {/* Mobile: 単一の合算検索 */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); onSubmitSearch?.(); }}
+            className="sm:hidden flex items-center gap-2 pl-3.5 pr-1 h-10 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--accent-orange)] transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-tertiary)] flex-shrink-0">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              value={searchFields.name}
+              onChange={(e) => onSearchFieldsChange({ ...searchFields, name: e.target.value })}
+              placeholder="お店・エリア・キーワード"
+              className="flex-1 bg-transparent border-0 outline-none text-[14px] placeholder:text-[var(--text-tertiary)] py-1.5 min-w-0"
+            />
+            <button
+              type="submit"
+              disabled={!(searchFields.area || searchFields.name || searchFields.genre || searchFields.price || searchFields.account).trim()}
+              className="px-3.5 h-8 rounded-full text-[12.5px] font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
+            >
+              検索
+            </button>
+          </form>
+          {/* sm+: 5 セルパーティション */}
+          <div className="hidden sm:block">
+            <MultiFieldSearchBar
+              fields={searchFields}
+              onChange={onSearchFieldsChange}
+              onSubmit={() => onSubmitSearch?.()}
+              size="md"
+            />
+          </div>
         </div>
         {/* Right side */}
         <div className="hidden md:flex items-center gap-5 flex-shrink-0">
