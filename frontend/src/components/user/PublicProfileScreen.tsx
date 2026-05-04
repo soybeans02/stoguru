@@ -90,7 +90,7 @@ export function PublicProfileScreen({ userId }: Props) {
         className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
         style={{ background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)' }}
       >
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2.5 sm:gap-3">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4 sm:gap-5">
           {/* 戻るボタン */}
           <button
             onClick={goBack}

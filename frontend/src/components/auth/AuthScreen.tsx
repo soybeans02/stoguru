@@ -84,8 +84,8 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
           </svg>
         </div>
         <div className="relative z-10 text-center text-white px-12">
-          <img src="/app-icon.png" alt="ストグル" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg" />
-          <h2 className="text-4xl font-bold mb-3 tracking-tight">ストグル</h2>
+          <img src="/app-icon.png" alt="stoguru" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg" />
+          <h2 className="text-4xl font-extrabold mb-3 tracking-[-0.02em]">stoguru</h2>
           <p className="text-lg text-white/80">SNSで見つけたお店を、ストックして、行こう。</p>
         </div>
       </div>
@@ -95,8 +95,18 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
         <div className="w-full max-w-sm">
           {/* Mobile: ロゴ */}
           <h1 className="text-2xl font-bold text-center mb-1 flex flex-col items-center gap-2 md:hidden">
-            <img src="/app-icon.png" alt="ストグル" className="w-14 h-14 rounded-xl" />
-            <span className="text-gray-900 dark:text-white">ストグル</span>
+            <img src="/app-icon.png" alt="stoguru" className="w-14 h-14 rounded-xl" />
+            <span
+              className="font-extrabold tracking-[-0.02em]"
+              style={{
+                background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              stoguru
+            </span>
           </h1>
           {/* PC: テキストタイトル */}
           <h1 className="hidden md:block text-2xl font-bold text-gray-900 dark:text-white text-center mb-1">
@@ -221,6 +231,6 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
 // Logo re-export for shared use
 export function StogulLogo({ size = 32 }: { size?: number }) {
   return (
-    <img src="/app-icon.png" alt="ストグル" width={size} height={size} className="rounded-lg" />
+    <img src="/app-icon.png" alt="stoguru" width={size} height={size} className="rounded-lg" />
   );
 }

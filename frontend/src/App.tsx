@@ -77,7 +77,17 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
         aria-label="ホームに戻る"
       >
         <img src="/app-icon.png" alt="" className="w-8 h-8 rounded-lg" />
-        <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">ストグル</span>
+        <span
+          className="text-[20px] font-extrabold tracking-[-0.02em]"
+          style={{
+            background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+          }}
+        >
+          stoguru
+        </span>
       </button>
 
       {/* Nav items */}
@@ -103,7 +113,7 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
 
       {/* Bottom area */}
       <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800">
-        <p className="text-[10px] text-gray-300 dark:text-gray-600">© 2026 ストグル</p>
+        <p className="text-[10px] text-gray-300 dark:text-gray-600">© 2026 stoguru</p>
       </div>
     </aside>
   );

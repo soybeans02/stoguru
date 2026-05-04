@@ -30,7 +30,7 @@ export const STATIC_PAGES: StaticPage[] = [
     title: '運営者情報',
     subtitle: 'stoguru について',
     body: () => h(Fragment, null,
-      p('stoguru（ストグル）は、大阪を拠点に開発されている個人プロジェクトです。「TikTok や Instagram で見つけたあのお店、もう忘れない」を合言葉に、スワイプで気軽に保存できるグルメ管理アプリを目指しています。'),
+      p('stoguru は、大阪を拠点に開発されている個人プロジェクトです。「TikTok や Instagram で見つけたあのお店、もう忘れない」を合言葉に、スワイプで気軽に保存できるグルメ管理アプリを目指しています。'),
       h2('運営者'),
       p('Seongwhan Kim（@soybeans02）— 大阪在住のソフトウェアエンジニア。趣味は外食。'),
       h2('お問い合わせ'),

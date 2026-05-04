@@ -561,7 +561,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </button>
         </div>
 
-        <p className="text-center text-[11px] text-[var(--text-tertiary)] mt-8">ストグル v1.0</p>
+        <p className="text-center text-[11px] text-[var(--text-tertiary)] mt-8">stoguru v1.0</p>
       </div>
 
       {/* Panels */}
@@ -624,7 +624,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         <StaticTextSheet
           onClose={() => setPanel(null)}
           title={t('account.termsOfService')}
-          body={'ストグルをご利用いただきありがとうございます。利用規約の全文は https://soybeans02.github.io/stoguru/terms.html を参照してください。'}
+          body={'stoguru をご利用いただきありがとうございます。利用規約の全文は /p/terms を参照してください。'}
         />
       )}
       {/* List panels */}

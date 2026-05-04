@@ -335,7 +335,7 @@ export function Header({ activeTab, onTabChange, onOpenProfile, onJumpToMap, onO
                 <path d="M0 -22 Q5 -16 0 -10" fill="white" opacity="0.85"/>
               </g>
             </svg>
-            {' '}ストグル
+            {' '}stoguru
           </button>
           <div className="flex items-center gap-2">
             <div className="relative">
