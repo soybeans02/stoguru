@@ -411,7 +411,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[320px] md:max-w-[360px] lg:max-w-[400px] h-[460px] md:h-[500px] lg:h-[540px] flex-shrink-0">
+            <div className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[560px] md:h-[620px] lg:h-[680px] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}

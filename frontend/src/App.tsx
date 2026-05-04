@@ -291,6 +291,7 @@ function MainApp() {
               onRemoveStock={handleRemoveStock}
               onShowOnMap={handleShowOnMap}
               onOpenNotifications={() => { setSocialInitView('notifications'); setTab('social'); }}
+              onBack={() => setTab('home')}
               userPosition={position}
               stockedIds={stockedIds}
               refreshKey={feedRefreshKey}
