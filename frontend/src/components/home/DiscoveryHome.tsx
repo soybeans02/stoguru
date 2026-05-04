@@ -12,6 +12,7 @@ import { SwipeCard } from '../swipe/SwipeCard';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
+import { THEMES } from '../../data/themes';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
@@ -496,27 +497,58 @@ export function DiscoveryHome({
           </section>
         )}
 
-        {/* ─── Editorial / Themes ─── */}
+        {/* ─── テーマで探す（静的） ─── */}
         <section className="py-10">
           <SectionHead
-            title={t('home.editorialTitle')}
-            subtitle={t('home.editorialSubtitle')}
-            link={t('home.editorialViewAll')}
-            onLinkClick={() => setShowThemes(true)}
+            title="テーマで探す"
+            subtitle="気分に合わせてサクッと探す"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-            {themeConfigs.slice(0, 3).map((th) => (
-              <Story
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
+            {THEMES.map((th) => (
+              <button
                 key={th.id}
-                image={th.image}
-                tag={th.tag}
-                title={th.title}
-                desc={th.desc}
-                onClick={() => handleThemeClick(th)}
-              />
+                onClick={() => navigate(`/themes/${th.id}`)}
+                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
+              >
+                <img src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
+                />
+                <span
+                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[17px] font-extrabold tracking-[-0.01em] text-center px-2"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+                >
+                  {th.label}
+                </span>
+              </button>
             ))}
           </div>
         </section>
+
+        {/* ─── 特集（CMS 駆動の編集記事） ─── */}
+        {themeConfigs.length > 0 && (
+          <section className="py-10">
+            <SectionHead
+              title="特集"
+              subtitle="編集部が書いてる、読み物寄りのお店紹介"
+              link={themeConfigs.length > 3 ? 'すべて見る →' : undefined}
+              onLinkClick={() => setShowThemes(true)}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+              {themeConfigs.slice(0, 3).map((th) => (
+                <Story
+                  key={th.id}
+                  image={th.image}
+                  tag={th.tag}
+                  title={th.title}
+                  desc={th.desc}
+                  onClick={() => handleThemeClick(th)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ─── Restaurant grid ─── */}
         <section className="py-10">

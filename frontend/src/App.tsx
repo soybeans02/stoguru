@@ -15,6 +15,7 @@ import { SocialScreen } from './components/social/SocialScreen';
 import { PublicProfileScreen } from './components/user/PublicProfileScreen';
 import { FeatureArticleScreen } from './components/feature/FeatureArticleScreen';
 import { StaticPageScreen } from './components/feature/StaticPageScreen';
+import { ThemeListScreen } from './components/theme/ThemeListScreen';
 
 const LazyMapView = lazy(() =>
   import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
@@ -372,6 +373,7 @@ type Route =
   | { type: 'app' }
   | { type: 'profile'; userId: string }
   | { type: 'feature'; slug: string }
+  | { type: 'theme'; id: string }
   | { type: 'static'; slug: string };
 
 function parseRoute(): Route {
@@ -379,6 +381,7 @@ function parseRoute(): Route {
   let m;
   if ((m = path.match(/^\/u\/([^/]+)$/))) return { type: 'profile', userId: decodeURIComponent(m[1]) };
   if ((m = path.match(/^\/features\/([^/]+)$/))) return { type: 'feature', slug: decodeURIComponent(m[1]) };
+  if ((m = path.match(/^\/themes\/([^/]+)$/))) return { type: 'theme', id: decodeURIComponent(m[1]) };
   if ((m = path.match(/^\/p\/([^/]+)$/))) return { type: 'static', slug: decodeURIComponent(m[1]) };
   return { type: 'app' };
 }
@@ -422,6 +425,9 @@ export default function App() {
   }
   if (route.type === 'feature') {
     return <ErrorBoundary><FeatureArticleScreen slug={route.slug} /></ErrorBoundary>;
+  }
+  if (route.type === 'theme') {
+    return <ErrorBoundary><ThemeListScreen themeId={route.id} /></ErrorBoundary>;
   }
   if (route.type === 'static') {
     return <ErrorBoundary><StaticPageScreen slug={route.slug} /></ErrorBoundary>;

@@ -817,21 +817,29 @@ router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Respons
 // ─── 投稿者ランキング（保存数の合計） ───
 
 router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
-  const ranking = await getStockRankingV2(5);
-  const withProfiles = await Promise.all(ranking.map(async (r) => {
+  const ranking = await getStockRankingV2(20); // 削除済みを弾いた後に Top N 切り出すため少し多めに取得
+  const resolved = await Promise.all(ranking.map(async (r) => {
+    if (!r.postedBy) return null; // 匿名化済み
     try {
-      const profile = await getInfluencerProfile(r.postedBy);
-      let nickname = profile?.displayName || '';
-      // InfluencerProfile が無い or displayName 未設定なら Cognito の nickname にフォールバック
-      if (!nickname) {
-        const userInfo = await getUserById(r.postedBy).catch(() => null);
-        nickname = userInfo?.nickname || '不明';
-      }
-      return { userId: r.postedBy, totalStocks: r.totalStocks, nickname, profilePhotoUrl: profile?.profilePhotoUrl || '' };
+      const [profile, userInfo] = await Promise.all([
+        getInfluencerProfile(r.postedBy),
+        getUserById(r.postedBy).catch(() => null),
+      ]);
+      // Cognito にユーザーが存在しない = アカウント削除済み → ランキングから完全除外
+      if (!userInfo) return null;
+      const nickname = profile?.displayName || userInfo.nickname || '';
+      if (!nickname) return null;
+      return {
+        userId: r.postedBy,
+        totalStocks: r.totalStocks,
+        nickname,
+        profilePhotoUrl: profile?.profilePhotoUrl || '',
+      };
     } catch {
-      return { userId: r.postedBy, totalStocks: r.totalStocks, nickname: '不明', profilePhotoUrl: '' };
+      return null;
     }
   }));
+  const withProfiles = resolved.filter((x): x is NonNullable<typeof x> => x !== null).slice(0, 5);
   res.json(withProfiles);
 });
 
