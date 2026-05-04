@@ -196,7 +196,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
 
           {/* Edit profile / Edit spots / Share — 3 button row (iOS parity) */}
-          <div className="flex gap-2 mt-4 px-8 max-w-md mx-auto">
+          <div className="flex gap-2 mt-4 px-8 max-w-md lg:max-w-lg mx-auto">
             <button
               onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
               className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
@@ -256,7 +256,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </div>
       </div>
 
-      <div className="px-4 pb-8 md:max-w-lg md:mx-auto">
+      <div className="px-4 pb-8 md:max-w-2xl lg:max-w-5xl md:mx-auto">
+        {/* PC は 2 カラムに分割（左：申請＋設定 / 右：サポート＋その他） */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-x-6">
+        <div>
         {/* Influencer banner — uploadStatus に応じて出し分け */}
         <div className="mt-2 mb-5">
           {uploadStatusLoading ? (
@@ -343,9 +346,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             />
           </div>
         </div>
+        </div>{/* /左カラム */}
 
+        <div>
         {/* Support section */}
-        <div className="mb-5">
+        <div className="mb-5 lg:mt-2">
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.support')}</p>
           <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
             <MenuItemCard
@@ -395,6 +400,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             </button>
           </div>
         </div>
+        </div>{/* /右カラム */}
+        </div>{/* /lg:grid */}
 
         <p className="text-center text-[11px] text-gray-300 dark:text-gray-600 mt-6">ストグル v1.0</p>
       </div>
