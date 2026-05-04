@@ -480,6 +480,9 @@ export function DiscoveryHome({
           </div>
         </section>
 
+        {/* ─── App download banner ─── */}
+        <AppDownloadBanner />
+
         {/* ─── Footer ─── */}
         <footer className="mt-10 pt-12 pb-10 border-t border-[var(--border)]">
           <div className="grid grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8 lg:gap-10">
@@ -1113,6 +1116,131 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   App download banner (Retty スタイル)
+   ───────────────────────────────────── */
+function AppDownloadBanner() {
+  const { t } = useTranslation();
+  // TODO: 実際の App Store / Play Store URL に差し替え
+  const APP_STORE_URL = '#';
+  const PLAY_STORE_URL: string | null = null; // Android 未リリースなら null
+
+  return (
+    <section className="py-10">
+      <div
+        className="relative rounded-[var(--radius-2xl)] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-md)]"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(255,232,194,0.95) 0%, rgba(255,206,150,0.85) 50%, rgba(254,184,114,0.85) 100%)',
+        }}
+      >
+        {/* 装飾の光ボケ */}
+        <div
+          className="absolute -top-16 -right-10 w-64 h-64 rounded-full opacity-50 blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #fff7e0 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -bottom-20 -left-10 w-72 h-72 rounded-full opacity-40 blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #ffd28a 0%, transparent 70%)' }}
+        />
+
+        <div className="relative grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-6 md:gap-10 items-center px-6 sm:px-8 md:px-10 py-8 md:py-10">
+          {/* 左：テキスト */}
+          <div className="text-[var(--text-primary)]">
+            <h3 className="text-[22px] sm:text-[26px] md:text-[28px] font-extrabold tracking-[-0.02em] leading-tight mb-3">
+              {t('home.appBannerTitle')}
+            </h3>
+            <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-[var(--text-secondary)] max-w-[440px]">
+              {t('home.appBannerSubtitle')}
+            </p>
+          </div>
+
+          {/* 右：バッジ群 */}
+          <div className="flex flex-col items-start md:items-end gap-3">
+            <p className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-primary)]">
+              {t('home.appBannerCTA')}
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <AppStoreBadge href={APP_STORE_URL} t={t} />
+              <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AppStoreBadge({ href, t }: { href: string; t: (k: string) => string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2.5 bg-black text-white px-3.5 py-2 rounded-[10px] hover:bg-gray-900 transition-colors"
+      aria-label="Download on the App Store"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.523 12.78c-.04-3.276 2.673-4.866 2.794-4.94-1.523-2.226-3.892-2.531-4.738-2.567-2.014-.205-3.93 1.18-4.95 1.18-1.022 0-2.6-1.151-4.275-1.119-2.198.033-4.226 1.276-5.358 3.246-2.286 3.965-.585 9.83 1.638 13.045 1.087 1.575 2.382 3.345 4.075 3.281 1.638-.066 2.255-1.061 4.235-1.061 1.97 0 2.541 1.061 4.275 1.025 1.768-.029 2.886-1.6 3.964-3.18 1.247-1.823 1.762-3.587 1.79-3.677-.039-.018-3.42-1.31-3.45-5.233zM14.286 3.04c.905-1.097 1.515-2.621 1.348-4.139-1.305.053-2.886.868-3.823 1.965-.84.97-1.575 2.519-1.378 4.012 1.456.112 2.948-.74 3.853-1.838z"/>
+      </svg>
+      <div className="flex flex-col leading-tight items-start">
+        <span className="text-[9px] font-medium opacity-90">{t('home.appBadgeAppStoreLine1')}</span>
+        <span className="text-[14px] font-semibold tracking-tight">{t('home.appBadgeAppStoreLine2')}</span>
+      </div>
+    </a>
+  );
+}
+
+function PlayStoreBadge({ href, t }: { href: string | null; t: (k: string) => string }) {
+  const disabled = !href;
+  const Wrapper = disabled ? 'div' : 'a';
+  const wrapperProps = disabled
+    ? { 'aria-disabled': true as const }
+    : { href: href as string, target: '_blank', rel: 'noopener noreferrer' as const, 'aria-label': 'Get it on Google Play' };
+  return (
+    <Wrapper
+      {...(wrapperProps as Record<string, unknown>)}
+      className={`flex items-center gap-2.5 bg-black text-white px-3.5 py-2 rounded-[10px] transition-colors ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-900'
+      }`}
+    >
+      <svg width="20" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <linearGradient id="gp-a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#00d4ff"/>
+          <stop offset="100%" stopColor="#00a3ff"/>
+        </linearGradient>
+        <linearGradient id="gp-b" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffce3d"/>
+          <stop offset="100%" stopColor="#ffa825"/>
+        </linearGradient>
+        <linearGradient id="gp-c" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ff5757"/>
+          <stop offset="100%" stopColor="#e6334a"/>
+        </linearGradient>
+        <linearGradient id="gp-d" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3eda74"/>
+          <stop offset="100%" stopColor="#03b34a"/>
+        </linearGradient>
+        <path d="M3 2.2v19.6c0 .4.46.65.79.43l10.74-7.04L4.34 1.86A.5.5 0 0 0 3 2.2z" fill="url(#gp-d)"/>
+        <path d="M14.53 15.19 17.1 12.6 14.53 9.8 3.83 21.13c-.04.04-.07.09-.09.13z" fill="url(#gp-b)"/>
+        <path d="M14.53 9.8 17.1 12.6l3.6-2.05a.55.55 0 0 0 .01-.97L17.1 7.43z" fill="url(#gp-c)"/>
+        <path d="M14.53 9.8 3.74 2.07c.02.04.05.09.09.13L14.53 15.19l2.57-2.59z" fill="url(#gp-a)"/>
+      </svg>
+      <div className="flex flex-col leading-tight items-start">
+        <span className="text-[9px] font-medium opacity-90">{t('home.appBadgePlayStoreLine1')}</span>
+        <span className="text-[14px] font-semibold tracking-tight">
+          {t('home.appBadgePlayStoreLine2')}
+          {disabled && (
+            <span className="ml-1.5 text-[8.5px] font-medium px-1.5 py-0.5 rounded-full bg-white/20 align-middle">
+              {t('home.appBadgeComingSoon')}
+            </span>
+          )}
+        </span>
+      </div>
+    </Wrapper>
   );
 }
 
