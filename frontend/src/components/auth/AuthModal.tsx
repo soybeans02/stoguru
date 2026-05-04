@@ -33,7 +33,7 @@ export function AuthModal({ isOpen, initialMode, onClose }: Props) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-xl">
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[90svh] sm:max-w-3xl sm:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-xl">
         <AuthScreen
           initialMode={initialMode}
           onClose={onClose}

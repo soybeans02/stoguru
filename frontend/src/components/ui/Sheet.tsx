@@ -84,7 +84,7 @@ export function Sheet({
       <div
         ref={ref}
         onClick={(e) => e.stopPropagation()}
-        className={`relative bg-[var(--card-bg)] text-[var(--text-primary)] ${cardCls} max-h-[92vh] overflow-y-auto shadow-[var(--shadow-lg)] animate-slide-up`}
+        className={`relative bg-[var(--card-bg)] text-[var(--text-primary)] ${cardCls} max-h-[92svh] overflow-y-auto shadow-[var(--shadow-lg)] animate-slide-up`}
       >
         {/* drag handle (mobile) */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1">

@@ -296,8 +296,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 <span className="text-white text-sm font-medium">アップロード中…</span>
               </div>
             )}
-            {/* Cover edit controls (top-right) */}
-            <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            {/* Cover edit controls (top-right)。タッチ端末では hover が無いので
+                常時 90% 表示（PC は hover で軽く強調するだけ） */}
+            <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-90 sm:opacity-80 sm:group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => coverInputRef.current?.click()}
                 disabled={uploadingCover}

@@ -411,7 +411,8 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
           </div>
         ) : (
           <>
-            <div className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[560px] md:h-[620px] lg:h-[680px] flex-shrink-0">
+            {/* 高さは固定 px だと iPhone SE/8 などの小型端末でヘッダー + 下部タブを引いた残りに収まらないので min(目標, svh-余白) で逃がす */}
+            <div className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[min(560px,calc(100svh-180px))] md:h-[min(620px,calc(100svh-180px))] lg:h-[min(680px,calc(100svh-180px))] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}

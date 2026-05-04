@@ -428,7 +428,7 @@ export function DiscoveryHome({
             title="テーマで探す"
             subtitle="気分に合わせてサクッと探す"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
             {THEMES.map((th) => (
               <button
                 key={th.id}
@@ -457,7 +457,7 @@ export function DiscoveryHome({
             title={t('home.categoriesTitle')}
             subtitle="食べたいジャンルから一気に絞り込む"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mt-2">
             {GENRES_AS_THEMES.map((g) => (
               <button
                 key={g.id}
@@ -511,7 +511,7 @@ export function DiscoveryHome({
               title={t('home.rankingTitle')}
               subtitle={t('home.rankingSubtitle')}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {spotRanking.map((s, idx) => (
                 <SpotRankCard
                   key={s.restaurantId}
@@ -535,7 +535,7 @@ export function DiscoveryHome({
               title={t('home.posterRankingTitle')}
               subtitle={t('home.posterRankingSubtitle')}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {ranking.map((u, idx) => (
                 <RankCard
                   key={u.userId}
@@ -1122,12 +1122,12 @@ function DiscoveryTopBar({
         >
           stoguru
         </button>
-        {/* sm 未満は単一検索（sticky 高さを抑えてモバイルのスクロールカクつき防止）。sm 以上は 5 セル */}
+        {/* md (768) 未満は単一検索（sticky 高さを抑えてモバイル/タブレット縦のスクロールカクつき防止 + iPad portrait の 5 セル詰まり対策）。md 以上で 5 セル */}
         <div className="flex-1 min-w-0">
-          {/* Mobile: 単一の合算検索 */}
+          {/* Mobile / iPad portrait: 単一の合算検索 */}
           <form
             onSubmit={(e) => { e.preventDefault(); onSubmitSearch?.(); }}
-            className="sm:hidden flex items-center gap-2 pl-3.5 pr-1 h-10 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--accent-orange)] transition-colors"
+            className="md:hidden flex items-center gap-2 pl-3.5 pr-1 h-10 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--accent-orange)] transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-tertiary)] flex-shrink-0">
               <circle cx="11" cy="11" r="8" />
@@ -1148,8 +1148,8 @@ function DiscoveryTopBar({
               検索
             </button>
           </form>
-          {/* sm+: 5 セルパーティション */}
-          <div className="hidden sm:block">
+          {/* md+: 5 セルパーティション（〜768px は単一検索 fallback） */}
+          <div className="hidden md:block">
             <MultiFieldSearchBar
               fields={searchFields}
               onChange={onSearchFieldsChange}
@@ -1672,7 +1672,7 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] max-w-[600px] w-full max-h-[90vh] overflow-auto shadow-[var(--shadow-xl)]"
+        className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] max-w-[600px] w-full max-h-[90svh] overflow-auto shadow-[var(--shadow-xl)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
@@ -1943,8 +1943,9 @@ function RestaurantPreviewModal({
           </button>
         </div>
 
-        {/* カード本体 */}
-        <div className="relative w-full h-[520px] md:h-[580px] lg:h-[640px]">
+        {/* カード本体。固定 px だと小型端末（iPhone SE/8）で
+            ヘッダー含めて画面に収まらず切れるため、min(目標, 100svh − 余白) で逃がす */}
+        <div className="relative w-full h-[min(520px,calc(100svh-160px))] md:h-[min(580px,calc(100svh-160px))] lg:h-[min(640px,calc(100svh-160px))]">
           <SwipeCard
             restaurant={restaurant}
             distance={distance}

@@ -86,7 +86,7 @@ export function Modal({ isOpen, onClose, title, children }: Props) {
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
       <div
         ref={dialogRef}
-        className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
+        className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90svh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b">

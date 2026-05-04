@@ -227,6 +227,18 @@ textarea:focus,
   outline: none;
 }
 
+/* iOS Safari の自動ズーム防止：mobile では入力系を 16px 以上に強制。
+   iOS は font-size < 16px の input/select/textarea にフォーカスすると
+   勝手にズームインして、しかも戻らない。アプリ全体に効かせるためここで一括対応。
+   md (768px) 以上では各コンポーネントの text-[14px] 等をそのまま尊重する。 */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Google Maps InfoWindow パディング縮小 */
 .gm-style-iw-d {
   padding: 0px 2px !important;

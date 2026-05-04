@@ -809,7 +809,7 @@ function RestaurantDetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-[var(--card-bg)] rounded-[var(--radius-2xl)] max-w-[560px] w-full max-h-[92vh] overflow-hidden shadow-[var(--shadow-xl)] flex flex-col"
+        className="bg-[var(--card-bg)] rounded-[var(--radius-2xl)] max-w-[560px] w-full max-h-[92svh] overflow-hidden shadow-[var(--shadow-xl)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 写真エリア */}
