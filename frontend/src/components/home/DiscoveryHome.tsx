@@ -839,6 +839,8 @@ function MultiFieldSearchBar({
   const btnFont = size === 'lg' ? 'text-[13px] sm:text-[14px]' : 'text-[12.5px] sm:text-[13px]';
 
   // ─── Google Places autocomplete（エリア用）───
+  // ロードはエリア欄が初めて focus された時のみ。Home を開いただけでは Maps API
+  // を呼ばない（API 課金抑制）。
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const placesDiv = useRef<HTMLDivElement | null>(null);
@@ -846,7 +848,8 @@ function MultiFieldSearchBar({
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const areaTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
+  function ensureMapsLoaded() {
+    if (autocompleteService.current) return;
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) return;
     const init = () => {
@@ -860,14 +863,14 @@ function MultiFieldSearchBar({
     const existing = document.querySelector('script[src*="maps.googleapis.com"]') as HTMLScriptElement | null;
     if (existing) {
       existing.addEventListener('load', init);
-      return () => existing.removeEventListener('load', init);
+      return;
     }
     const s = document.createElement('script');
     s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
     s.async = true;
     s.onload = init;
     document.head.appendChild(s);
-  }, []);
+  }
 
   function handleAreaChange(v: string) {
     // 手動編集すると過去の geo メタは無効化
@@ -948,7 +951,10 @@ function MultiFieldSearchBar({
             <input
               value={fields.area}
               onChange={(e) => handleAreaChange(e.target.value)}
-              onFocus={() => fields.area && areaSuggestions.length > 0 && setShowAreaSuggestions(true)}
+              onFocus={() => {
+                ensureMapsLoaded();
+                if (fields.area && areaSuggestions.length > 0) setShowAreaSuggestions(true);
+              }}
               onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
               placeholder="渋谷・大阪 など"
               className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}

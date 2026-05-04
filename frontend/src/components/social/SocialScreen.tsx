@@ -52,39 +52,14 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   const [searchResults, setSearchResults] = useState<api.SearchResult>({ users: [], restaurants: [], urlMatch: null });
   /** ホームから渡された半径フィルタ（駅/POI 選択時のみ）。検索バー手動入力で解除 */
   const [geoFilter, setGeoFilter] = useState<{ lat: number; lng: number; radiusKm: number } | null>(null);
-  const [placesResults, setPlacesResults] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [stockingUrl, setStockingUrl] = useState(false);
   const [stockSuccess, setStockSuccess] = useState<string | null>(null);
   const [stockedRestaurants, setStockedRestaurants] = useState<Set<string>>(new Set());
   const [stockingRestaurant, setStockingRestaurant] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesService = useRef<google.maps.places.PlacesService | null>(null);
-  const placesDiv = useRef<HTMLDivElement | null>(null);
-  const [mapsLoaded, setMapsLoaded] = useState(false);
-
-  // Load Google Maps
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
-    if (window.google?.maps?.places) { setMapsLoaded(true); return; }
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) { existing.addEventListener('load', () => setMapsLoaded(true)); return; }
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
-    script.async = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (mapsLoaded && window.google?.maps?.places) {
-      autocompleteService.current = new google.maps.places.AutocompleteService();
-      if (!placesDiv.current) placesDiv.current = document.createElement('div');
-      placesService.current = new google.maps.places.PlacesService(placesDiv.current);
-    }
-  }, [mapsLoaded]);
+  // 「すべてのお店」（Google Places 列挙）は web では出さないので Maps SDK は不要。
+  // 旧コードのロード一式は削除済み（API リクエスト課金抑制）。
 
   // Profile modal
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -161,7 +136,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     // クエリも geo も無ければ結果クリア
     if (!q.trim() && !effectiveGeo) {
       setSearchResults({ users: [], restaurants: [], urlMatch: null });
-      setPlacesResults([]);
       return;
     }
     searchTimer.current = setTimeout(async () => {
@@ -210,8 +184,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
         }
         setSearchResults(results);
       } catch { setSearchResults({ users: [], restaurants: [], urlMatch: null }); }
-      // Google Places の汎用「すべてのお店」リストは web では表示しないので fetch も省略
-      setPlacesResults([]);
       setSearching(false);
     }, 400);
   }, [myId, geoFilter]);
@@ -455,7 +427,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
           />
           {searchQuery && (
             <button
-              onClick={() => { setSearchQuery(''); setSearchResults({ users: [], restaurants: [], urlMatch: null }); setPlacesResults([]); setStockSuccess(null); }}
+              onClick={() => { setSearchQuery(''); setSearchResults({ users: [], restaurants: [], urlMatch: null }); setStockSuccess(null); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -465,7 +437,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
 
         {/* Search results */}
         {searching && <p className="text-center text-gray-400 text-sm py-4">検索中...</p>}
-        {!searching && searchQuery && !searchResults.users.length && !searchResults.restaurants.length && !searchResults.urlMatch && !placesResults.length && (
+        {!searching && searchQuery && !searchResults.users.length && !searchResults.restaurants.length && !searchResults.urlMatch && (
           <p className="text-center text-gray-400 text-sm py-4">見つかりませんでした</p>
         )}
 

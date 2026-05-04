@@ -341,9 +341,42 @@ async function expandShortUrl(url: string): Promise<string> {
 // in-flight dedup: 同時リクエストの重複排除
 const expandInflight = new Map<string, Promise<string>>();
 
+/**
+ * SSRF ガード: 内部ネットワーク / メタデータエンドポイントへのアクセスを拒否。
+ * 短縮 URL のリダイレクト先が AWS メタデータ (169.254.169.254) や
+ * localhost / プライベート IP に向いていないか確認する。
+ */
+function isUnsafeRedirectTarget(targetUrl: string): boolean {
+  try {
+    const u = new URL(targetUrl);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return true;
+    const host = u.hostname.toLowerCase();
+    if (host === 'localhost' || host.endsWith('.localhost')) return true;
+    // IPv6 ループバック
+    if (host === '[::1]' || host === '::1') return true;
+    // IPv4 数値マッチ（プライベート / リンクローカル / メタデータ / ループバック）
+    const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (m) {
+      const a = +m[1], b = +m[2];
+      if (a === 10) return true;                                  // 10.0.0.0/8
+      if (a === 127) return true;                                 // 127.0.0.0/8
+      if (a === 169 && b === 254) return true;                    // 169.254.0.0/16 (AWS metadata 含む)
+      if (a === 172 && b >= 16 && b <= 31) return true;           // 172.16.0.0/12
+      if (a === 192 && b === 168) return true;                    // 192.168.0.0/16
+      if (a === 0) return true;                                   // 0.0.0.0/8
+      if (a >= 224) return true;                                  // multicast / reserved
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 async function doExpandShortUrl(url: string): Promise<string> {
   // HEADでLocation取得（最大3回リダイレクト追跡、タイムアウト短縮）
   let current = url;
+  // 入力 URL 自体も SSRF チェック（短縮 URL 識別済みだが念のため）
+  if (isUnsafeRedirectTarget(current)) return url;
   for (let i = 0; i < 3; i++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 1500);
@@ -360,7 +393,10 @@ async function doExpandShortUrl(url: string): Promise<string> {
         cacheSetExpanded(url, current);
         return current;
       }
-      current = new URL(loc, current).toString();
+      const next = new URL(loc, current).toString();
+      // 内部 IP / メタデータエンドポイントへのリダイレクトは中断（SSRF 防御）
+      if (isUnsafeRedirectTarget(next)) return url;
+      current = next;
       // 既にtiktok.com本体に到達したら終了
       const nextHost = new URL(current).hostname.replace(/^www\./, '');
       if (nextHost === 'tiktok.com') {

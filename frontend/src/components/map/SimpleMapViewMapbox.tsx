@@ -1037,8 +1037,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     // 選択ユーザーのデータだけフィルタ（refで最新データを参照）
     const data = followingDataRef.current;
     const userRestaurants = data.filter((r: Record<string, unknown>) => r.ownerId === userId);
-    console.log('[MAP] followingData total:', data.length, 'filtered for user:', userId, '→', userRestaurants.length);
-    if (userRestaurants.length > 0) console.log('[MAP] sample:', JSON.stringify(userRestaurants[0]));
     const src = map.getSource('following') as mapboxgl.GeoJSONSource | undefined;
     if (src) {
       src.setData({
