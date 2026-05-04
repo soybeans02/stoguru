@@ -1,9 +1,9 @@
 /**
- * 「テーマで探す」用の静的テーマ定義。
+ * 「テーマで探す」と「ジャンルで探す」用の静的テーマ定義。
  * 各テーマはマッチ用のキーワードを持ち、ThemeListScreen で
  * フィードを絞り込みするのに使う。
  *
- * 特集記事（microCMS）とは独立。テーマは UI 上のフィルタ用、
+ * 特集記事（microCMS）とは独立。テーマ/ジャンルは UI 上のフィルタ用、
  * 特集は読み物コンテンツ。
  */
 
@@ -13,8 +13,11 @@ export interface Theme {
   description: string; // ヒーロー下のサブタイトル
   image: string;       // カードと詳細画面ヒーローで使う写真
   keywords: string[];  // フィード絞り込み用（genre / scene / description 対象）
+  /** 'theme' = シーン系（ひとり/デート等）、'genre' = ジャンル系（ラーメン/寿司等） */
+  kind?: 'theme' | 'genre';
 }
 
+/* シーン系テーマ（気分・用途で探す） */
 export const THEMES: Theme[] = [
   {
     id: 'solo',
@@ -60,6 +63,76 @@ export const THEMES: Theme[] = [
   },
 ];
 
+/* ジャンル系（食べたい料理ジャンルで探す） */
+export const GENRES_AS_THEMES: Theme[] = [
+  {
+    id: 'ramen',
+    label: 'ラーメン',
+    description: '一杯に込められた職人の技。今日の気分はどの一杯？',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&q=80',
+    keywords: ['ラーメン', '中華そば', 'つけ麺'],
+    kind: 'genre',
+  },
+  {
+    id: 'sushi',
+    label: '寿司',
+    description: '握りも回転も。新鮮なネタを楽しむお店。',
+    image: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&q=80',
+    keywords: ['寿司', '鮨', 'すし'],
+    kind: 'genre',
+  },
+  {
+    id: 'yakiniku',
+    label: '焼肉',
+    description: 'ご褒美の一日に。タン塩からじっくり。',
+    image: 'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=800&q=80',
+    keywords: ['焼肉', '韓国料理', 'ホルモン'],
+    kind: 'genre',
+  },
+  {
+    id: 'italian',
+    label: 'イタリアン',
+    description: 'パスタからピッツァ、トラットリアからリストランテまで。',
+    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=80',
+    keywords: ['イタリアン', 'パスタ', 'ピッツァ', 'ピザ'],
+    kind: 'genre',
+  },
+  {
+    id: 'cafe',
+    label: 'カフェ',
+    description: 'コーヒー一杯で長居できる、お気に入りの居場所。',
+    image: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=800&q=80',
+    keywords: ['カフェ', 'コーヒー', 'ベーカリー'],
+    kind: 'genre',
+  },
+  {
+    id: 'izakaya',
+    label: '居酒屋',
+    description: '今日の疲れを流す、いつもの一杯と肴。',
+    image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80',
+    keywords: ['居酒屋', '飲み', 'バル'],
+    kind: 'genre',
+  },
+  {
+    id: 'burger',
+    label: 'ハンバーガー',
+    description: 'ジューシーなパティと、こだわりのバンズ。',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80',
+    keywords: ['ハンバーガー', 'バーガー'],
+    kind: 'genre',
+  },
+  {
+    id: 'chinese',
+    label: '中華',
+    description: '町中華から本格点心まで、奥深い中華料理。',
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=80',
+    keywords: ['中華', '中国料理', '点心', '小籠包'],
+    kind: 'genre',
+  },
+];
+
+const ALL_THEMES: Theme[] = [...THEMES, ...GENRES_AS_THEMES];
+
 export function findTheme(id: string): Theme | null {
-  return THEMES.find((t) => t.id === id) ?? null;
+  return ALL_THEMES.find((t) => t.id === id) ?? null;
 }

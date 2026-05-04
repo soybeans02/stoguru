@@ -12,11 +12,11 @@ import { SwipeCard } from '../swipe/SwipeCard';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
-import { THEMES } from '../../data/themes';
+import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
-  PlateIcon, NoodleIcon, SushiIcon, BurgerIcon, ItalianIcon, CafeIcon, MeatIcon, BeerIcon, CurryIcon, ChineseIcon, EthnicIcon,
+  PlateIcon, BurgerIcon, NoodleIcon, CafeIcon,
 } from '../ui/icons';
 import type { ComponentType, SVGProps } from 'react';
 
@@ -90,23 +90,6 @@ function fallbackPhoto(id: string): string {
 }
 
 /* ─────────────────────────────────────
-   Categories
-   ───────────────────────────────────── */
-const CATEGORIES = [
-  { id: 'all', Icon: PlateIcon as SvgIcon, i18nKey: 'home.catAll', match: null as string[] | null },
-  { id: 'ramen', Icon: NoodleIcon as SvgIcon, i18nKey: 'home.catRamen', match: ['ラーメン', 'ramen'] },
-  { id: 'sushi', Icon: SushiIcon as SvgIcon, i18nKey: 'home.catSushi', match: ['寿司', 'sushi'] },
-  { id: 'burger', Icon: BurgerIcon as SvgIcon, i18nKey: 'home.catBurger', match: ['ハンバーガー', 'burger'] },
-  { id: 'italian', Icon: ItalianIcon as SvgIcon, i18nKey: 'home.catItalian', match: ['イタリアン', 'italian'] },
-  { id: 'cafe', Icon: CafeIcon as SvgIcon, i18nKey: 'home.catCafe', match: ['カフェ', 'cafe'] },
-  { id: 'yakiniku', Icon: MeatIcon as SvgIcon, i18nKey: 'home.catYakiniku', match: ['焼肉', 'yakiniku'] },
-  { id: 'izakaya', Icon: BeerIcon as SvgIcon, i18nKey: 'home.catIzakaya', match: ['居酒屋', 'izakaya'] },
-  { id: 'curry', Icon: CurryIcon as SvgIcon, i18nKey: 'home.catCurry', match: ['カレー', 'curry'] },
-  { id: 'chinese', Icon: ChineseIcon as SvgIcon, i18nKey: 'home.catChinese', match: ['中華', 'chinese'] },
-  { id: 'ethnic', Icon: EthnicIcon as SvgIcon, i18nKey: 'home.catEthnic', match: ['エスニック', 'ethnic', 'タイ', 'ベトナム', 'メキシカン'] },
-];
-
-/* ─────────────────────────────────────
    Main component
    ───────────────────────────────────── */
 export function DiscoveryHome({
@@ -125,7 +108,6 @@ export function DiscoveryHome({
   const isAnonymous = !user;
   const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const submitSearch = (q?: string) => {
     const v = (q ?? searchQuery).trim();
@@ -221,18 +203,9 @@ export function DiscoveryHome({
       .catch(() => setSpotRanking([]));
   }, []);
 
-  /* Filter feed by active category + filter overlay (scenes/genres/price) */
+  /* Filter feed by filter overlay (scenes/genres/price) */
   const filteredFeed = useMemo(() => {
     let out = feed;
-    // Category filter (top-level pills)
-    const cat = CATEGORIES.find((c) => c.id === activeCategory);
-    if (cat?.match) {
-      const m = cat.match;
-      out = out.filter((r) => {
-        const g = (r.genre || '').toLowerCase();
-        return m.some((kw) => g.includes(kw.toLowerCase()));
-      });
-    }
     // Scene filter
     if (selectedScenes.length > 0) {
       out = out.filter((r) => (r.scene ?? []).some((s) => selectedScenes.includes(s)));
@@ -252,7 +225,7 @@ export function DiscoveryHome({
       });
     }
     return out;
-  }, [feed, activeCategory, selectedScenes, selectedGenres, priceMin, priceMax]);
+  }, [feed, selectedScenes, selectedGenres, priceMin, priceMax]);
 
   /* Handle bookmark click */
   const handleBookmark = (r: FeedRestaurant) => {
@@ -419,35 +392,32 @@ export function DiscoveryHome({
           </div>
         </section>
 
-        {/* ─── Categories (sticky) ─── */}
-        <section
-          className="sticky top-[60px] z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3.5 backdrop-blur-xl"
-          style={{ background: 'color-mix(in srgb, var(--bg) 92%, transparent)' }}
-        >
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
-            <span className="flex-shrink-0 text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.05em] hidden sm:inline">{t('home.categoriesTitle')}</span>
-            {CATEGORIES.map((c) => {
-              const active = activeCategory === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCategory(c.id)}
-                  className={`flex-shrink-0 flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1 text-[12.5px] font-semibold border transition-all ${
-                    active
-                      ? 'bg-[var(--text-primary)] text-[var(--bg)] border-[var(--text-primary)]'
-                      : 'bg-[var(--card-bg)] border-[var(--border-strong)] hover:border-[var(--accent-orange)] hover:-translate-y-0.5'
-                  }`}
+        {/* ─── ジャンルから探す（画像タイル） ─── */}
+        <section className="py-10">
+          <SectionHead
+            title={t('home.categoriesTitle')}
+            subtitle="食べたいジャンルから一気に絞り込む"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 mt-2">
+            {GENRES_AS_THEMES.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => navigate(`/themes/${g.id}`)}
+                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
+              >
+                <img src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
+                />
+                <span
+                  className="absolute inset-0 grid place-items-center text-white text-[14px] sm:text-[15px] font-extrabold tracking-[-0.01em] text-center px-2"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
                 >
-                  <span
-                    className="w-7 h-7 rounded-full grid place-items-center"
-                    style={{ background: active ? 'rgba(255,255,255,0.15)' : 'var(--bg-soft)' }}
-                  >
-                    <c.Icon size={14} />
-                  </span>
-                  {t(c.i18nKey)}
-                </button>
-              );
-            })}
+                  {g.label}
+                </span>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -583,7 +553,7 @@ export function DiscoveryHome({
               </p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <button
-                  onClick={() => { setActiveCategory('all'); setSelectedScenes([]); setSelectedGenres([]); setPriceMin(0); setPriceMax(10000); }}
+                  onClick={() => { setSelectedScenes([]); setSelectedGenres([]); setPriceMin(0); setPriceMax(10000); }}
                   className="px-4 py-2 rounded-full border border-[var(--border-strong)] text-[12.5px] font-semibold hover:bg-[var(--bg-soft)] transition-colors"
                 >
                   絞り込みをクリア
