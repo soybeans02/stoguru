@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>友達と のお店 | stoguru プレビュー</title>
+<title>友達と のお店 | stoguru プレビュー v2</title>
 <style>
   :root {
     --accent-orange: #f97316;
@@ -197,10 +197,10 @@
   /* Main */
   .list-header {
     display: flex; align-items: flex-end; justify-content: space-between;
-    padding-bottom: 12px; margin-bottom: 16px;
+    padding-bottom: 12px; margin-bottom: 20px;
     border-bottom: 1px solid var(--border);
   }
-  .list-header h2 { font-size: 18px; font-weight: 800; margin: 0 0 2px; letter-spacing: -0.015em; }
+  .list-header h2 { font-size: 20px; font-weight: 800; margin: 0 0 2px; letter-spacing: -0.015em; }
   .list-header .count { font-size: 12px; color: var(--text-tertiary); }
   .view-toggle {
     display: flex; gap: 2px;
@@ -219,23 +219,20 @@
     box-shadow: var(--shadow-sm);
   }
 
-  /* Grid */
+  /* Grid (3 cols) */
   .grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-  }
-  @media (min-width: 1280px) {
-    .grid { grid-template-columns: repeat(5, 1fr); }
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
   }
 
-  /* Restaurant card */
+  /* Restaurant card — 食べログ風で情報スキャン重視 */
   .card {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow);
     transition: all 0.25s ease;
     cursor: pointer;
     display: flex; flex-direction: column;
@@ -255,20 +252,20 @@
     width: 100%; height: 100%; object-fit: cover;
     transition: transform 0.5s;
   }
-  .card:hover .card-image img { transform: scale(1.06); }
+  .card:hover .card-image img { transform: scale(1.05); }
   .card-image::after {
     content: '';
     position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%);
+    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 45%);
     pointer-events: none;
   }
   .save-btn {
-    position: absolute; top: 10px; right: 10px;
-    width: 36px; height: 36px;
+    position: absolute; top: 12px; right: 12px;
+    width: 40px; height: 40px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.95);
     display: grid; place-items: center;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow);
     transition: transform 0.15s;
   }
   .save-btn:hover { transform: scale(1.1); }
@@ -276,62 +273,95 @@
     background: var(--accent-orange);
   }
   .visited-badge {
-    position: absolute; top: 10px; left: 10px;
+    position: absolute; top: 12px; left: 12px;
     background: var(--visited-green);
     color: white;
-    font-size: 10.5px; font-weight: 700;
-    padding: 4px 8px; border-radius: 9999px;
-    display: inline-flex; align-items: center; gap: 4px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px; border-radius: 9999px;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
   .photo-count {
-    position: absolute; bottom: 10px; right: 10px;
-    background: rgba(0,0,0,0.55);
+    position: absolute; bottom: 12px; right: 12px;
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(8px);
     color: white;
-    font-size: 10px; font-weight: 600;
-    padding: 2px 7px; border-radius: 9999px;
-    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 9999px;
+    display: inline-flex; align-items: center; gap: 5px;
   }
   .handle {
-    position: absolute; bottom: 10px; left: 10px;
-    background: rgba(0,0,0,0.55);
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(8px);
     color: white;
-    font-size: 10.5px; font-weight: 600;
-    padding: 2px 8px; border-radius: 9999px;
+    font-size: 11.5px; font-weight: 600;
+    padding: 3px 10px; border-radius: 9999px;
   }
-  .card-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; }
+  .card-body {
+    padding: 16px 18px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  /* 1. 店名 — 大きく、太く */
   .card-name {
-    font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em;
-    margin: 0 0 6px;
+    font-size: 18px; font-weight: 800; letter-spacing: -0.015em;
+    line-height: 1.3; margin: 0;
     overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  /* 2. メタ行 — 食べログ風にアイコン + データ */
+  .card-meta-row {
+    display: flex; align-items: center;
+    flex-wrap: wrap; gap: 4px 12px;
+    font-size: 12.5px; color: var(--text-secondary);
+  }
+  .meta-item {
+    display: inline-flex; align-items: center; gap: 4px;
     white-space: nowrap;
   }
-  .card-meta {
-    display: flex; flex-wrap: wrap;
-    align-items: center; gap: 6px;
-    font-size: 11.5px; color: var(--text-secondary);
-    margin-bottom: 8px;
+  .meta-item svg { color: var(--text-tertiary); flex-shrink: 0; }
+  .meta-item.price {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
-  .card-meta .dot { opacity: 0.4; }
-  .card-meta .price { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .scene-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+  .meta-item.price svg { color: var(--accent-orange); }
+  .meta-item.distance {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  /* 3. 説明文 — 1 行抜粋 */
+  .card-desc {
+    font-size: 12.5px; color: var(--text-secondary);
+    line-height: 1.55; margin: 0;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  /* 4. シーンタグ */
+  .scene-tags {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+  }
   .scene-tag {
-    font-size: 10px; font-weight: 600;
-    padding: 2px 8px; border-radius: 9999px;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 9999px;
     color: var(--accent-orange);
     background: rgba(244,128,15,0.1);
   }
 
   /* Mobile */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
     .body { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
     .sidebar { position: static; }
-    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid { grid-template-columns: 1fr; gap: 16px; }
     .hero { height: 160px; }
     .hero-title { font-size: 26px; }
     .hero-desc { font-size: 12.5px; }
+    .card-name { font-size: 17px; -webkit-line-clamp: 1; }
   }
 </style>
 </head>
@@ -424,13 +454,13 @@
       <!-- Card 1 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800&q=85" alt="" />
           <div class="visited-badge">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             行った
           </div>
           <button class="save-btn saved">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <div class="photo-count">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -439,14 +469,22 @@
           <button class="handle">@meat_lover_osaka</button>
         </div>
         <div class="card-body">
-          <h3 class="card-name">焼肉 牛角 心斎橋本店</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">2.1km</span>
-            <span class="dot">·</span>
-            <span>焼肉</span>
-            <span class="dot">·</span>
-            <span class="price">¥3,000〜</span>
+          <h3 class="card-name">炭火焼肉 三田屋 心斎橋本店</h3>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              2.1 km
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-3a4 4 0 0 0-4-4l-7-3-3 3v7z"/></svg>
+              焼肉
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥3,000〜¥5,000
+            </span>
           </div>
+          <p class="card-desc">炭火で焼く A5 ランクの神戸牛が看板。コース ¥4,800 から、グループ向け個室あり。</p>
           <div class="scene-tags">
             <span class="scene-tag">友達</span>
             <span class="scene-tag">飲み</span>
@@ -458,9 +496,9 @@
       <!-- Card 2 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=800&q=85" alt="" />
           <button class="save-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <div class="photo-count">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -470,16 +508,25 @@
         </div>
         <div class="card-body">
           <h3 class="card-name">立ち呑み 三日月</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">800m</span>
-            <span class="dot">·</span>
-            <span>居酒屋</span>
-            <span class="dot">·</span>
-            <span class="price">¥1,500〜</span>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              800 m
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h10v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/></svg>
+              居酒屋
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥1,500〜¥2,500
+            </span>
           </div>
+          <p class="card-desc">ガード下の 5 坪、立ち飲み。25 時を過ぎると近所の店主たちが集まる夜の終着点。</p>
           <div class="scene-tags">
             <span class="scene-tag">友達</span>
             <span class="scene-tag">立ち飲み</span>
+            <span class="scene-tag">深夜</span>
           </div>
         </div>
       </div>
@@ -487,21 +534,29 @@
       <!-- Card 3 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=800&q=85" alt="" />
           <button class="save-btn saved">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <button class="handle">@kankoku_gohan</button>
         </div>
         <div class="card-body">
           <h3 class="card-name">韓国料理 サムギョプサル屋</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">1.5km</span>
-            <span class="dot">·</span>
-            <span>韓国料理</span>
-            <span class="dot">·</span>
-            <span class="price">¥2,500〜</span>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              1.5 km
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14c2-3 6-5 9-5s7 2 9 5"/><path d="M3 14h18l-2 5H5l-2-5z"/></svg>
+              韓国料理
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥2,500〜¥4,000
+            </span>
           </div>
+          <p class="card-desc">分厚いサムギョプサルとチーズタッカルビが名物。8 名以上で個室予約可。</p>
           <div class="scene-tags">
             <span class="scene-tag">友達</span>
             <span class="scene-tag">グループ</span>
@@ -512,9 +567,9 @@
       <!-- Card 4 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=800&q=85" alt="" />
           <button class="save-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <div class="photo-count">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -523,17 +578,26 @@
           <button class="handle">@yakiniku_master</button>
         </div>
         <div class="card-body">
-          <h3 class="card-name">炭火焼肉 三田屋</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">3.2km</span>
-            <span class="dot">·</span>
-            <span>焼肉</span>
-            <span class="dot">·</span>
-            <span class="price">¥4,500〜</span>
+          <h3 class="card-name">焼肉 牛角 心斎橋本店</h3>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              3.2 km
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-3a4 4 0 0 0-4-4l-7-3-3 3v7z"/></svg>
+              焼肉
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥4,500〜¥7,000
+            </span>
           </div>
+          <p class="card-desc">一頭買いの黒毛和牛をリーズナブルに。看板はタン塩、ハラミ、特上カルビ。</p>
           <div class="scene-tags">
             <span class="scene-tag">記念日</span>
             <span class="scene-tag">友達</span>
+            <span class="scene-tag">飲み</span>
           </div>
         </div>
       </div>
@@ -541,21 +605,29 @@
       <!-- Card 5 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=85" alt="" />
           <button class="save-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <button class="handle">@pasta_papa</button>
         </div>
         <div class="card-body">
           <h3 class="card-name">トラットリア ベラミ</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">1.8km</span>
-            <span class="dot">·</span>
-            <span>イタリアン</span>
-            <span class="dot">·</span>
-            <span class="price">¥3,500〜</span>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              1.8 km
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
+              イタリアン
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥3,500〜¥5,500
+            </span>
           </div>
+          <p class="card-desc">薪窯で焼くナポリピッツァが評判。生パスタと自然派ワインの組合せが◎。</p>
           <div class="scene-tags">
             <span class="scene-tag">デート</span>
             <span class="scene-tag">友達</span>
@@ -566,9 +638,9 @@
       <!-- Card 6 -->
       <div class="card">
         <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=85" alt="" />
+          <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=85" alt="" />
           <button class="save-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
           <div class="photo-count">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -576,14 +648,22 @@
           </div>
         </div>
         <div class="card-body">
-          <h3 class="card-name">海鮮居酒屋 港屋</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">600m</span>
-            <span class="dot">·</span>
-            <span>居酒屋</span>
-            <span class="dot">·</span>
-            <span class="price">¥3,000〜</span>
+          <h3 class="card-name">海鮮居酒屋 港屋 福島本店</h3>
+          <div class="card-meta-row">
+            <span class="meta-item distance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              600 m
+            </span>
+            <span class="meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h10v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/></svg>
+              居酒屋
+            </span>
+            <span class="meta-item price">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ¥3,000〜¥4,500
+            </span>
           </div>
+          <p class="card-desc">毎朝市場直送の魚介と、180 種類超の日本酒。10 名以上で奥座敷貸切可。</p>
           <div class="scene-tags">
             <span class="scene-tag">友達</span>
             <span class="scene-tag">飲み</span>
@@ -592,68 +672,10 @@
         </div>
       </div>
 
-      <!-- Card 7 -->
-      <div class="card">
-        <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1611601679008-3a0db49ed4d6?w=600&q=85" alt="" />
-          <div class="visited-badge">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            行った
-          </div>
-          <button class="save-btn saved">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <button class="handle">@osaka_local</button>
-        </div>
-        <div class="card-body">
-          <h3 class="card-name">お好み焼き 風月 道頓堀店</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">2.4km</span>
-            <span class="dot">·</span>
-            <span>お好み焼き</span>
-            <span class="dot">·</span>
-            <span class="price">¥1,800〜</span>
-          </div>
-          <div class="scene-tags">
-            <span class="scene-tag">友達</span>
-            <span class="scene-tag">B級</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 8 -->
-      <div class="card">
-        <div class="card-image">
-          <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=85" alt="" />
-          <button class="save-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <div class="photo-count">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-            7
-          </div>
-          <button class="handle">@chuka_meister</button>
-        </div>
-        <div class="card-body">
-          <h3 class="card-name">中華食堂 大幸 福島本店</h3>
-          <div class="card-meta">
-            <span style="font-weight:500;">1.1km</span>
-            <span class="dot">·</span>
-            <span>中華</span>
-            <span class="dot">·</span>
-            <span class="price">¥2,000〜</span>
-          </div>
-          <div class="scene-tags">
-            <span class="scene-tag">友達</span>
-            <span class="scene-tag">大皿</span>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <p style="text-align:center;margin-top:32px;color:var(--text-tertiary);font-size:12px;">
-      （プロトタイプ：実装時はあと 7 件 + 無限スクロール）
+      （プロトタイプ：実装時はあと 9 件 + 無限スクロール）
     </p>
   </main>
 </div>
