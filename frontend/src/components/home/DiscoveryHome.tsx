@@ -10,6 +10,7 @@ import { UserProfileModal } from '../user/UserProfileModal';
 import { AuthModal } from '../auth/AuthModal';
 import { SwipeCard } from '../swipe/SwipeCard';
 import { FilterOverlay } from '../swipe/FilterOverlay';
+import { navigate } from '../../utils/navigate';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
@@ -31,6 +32,8 @@ interface ThemeConfig {
   desc: string;
   /** feed から絞り込むキーワード（genre/name/description/scene を対象） */
   keywords: string[];
+  /** 設定すると /features/{slug} に遷移。未設定なら絞り込みモーダルを開く */
+  featureSlug?: string;
 }
 
 interface FeedRestaurant extends SwipeRestaurant {
@@ -129,14 +132,24 @@ export function DiscoveryHome({
   };
 
   // テーマ一覧（i18n に依存するのでここで定義）
+  // featureSlug が設定されているテーマは記事ページへ、それ以外は絞り込みモーダルへ
   const themeConfigs: ThemeConfig[] = useMemo(() => ([
-    { id: 'late-night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800', tag: t('home.editorialTag1'), title: t('home.editorialTitle1'), desc: t('home.editorialDesc1'), keywords: ['バー', 'bar', '深夜', '居酒屋'] },
-    { id: 'date-night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', tag: t('home.editorialTag2'), title: t('home.editorialTitle2'), desc: t('home.editorialDesc2'), keywords: ['イタリアン', 'フレンチ', 'デート', '記念日'] },
-    { id: 'cheap-lunch', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800', tag: t('home.editorialTag3'), title: t('home.editorialTitle3'), desc: t('home.editorialDesc3'), keywords: ['ランチ', 'ラーメン', 'うどん', 'そば', '定食'] },
+    { id: 'late-night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800', tag: t('home.editorialTag1'), title: t('home.editorialTitle1'), desc: t('home.editorialDesc1'), keywords: ['バー', 'bar', '深夜', '居酒屋'], featureSlug: 'late-night-bars' },
+    { id: 'date-night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', tag: t('home.editorialTag2'), title: t('home.editorialTitle2'), desc: t('home.editorialDesc2'), keywords: ['イタリアン', 'フレンチ', 'デート', '記念日'], featureSlug: 'date-night-spots' },
+    { id: 'cheap-lunch', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800', tag: t('home.editorialTag3'), title: t('home.editorialTitle3'), desc: t('home.editorialDesc3'), keywords: ['ランチ', 'ラーメン', 'うどん', 'そば', '定食'], featureSlug: 'cheap-lunch-hits' },
     { id: 'special', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800', tag: t('home.themeMoreTag1'), title: t('home.themeMoreTitle1'), desc: t('home.themeMoreDesc1'), keywords: ['フレンチ', '寿司', '懐石', '記念日', 'プロポーズ'] },
     { id: 'solo', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800', tag: t('home.themeMoreTag2'), title: t('home.themeMoreTitle2'), desc: t('home.themeMoreDesc2'), keywords: ['焼肉', 'ラーメン', 'カウンター', 'ひとり'] },
     { id: 'takeout', image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800', tag: t('home.themeMoreTag3'), title: t('home.themeMoreTitle3'), desc: t('home.themeMoreDesc3'), keywords: ['テイクアウト', 'お弁当', 'サンドイッチ', 'バーガー'] },
   ]), [t]);
+
+  // テーマカードクリック：feature 記事があれば遷移、なければ絞り込みモーダル
+  const handleThemeClick = (th: ThemeConfig) => {
+    if (th.featureSlug) {
+      navigate(`/features/${th.featureSlug}`);
+    } else {
+      setSelectedTheme(th);
+    }
+  };
   const [showHowTo, setShowHowTo] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
   const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
@@ -489,7 +502,7 @@ export function DiscoveryHome({
                 tag={th.tag}
                 title={th.title}
                 desc={th.desc}
-                onClick={() => setSelectedTheme(th)}
+                onClick={() => handleThemeClick(th)}
               />
             ))}
           </div>
@@ -618,26 +631,26 @@ export function DiscoveryHome({
             <FooterCol
               heading={t('home.footerService')}
               items={[
-                t('home.footerHowToUse'),
-                t('home.footerFeatures'),
-                t('home.footerPricing'),
-                t('home.footerDownload'),
+                { label: t('home.footerHowToUse'), href: '/p/how-to' },
+                { label: t('home.footerFeatures'), href: '/p/features' },
+                { label: t('home.footerPricing'), href: '/p/pricing' },
+                { label: t('home.footerDownload'), href: '/p/features' },
               ]}
             />
             <FooterCol
               heading={t('home.footerCompany')}
               items={[
-                t('home.footerAbout'),
-                t('home.footerCareers'),
-                t('home.footerContact'),
+                { label: t('home.footerAbout'), href: '/p/about' },
+                { label: t('home.footerCareers'), href: '/p/careers' },
+                { label: t('home.footerContact'), href: '/p/contact' },
               ]}
             />
             <FooterCol
               heading={t('home.footerOther')}
               items={[
-                t('home.footerPrivacy'),
-                t('home.footerTerms'),
-                t('home.footerLegal'),
+                { label: t('home.footerPrivacy'), href: '/p/privacy' },
+                { label: t('home.footerTerms'), href: '/p/terms' },
+                { label: t('home.footerLegal'), href: '/p/legal' },
               ]}
             />
           </div>
@@ -679,7 +692,7 @@ export function DiscoveryHome({
       {showThemes && (
         <ThemesListModal
           themes={themeConfigs}
-          onSelectTheme={(th) => { setShowThemes(false); setSelectedTheme(th); }}
+          onSelectTheme={(th) => { setShowThemes(false); handleThemeClick(th); }}
           onClose={() => setShowThemes(false)}
         />
       )}
@@ -1255,7 +1268,7 @@ function MapPin({
   );
 }
 
-function FooterCol({ heading, items }: { heading: string; items: string[] }) {
+function FooterCol({ heading, items }: { heading: string; items: { label: string; href: string }[] }) {
   return (
     <div>
       <h4 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">
@@ -1263,10 +1276,13 @@ function FooterCol({ heading, items }: { heading: string; items: string[] }) {
       </h4>
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
-          <li key={item}>
-            <a className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--accent-orange)] transition-colors cursor-pointer">
-              {item}
-            </a>
+          <li key={item.label}>
+            <button
+              onClick={() => navigate(item.href)}
+              className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--accent-orange)] transition-colors cursor-pointer text-left"
+            >
+              {item.label}
+            </button>
           </li>
         ))}
       </ul>

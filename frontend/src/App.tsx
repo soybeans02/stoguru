@@ -13,6 +13,8 @@ import type { StockedRestaurant } from './components/stock/StockScreen';
 import { AccountScreen } from './components/account/AccountScreen';
 import { SocialScreen } from './components/social/SocialScreen';
 import { PublicProfileScreen } from './components/user/PublicProfileScreen';
+import { FeatureArticleScreen } from './components/feature/FeatureArticleScreen';
+import { StaticPageScreen } from './components/feature/StaticPageScreen';
 
 const LazyMapView = lazy(() =>
   import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
@@ -361,26 +363,35 @@ function MainApp() {
   );
 }
 
-/* シンプル URL ルーター: /u/{userId} のみ特殊扱い、それ以外は通常アプリ */
-function useRouteUserId(): string | null {
-  const [userId, setUserId] = useState<string | null>(() => {
-    const m = window.location.pathname.match(/^\/u\/([^/]+)$/);
-    return m ? decodeURIComponent(m[1]) : null;
-  });
+/* シンプル URL ルーター */
+type Route =
+  | { type: 'app' }
+  | { type: 'profile'; userId: string }
+  | { type: 'feature'; slug: string }
+  | { type: 'static'; slug: string };
+
+function parseRoute(): Route {
+  const path = window.location.pathname;
+  let m;
+  if ((m = path.match(/^\/u\/([^/]+)$/))) return { type: 'profile', userId: decodeURIComponent(m[1]) };
+  if ((m = path.match(/^\/features\/([^/]+)$/))) return { type: 'feature', slug: decodeURIComponent(m[1]) };
+  if ((m = path.match(/^\/p\/([^/]+)$/))) return { type: 'static', slug: decodeURIComponent(m[1]) };
+  return { type: 'app' };
+}
+
+function useRoute(): Route {
+  const [route, setRoute] = useState<Route>(() => parseRoute());
   useEffect(() => {
-    const onPop = () => {
-      const m = window.location.pathname.match(/^\/u\/([^/]+)$/);
-      setUserId(m ? decodeURIComponent(m[1]) : null);
-    };
+    const onPop = () => setRoute(parseRoute());
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  return userId;
+  return route;
 }
 
 export default function App() {
   const { loading } = useAuth();
-  const profileUserId = useRouteUserId();
+  const route = useRoute();
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_done') === '1'
   );
@@ -401,9 +412,15 @@ export default function App() {
     );
   }
 
-  // 共有プロフィール URL: 匿名でも、オンボーディング前でも閲覧可能
-  if (profileUserId) {
-    return <ErrorBoundary><PublicProfileScreen userId={profileUserId} /></ErrorBoundary>;
+  // 公開ページ（匿名・オンボーディング前でも閲覧可能）
+  if (route.type === 'profile') {
+    return <ErrorBoundary><PublicProfileScreen userId={route.userId} /></ErrorBoundary>;
+  }
+  if (route.type === 'feature') {
+    return <ErrorBoundary><FeatureArticleScreen slug={route.slug} /></ErrorBoundary>;
+  }
+  if (route.type === 'static') {
+    return <ErrorBoundary><StaticPageScreen slug={route.slug} /></ErrorBoundary>;
   }
 
   // 匿名でもオンボーディング → メインアプリへ進める。AuthScreen 強制ガードは廃止。
