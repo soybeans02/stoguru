@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
 import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback, getUserSettings, putUserSettings, listPendingUploadApplications } from '../services/dynamo';
+import { deleteAllUserPhotos } from '../services/s3';
 import { invalidateTokenCache } from '../middleware/auth';
 import { stats, userActivity } from '../state';
 
@@ -164,6 +165,7 @@ router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response
     const user = await getUserById(uid);
     if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
     await deleteAllUserData(uid);
+    await deleteAllUserPhotos(uid);
     await adminDeleteUser(user.username);
     res.json({ message: 'ユーザーを削除しました' });
   } catch (err) {

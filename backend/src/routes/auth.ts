@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword, isNicknameTaken, updateNickname, requestEmailChange, verifyEmailChange, resendEmailVerificationCode } from '../services/cognito';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
+import { deleteAllUserPhotos } from '../services/s3';
 import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema, changeEmailSchema, verifyEmailSchema } from '../validators';
 
 const router = Router();
@@ -183,12 +184,15 @@ router.post('/change-password', requireAuth, async (req: AuthRequest, res: Respo
 router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    // DynamoDBのデータをすべて削除
+    // 1. DynamoDB のデータを全削除（プロフィール匿名化含む）
     await deleteAllUserData(userId);
-    // Cognitoユーザーを削除
+    // 2. S3 上のユーザーアップロード写真を全削除
+    await deleteAllUserPhotos(userId);
+    // 3. Cognito ユーザーを削除
     await deleteUser(req.headers.authorization!.split(' ')[1]);
     res.json({ message: 'アカウントを削除しました' });
   } catch (err: unknown) {
+    console.error('Account deletion failed:', err);
     res.status(500).json({ error: 'アカウント削除に失敗しました' });
   }
 });

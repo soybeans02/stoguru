@@ -589,7 +589,13 @@ export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string;
 
   const counts = new Map<string, number>();
   for (const item of items) {
-    if (item.postedBy && item.stockCount > 0 && item.visibility !== 'private') {
+    // postedBy 空（削除済み匿名化）、private、hidden は除外
+    if (
+      item.postedBy &&
+      item.stockCount > 0 &&
+      item.visibility !== 'private' &&
+      item.visibility !== 'hidden'
+    ) {
       counts.set(item.postedBy, (counts.get(item.postedBy) ?? 0) + item.stockCount);
     }
   }
@@ -932,8 +938,12 @@ export async function deleteAllUserData(userId: string) {
         ExpressionAttributeValues: { ':v': 'hidden', ':p': '', ':u': Date.now() },
       }));
       // URL インデックスも消す
-      if (r.urls?.length) await deleteUrlIndexEntries(r.urls).catch(() => {});
-    } catch { /* skip */ }
+      if (r.urls?.length) {
+        await deleteUrlIndexEntries(r.urls).catch((err) => console.error('[deleteAllUserData] URL index delete failed:', err));
+      }
+    } catch (err) {
+      console.error(`[deleteAllUserData] Failed to anonymize restaurant ${r.restaurantId}:`, err);
+    }
   }
   invalidateSearchCache();
 
