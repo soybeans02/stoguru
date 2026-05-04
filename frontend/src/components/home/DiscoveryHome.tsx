@@ -11,6 +11,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { SwipeCard } from '../swipe/SwipeCard';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { navigate } from '../../utils/navigate';
+import { loadAllFeatures } from '../../data/features';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
@@ -131,16 +132,25 @@ export function DiscoveryHome({
     onSearch?.(v);
   };
 
-  // テーマ一覧（i18n に依存するのでここで定義）
-  // featureSlug が設定されているテーマは記事ページへ、それ以外は絞り込みモーダルへ
-  const themeConfigs: ThemeConfig[] = useMemo(() => ([
-    { id: 'late-night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800', tag: t('home.editorialTag1'), title: t('home.editorialTitle1'), desc: t('home.editorialDesc1'), keywords: ['バー', 'bar', '深夜', '居酒屋'], featureSlug: 'late-night-bars' },
-    { id: 'date-night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', tag: t('home.editorialTag2'), title: t('home.editorialTitle2'), desc: t('home.editorialDesc2'), keywords: ['イタリアン', 'フレンチ', 'デート', '記念日'], featureSlug: 'date-night-spots' },
-    { id: 'cheap-lunch', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800', tag: t('home.editorialTag3'), title: t('home.editorialTitle3'), desc: t('home.editorialDesc3'), keywords: ['ランチ', 'ラーメン', 'うどん', 'そば', '定食'], featureSlug: 'cheap-lunch-hits' },
-    { id: 'special', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800', tag: t('home.themeMoreTag1'), title: t('home.themeMoreTitle1'), desc: t('home.themeMoreDesc1'), keywords: ['フレンチ', '寿司', '懐石', '記念日', 'プロポーズ'] },
-    { id: 'solo', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800', tag: t('home.themeMoreTag2'), title: t('home.themeMoreTitle2'), desc: t('home.themeMoreDesc2'), keywords: ['焼肉', 'ラーメン', 'カウンター', 'ひとり'] },
-    { id: 'takeout', image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800', tag: t('home.themeMoreTag3'), title: t('home.themeMoreTitle3'), desc: t('home.themeMoreDesc3'), keywords: ['テイクアウト', 'お弁当', 'サンドイッチ', 'バーガー'] },
-  ]), [t]);
+  // テーマ一覧：microCMS の記事 + fallback を自動取得して並べる。
+  // 公開した記事は数分以内にここに自動で出る（loadAllFeatures がキャッシュ管理）
+  const [themeConfigs, setThemeConfigs] = useState<ThemeConfig[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    loadAllFeatures().then((articles) => {
+      if (cancelled) return;
+      setThemeConfigs(articles.map((a) => ({
+        id: a.slug,
+        image: a.cardImage || a.heroImage || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
+        tag: a.tag,
+        title: a.title,
+        desc: a.subtitle,
+        keywords: [],
+        featureSlug: a.slug,
+      })));
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // テーマカードクリック：feature 記事があれば遷移、なければ絞り込みモーダル
   const handleThemeClick = (th: ThemeConfig) => {
