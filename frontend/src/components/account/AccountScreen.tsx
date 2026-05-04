@@ -134,276 +134,342 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     return <InfluencerDashboard onBack={() => { setShowInfluencerDashboard(false); onRestaurantEdited?.(); }} />;
   }
 
+  // 設定タイル定義（再利用）
+  const themeLabel = t(`account.theme${theme === 'white' ? 'White' : theme === 'black' ? 'Black' : theme === 'wood' ? 'Wood' : 'Auto'}`);
+  const settingTiles: SettingTileDef[] = [
+    {
+      label: t('account.theme'),
+      value: themeLabel,
+      onClick: () => setPanel('theme'),
+      iconBg: '#f97316',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>),
+    },
+    {
+      label: t('account.language'),
+      value: language === 'ja' ? '日本語' : 'English',
+      onClick: () => setPanel('language'),
+      iconBg: '#3b82f6',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>),
+    },
+    {
+      label: t('account.changePassword'),
+      onClick: () => setPanel('password'),
+      iconBg: '#f59e0b',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>),
+    },
+    {
+      label: t('account.changeEmail'),
+      onClick: () => setPanel('email'),
+      iconBg: '#10b981',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
+    },
+  ];
+
+  const supportTiles: SettingTileDef[] = [
+    {
+      label: t('account.howToUse'),
+      onClick: () => setPanel('howto'),
+      iconBg: '#a855f7',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>),
+    },
+    {
+      label: t('account.feedback'),
+      onClick: () => setPanel('feedback'),
+      iconBg: '#ec4899',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>),
+    },
+    {
+      label: t('account.contactUs'),
+      onClick: () => setPanel('support'),
+      iconBg: '#f97316',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
+    },
+    {
+      label: t('account.privacyPolicy'),
+      onClick: () => setPanel('privacy'),
+      iconBg: '#6b7280',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>),
+    },
+    {
+      label: t('account.termsOfService'),
+      onClick: () => setPanel('terms'),
+      iconBg: '#64748b',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>),
+    },
+  ];
+
+  const stats = [
+    { count: safeStocks.length, label: t('account.saved'), onClick: () => setListPanel('stocks') },
+    { count: visitedCount, label: t('account.visited'), onClick: () => setListPanel('visited') },
+    { count: followingCount, label: t('account.following'), onClick: () => setListPanel('following') },
+    { count: followersCount, label: t('account.followers'), onClick: () => setListPanel('followers') },
+  ];
+
   return (
-    <div className="flex-1 overflow-y-auto overscroll-none bg-white dark:bg-gray-900 md:px-6 lg:px-8">
-      {/* Profile header */}
-      <div className="pt-12 pb-6 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
-        {/* Avatar with gradient ring */}
-        <div className="flex flex-col items-center">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleProfilePhotoUpload}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="relative"
-            disabled={uploadingPhoto}
+    <div className="flex-1 overflow-y-auto overscroll-none bg-[var(--bg)] text-[var(--text-primary)]">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+        {/* ─── Hero card ─── */}
+        <div className="relative rounded-[var(--radius-2xl)] overflow-hidden border border-[var(--border)] bg-[var(--card-bg)] shadow-[var(--shadow-md)] mb-6">
+          {/* Cover gradient */}
+          <div
+            className="h-[110px] sm:h-[140px] lg:h-[160px] relative"
+            style={{
+              background:
+                'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+            }}
           >
-            <div className="w-[88px] h-[88px] rounded-full bg-gradient-to-br from-orange-400 to-orange-500 p-[3px]">
-              <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
-                {profileImage ? (
-                  <img src={profileImage} alt="" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-4xl">
-                    {profileIcon}
-                  </div>
-                )}
-              </div>
-            </div>
-            {uploadingPhoto && (
-              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                <span className="text-white text-xs font-medium">...</span>
-              </div>
-            )}
-            <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white dark:bg-gray-700 border-2 border-white dark:border-gray-900 flex items-center justify-center shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 dark:text-gray-300"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-            </div>
-          </button>
-
-          {editingNickname ? (
-            <div className="flex flex-col items-center gap-2 mt-3">
-              <input
-                value={nicknameInput}
-                onChange={(e) => setNicknameInput(e.target.value)}
-                className="text-center text-lg font-bold border-b-2 border-gray-900 dark:border-white outline-none bg-transparent w-40 text-gray-900 dark:text-white"
-                autoFocus
-                maxLength={50}
-              />
-              {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
-              <div className="flex gap-2">
-                <button onClick={handleSaveNickname} className="text-xs px-3 py-1 bg-orange-500 text-white rounded-full">保存</button>
-                <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full">キャンセル</button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-3">
-              {user?.nickname ?? 'ユーザー'}
-            </p>
-          )}
-          <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
-
-          {/* Edit profile / Edit spots / Share — 3 button row (iOS parity) */}
-          <div className="flex gap-2 mt-4 px-8 max-w-md lg:max-w-lg mx-auto">
-            <button
-              onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
-              className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
-            >
-              {t('account.editProfile')}
-            </button>
-            {uploadStatus === 'approved' && (
-              <button
-                onClick={() => setShowInfluencerDashboard(true)}
-                className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
-              >
-                {t('account.editSpots')}
-              </button>
-            )}
-            <button
-              onClick={async () => {
-                const url = `https://soybeans02.github.io/stoguru/u/${user?.userId ?? ''}`;
-                try {
-                  if (navigator.share) {
-                    await navigator.share({ title: 'stoguru', url });
-                  } else {
-                    await navigator.clipboard.writeText(url);
-                    alert(t('account.profileShareCopied'));
-                  }
-                } catch {
-                  /* user cancelled */
-                }
+            <div
+              className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(circle at 20% 0%, rgba(255,255,255,0.6) 0%, transparent 50%), radial-gradient(circle at 80% 100%, rgba(0,0,0,0.4) 0%, transparent 60%)',
               }}
-              className="flex-1 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-transform truncate"
-            >
-              {t('account.share')}
-            </button>
+            />
+          </div>
+
+          <div className="px-5 sm:px-7 lg:px-8 pb-6 lg:pb-7">
+            {/* Avatar + identity row */}
+            <div className="-mt-12 sm:-mt-14 lg:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 min-w-0">
+                {/* Avatar */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleProfilePhotoUpload}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative shrink-0 self-start sm:self-auto"
+                  disabled={uploadingPhoto}
+                  aria-label="Change profile photo"
+                >
+                  <div
+                    className="w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] lg:w-[128px] lg:h-[128px] rounded-full p-[3px] shadow-[var(--shadow-lg)]"
+                    style={{ background: 'var(--card-bg)' }}
+                  >
+                    <div className="w-full h-full rounded-full overflow-hidden bg-[var(--bg-soft)] flex items-center justify-center">
+                      {profileImage ? (
+                        <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[44px] lg:text-[52px]">{profileIcon}</span>
+                      )}
+                    </div>
+                  </div>
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">...</span>
+                    </div>
+                  )}
+                  <div
+                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full grid place-items-center shadow-[var(--shadow)] border-2"
+                    style={{ background: 'var(--accent-orange)', borderColor: 'var(--card-bg)' }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  </div>
+                </button>
+
+                {/* Name + email */}
+                <div className="min-w-0 sm:pb-1.5">
+                  {editingNickname ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        value={nicknameInput}
+                        onChange={(e) => setNicknameInput(e.target.value)}
+                        className="text-[22px] lg:text-[26px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[260px] text-[var(--text-primary)]"
+                        style={{ borderColor: 'var(--accent-orange)' }}
+                        autoFocus
+                        maxLength={50}
+                      />
+                      {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={handleSaveNickname} className="text-xs px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
+                        <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h1 className="text-[22px] sm:text-[24px] lg:text-[28px] font-extrabold tracking-[-0.02em] truncate">
+                        {user?.nickname ?? 'ユーザー'}
+                      </h1>
+                      <p className="text-[13px] text-[var(--text-secondary)] mt-0.5 truncate">{user?.email}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              {!editingNickname && (
+                <div className="flex flex-wrap gap-2 sm:pb-1.5">
+                  <button
+                    onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
+                    className="px-4 py-2 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
+                  >
+                    {t('account.editProfile')}
+                  </button>
+                  {uploadStatus === 'approved' && (
+                    <button
+                      onClick={() => setShowInfluencerDashboard(true)}
+                      className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
+                      style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
+                    >
+                      {t('account.editSpots')}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      const url = `https://soybeans02.github.io/stoguru/u/${user?.userId ?? ''}`;
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({ title: 'stoguru', url });
+                        } else {
+                          await navigator.clipboard.writeText(url);
+                          alert(t('account.profileShareCopied'));
+                        }
+                      } catch { /* user cancelled */ }
+                    }}
+                    className="px-4 py-2 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
+                  >
+                    {t('account.share')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-6 pt-5 border-t border-[var(--border)]">
+              {stats.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={s.onClick}
+                  className="flex flex-col items-center justify-center py-1 rounded-[var(--radius-md)] hover:bg-[var(--bg-soft)] transition-colors"
+                  aria-label={s.label}
+                >
+                  <span className="text-[20px] sm:text-[22px] lg:text-[26px] font-extrabold tabular-nums">{s.count}</span>
+                  <span className="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-0.5">{s.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex justify-center gap-6 mt-5">
-          <button onClick={() => setListPanel('stocks')} className="text-center" aria-label={t('account.saved')}>
-            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{safeStocks.length}</p>
-            <p className="text-[11px] text-gray-400">{t('account.saved')}</p>
-          </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
-          <button onClick={() => setListPanel('visited')} className="text-center" aria-label={t('account.visited')}>
-            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{visitedCount}</p>
-            <p className="text-[11px] text-gray-400">{t('account.visited')}</p>
-          </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
-          <button onClick={() => setListPanel('following')} className="text-center" aria-label={t('account.following')}>
-            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followingCount}</p>
-            <p className="text-[11px] text-gray-400">{t('account.following')}</p>
-          </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700 self-stretch" />
-          <button onClick={() => setListPanel('followers')} className="text-center" aria-label={t('account.followers')}>
-            <p className="text-[22px] font-extrabold text-gray-900 dark:text-white">{followersCount}</p>
-            <p className="text-[11px] text-gray-400">{t('account.followers')}</p>
-          </button>
-        </div>
-      </div>
-
-      <div className="px-4 pb-8 md:max-w-2xl lg:max-w-5xl md:mx-auto">
-        {/* PC は 2 カラムに分割（左：申請＋設定 / 右：サポート＋その他） */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-x-6">
-        <div>
-        {/* Influencer banner — uploadStatus に応じて出し分け */}
-        <div className="mt-2 mb-5">
+        {/* ─── Apply / Edit spots banner ─── */}
+        <div className="mb-6">
           {uploadStatusLoading ? (
-            <div className="w-full px-4 py-3.5 bg-gray-100 dark:bg-gray-800 rounded-[14px] flex items-center justify-center">
-              <p className="text-[13px] text-gray-400">...</p>
+            <div className="rounded-[var(--radius-xl)] px-5 py-4 bg-[var(--bg-soft)] flex items-center justify-center">
+              <span className="text-[13px] text-[var(--text-tertiary)]">…</span>
             </div>
           ) : uploadStatus === 'approved' ? (
             <button
               onClick={() => setShowInfluencerDashboard(true)}
-              className="w-full px-4 py-3.5 bg-orange-500 hover:bg-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all"
+              className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between text-white shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-all"
+              style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
             >
-              <p className="text-[13px] font-bold text-white">{t('account.editSpots')}</p>
-              <span className="text-white/40 text-lg">›</span>
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                </span>
+                <span className="text-[14px] font-bold">{t('account.editSpots')}</span>
+              </div>
+              <span className="text-white/60 text-lg">›</span>
             </button>
           ) : uploadStatus === 'pending' ? (
-            <button
-              disabled
-              className="w-full px-4 py-3.5 bg-gray-200 dark:bg-gray-700 rounded-[14px] flex items-center justify-between cursor-not-allowed opacity-90"
-            >
-              <p className="text-[13px] font-bold text-gray-500 dark:text-gray-300">{t('account.pendingReview')}</p>
-              <span className="text-gray-400 text-lg">…</span>
-            </button>
+            <div className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between bg-[var(--bg-soft)] border border-[var(--border)]">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full grid place-items-center" style={{ background: 'var(--accent-orange)', opacity: 0.15 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-orange)' }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                <span className="text-[14px] font-bold text-[var(--text-secondary)]">{t('account.pendingReview')}</span>
+              </div>
+            </div>
           ) : uploadStatus === 'rejected' ? (
-            <div className="w-full px-4 py-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[14px] flex items-center justify-between">
-              <p className="text-[13px] font-bold text-red-500">{t('account.applicationRejected')}</p>
+            <div className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full bg-red-500/15 grid place-items-center text-red-500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </span>
+                <span className="text-[14px] font-bold text-red-500">{t('account.applicationRejected')}</span>
+              </div>
             </div>
           ) : (
             <button
               onClick={handleApplyToPost}
               disabled={applyingUpload}
-              className="w-full px-4 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 rounded-[14px] flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+              className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between text-white shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-all disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
             >
-              <p className="text-[13px] font-bold text-white">{applyingUpload ? '...' : t('account.applyToPost')}</p>
-              <span className="text-white/40 text-lg">›</span>
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                </span>
+                <span className="text-[14px] font-bold">{applyingUpload ? '…' : t('account.applyToPost')}</span>
+              </div>
+              <span className="text-white/60 text-lg">›</span>
             </button>
           )}
         </div>
 
-        {/* Settings section */}
-        <div className="mb-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.settings')}</p>
-          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-[8px] bg-gray-500 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </div>
-                <div>
-                  <span className="text-[14px] text-gray-700 dark:text-gray-200">{t('account.privateAccount')}</span>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{t('account.privateAccountHint')}</p>
-                </div>
-              </div>
-              <Toggle
-                checked={isPrivate}
-                ariaLabel={t('account.privateAccount')}
-                onChange={async (next) => {
-                  setIsPrivate(next);
-                  localStorage.setItem('cache:isPrivate', next ? '1' : '0');
-                  try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
-                }}
-              />
+        {/* ─── Privacy toggle (special row) ─── */}
+        <SectionLabel>{t('account.settings')}</SectionLabel>
+        <div className="rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] shadow-[var(--shadow-sm)] px-4 sm:px-5 py-3.5 mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: '#6b7280' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></div>}
-              label={t('account.theme')}
-              value={t(`account.theme${theme === 'white' ? 'White' : theme === 'black' ? 'Black' : theme === 'wood' ? 'Wood' : 'Auto'}`)}
-              onClick={() => setPanel('theme')}
-              border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-blue-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>}
-              label={t('account.language')}
-              value={language === 'ja' ? '日本語' : 'English'}
-              onClick={() => setPanel('language')}
-              border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-amber-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
-              label={t('account.changePassword')} onClick={() => setPanel('password')} border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-emerald-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>}
-              label={t('account.changeEmail')} onClick={() => setPanel('email')}
-            />
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold truncate">{t('account.privateAccount')}</div>
+              <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5 truncate">{t('account.privateAccountHint')}</div>
+            </div>
           </div>
-        </div>
-        </div>{/* /左カラム */}
-
-        <div>
-        {/* Support section */}
-        <div className="mb-5 lg:mt-2">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.support')}</p>
-          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-purple-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>}
-              label={t('account.howToUse')} onClick={() => setPanel('howto')} border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-pink-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>}
-              label={t('account.feedback')} onClick={() => setPanel('feedback')} border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-orange-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>}
-              label={t('account.contactUs')} onClick={() => setPanel('support')} border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-gray-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
-              label={t('account.privacyPolicy')} onClick={() => setPanel('privacy')} border
-            />
-            <MenuItemCard
-              icon={<div className="w-8 h-8 rounded-[8px] bg-slate-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>}
-              label={t('account.termsOfService')} onClick={() => setPanel('terms')}
-            />
-          </div>
+          <Toggle
+            checked={isPrivate}
+            ariaLabel={t('account.privateAccount')}
+            onChange={async (next) => {
+              setIsPrivate(next);
+              localStorage.setItem('cache:isPrivate', next ? '1' : '0');
+              try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
+            }}
+          />
         </div>
 
-        {/* Danger section */}
-        <div className="mb-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 pl-1">{t('account.other')}</p>
-          <div className="bg-white dark:bg-gray-800 rounded-[14px] border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <button
-              onClick={() => setPanel('deleteAccount')}
-              className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 dark:border-gray-700/50"
-            >
-              <div className="w-8 h-8 rounded-[8px] bg-red-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              </div>
-              <span className="text-[14px] text-red-500">{t('account.deleteAccount')}</span>
-            </button>
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3.5"
-            >
-              <div className="w-8 h-8 rounded-[8px] bg-gray-900 dark:bg-gray-600 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-              </div>
-              <span className="text-[14px] text-gray-700 dark:text-gray-300">{t('auth.logOut')}</span>
-            </button>
-          </div>
+        {/* ─── Settings tile grid ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 mb-8">
+          {settingTiles.map((tile, i) => <SettingTile key={i} {...tile} />)}
         </div>
-        </div>{/* /右カラム */}
-        </div>{/* /lg:grid */}
 
-        <p className="text-center text-[11px] text-gray-300 dark:text-gray-600 mt-6">ストグル v1.0</p>
+        {/* ─── Support grid ─── */}
+        <SectionLabel>{t('account.support')}</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+          {supportTiles.map((tile, i) => <SettingTile key={i} {...tile} />)}
+        </div>
+
+        {/* ─── Danger zone ─── */}
+        <SectionLabel>{t('account.other')}</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => setPanel('deleteAccount')}
+            className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-red-300 dark:hover:border-red-900 hover:shadow-[var(--shadow-md)] transition-all text-left"
+          >
+            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: '#ef4444' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </div>
+            <span className="flex-1 text-[14px] font-semibold text-red-500">{t('account.deleteAccount')}</span>
+            <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity">›</span>
+          </button>
+          <button
+            onClick={logout}
+            className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] transition-all text-left"
+          >
+            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: 'var(--text-primary)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--card-bg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            </div>
+            <span className="flex-1 text-[14px] font-semibold">{t('auth.logOut')}</span>
+            <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity">›</span>
+          </button>
+        </div>
+
+        <p className="text-center text-[11px] text-[var(--text-tertiary)] mt-8">ストグル v1.0</p>
       </div>
 
       {/* Panels */}
@@ -544,21 +610,39 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   );
 }
 
-function MenuItemCard({ icon, label, value, onClick, border }: { icon: React.ReactNode; label: string; value?: string; onClick: () => void; border?: boolean }) {
+/* ─── 新デザイン: 設定タイル ─── */
+
+type SettingTileDef = {
+  label: string;
+  value?: string;
+  onClick: () => void;
+  iconBg: string;
+  icon: React.ReactNode;
+};
+
+function SettingTile({ label, value, onClick, iconBg, icon }: SettingTileDef) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center justify-between px-4 py-3.5 ${border ? 'border-b border-gray-50 dark:border-gray-700/50' : ''}`}
+      className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all text-left"
     >
-      <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: iconBg }}>
         {icon}
-        <span className="text-[14px] text-gray-700 dark:text-gray-200">{label}</span>
       </div>
-      <div className="flex items-center gap-1.5">
-        {value && <span className="text-[12px] text-gray-400 dark:text-gray-500">{value}</span>}
-        <span className="text-gray-300 dark:text-gray-600 text-base">›</span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-semibold truncate">{label}</div>
+        {value && <div className="text-[12px] text-[var(--text-tertiary)] mt-0.5 truncate">{value}</div>}
       </div>
+      <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0">›</span>
     </button>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em] mb-2.5 pl-1">
+      {children}
+    </p>
   );
 }
 
