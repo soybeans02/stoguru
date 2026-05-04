@@ -256,6 +256,8 @@ export function DiscoveryHome({
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSubmitSearch={() => submitSearch()}
+        onOpenFilter={() => setFilterOpen(true)}
+        filterCount={filterCount}
         onSignUp={() => setAuthModal('signup')}
         onLogIn={() => setAuthModal('login')}
         onOpenMap={onOpenMap}
@@ -276,59 +278,35 @@ export function DiscoveryHome({
             <p className="text-[15px] sm:text-[17px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-6">
               {t('home.heroDescription')}
             </p>
-            {/* Tabelog 風ヒーロー検索 + 絞り込み */}
-            <div className="flex items-center gap-2 max-w-[640px] mb-7 flex-wrap sm:flex-nowrap">
-              <form
-                onSubmit={(e) => { e.preventDefault(); submitSearch(); }}
-                className="flex-1 min-w-[260px] flex items-center gap-2 p-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-strong)] shadow-[var(--shadow-md)] focus-within:shadow-[var(--shadow-lg)] focus-within:border-[var(--accent-orange)] transition-all"
-              >
-                <span className="pl-3 pr-1 text-[var(--text-tertiary)] flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                </span>
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('home.searchPlaceholder')}
-                  className="flex-1 bg-transparent border-0 outline-none text-[14px] sm:text-[15px] py-2 placeholder:text-[var(--text-tertiary)] min-w-0"
-                />
-                <button
-                  type="submit"
-                  disabled={!searchQuery.trim()}
-                  className="px-5 sm:px-6 py-2 rounded-full text-[13px] sm:text-[14px] font-bold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex-shrink-0"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
-                  }}
-                >
-                  {t('common.search')}
-                </button>
-              </form>
-              {/* 絞り込みボタン */}
-              <button
-                onClick={() => setFilterOpen(true)}
-                aria-label="絞り込み"
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-full border bg-[var(--card-bg)] text-[13px] sm:text-[14px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all flex-shrink-0 ${
-                  filterCount > 0 ? 'border-[var(--accent-orange)] text-[var(--accent-orange)]' : 'border-[var(--border-strong)] text-[var(--text-primary)]'
-                }`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/>
-                  <line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/>
-                  <line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/>
-                  <line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/>
-                  <line x1="18" x2="22" y1="16" y2="16"/>
+            {/* Tabelog 風ヒーロー検索 */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); submitSearch(); }}
+              className="flex items-center gap-2 p-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-strong)] shadow-[var(--shadow-md)] max-w-[520px] mb-7 focus-within:shadow-[var(--shadow-lg)] focus-within:border-[var(--accent-orange)] transition-all"
+            >
+              <span className="pl-3 pr-1 text-[var(--text-tertiary)] flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
                 </svg>
-                絞り込み
-                {filterCount > 0 && (
-                  <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent-orange)] text-white text-[10px] font-bold">
-                    {filterCount}
-                  </span>
-                )}
+              </span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('home.searchPlaceholder')}
+                className="flex-1 bg-transparent border-0 outline-none text-[14px] sm:text-[15px] py-2 placeholder:text-[var(--text-tertiary)] min-w-0"
+              />
+              <button
+                type="submit"
+                disabled={!searchQuery.trim()}
+                className="px-5 sm:px-6 py-2 rounded-full text-[13px] sm:text-[14px] font-bold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+                }}
+              >
+                {t('common.search')}
               </button>
-            </div>
+            </form>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleHeroCTA}
@@ -742,6 +720,8 @@ function DiscoveryTopBar({
   searchQuery,
   onSearchChange,
   onSubmitSearch,
+  onOpenFilter,
+  filterCount = 0,
   onSignUp,
   onLogIn,
   onOpenMap,
@@ -751,6 +731,8 @@ function DiscoveryTopBar({
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onSubmitSearch?: () => void;
+  onOpenFilter?: () => void;
+  filterCount?: number;
   onSignUp: () => void;
   onLogIn: () => void;
   onOpenMap: () => void;
@@ -763,7 +745,7 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4 sm:gap-6">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示 */}
         <div
           className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden"
@@ -777,6 +759,32 @@ function DiscoveryTopBar({
         >
           stoguru
         </div>
+        {/* 絞り込みボタン（検索バーの左） */}
+        {onOpenFilter && (
+          <button
+            onClick={onOpenFilter}
+            aria-label="絞り込み"
+            className={`relative flex-shrink-0 flex items-center gap-1.5 px-3 sm:px-3.5 h-9 rounded-full border bg-[var(--card-bg)] text-[12.5px] sm:text-[13px] font-semibold transition-all hover:bg-[var(--bg-soft)] ${
+              filterCount > 0
+                ? 'border-[var(--accent-orange)] text-[var(--accent-orange)]'
+                : 'border-[var(--border-strong)] text-[var(--text-secondary)]'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/>
+              <line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/>
+              <line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/>
+              <line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/>
+              <line x1="18" x2="22" y1="16" y2="16"/>
+            </svg>
+            <span className="hidden sm:inline">絞り込み</span>
+            {filterCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--accent-orange)] text-white text-[9.5px] font-bold">
+                {filterCount}
+              </span>
+            )}
+          </button>
+        )}
         {/* Search */}
         <form
           onSubmit={(e) => { e.preventDefault(); onSubmitSearch?.(); }}
