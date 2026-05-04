@@ -24,8 +24,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const { language, setLanguage, t } = useTranslation();
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
   const [profileImage, setProfileImage] = useState(() => localStorage.getItem('cache:profileImage') || '');
+  const [coverImage, setCoverImage] = useState(() => localStorage.getItem('cache:coverImage') || '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
@@ -53,6 +56,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       if (s.profileImage) {
         setProfileImage(s.profileImage as string);
         localStorage.setItem('cache:profileImage', s.profileImage as string);
+      }
+      if (s.coverImage) {
+        setCoverImage(s.coverImage as string);
+        localStorage.setItem('cache:coverImage', s.coverImage as string);
       }
     }).catch(() => {});
     api.getPrivacySettings().then((p) => {
@@ -128,6 +135,28 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     } catch {}
     finally { setUploadingPhoto(false); }
     e.target.value = '';
+  }
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
+    if (file.size > 8 * 1024 * 1024) return;
+    setUploadingCover(true);
+    try {
+      const url = await api.uploadPhoto(file);
+      setCoverImage(url);
+      localStorage.setItem('cache:coverImage', url);
+      await api.putSettings({ coverImage: url });
+    } catch {}
+    finally { setUploadingCover(false); }
+    e.target.value = '';
+  }
+
+  async function handleRemoveCover() {
+    setCoverImage('');
+    localStorage.removeItem('cache:coverImage');
+    try { await api.putSettings({ coverImage: '' }); } catch {}
   }
 
   if (showInfluencerDashboard) {
@@ -210,21 +239,60 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         {/* ─── Hero card ─── */}
         <div className="relative rounded-[var(--radius-2xl)] overflow-hidden border border-[var(--border)] bg-[var(--card-bg)] shadow-[var(--shadow-md)] mb-6">
-          {/* Cover gradient */}
-          <div
-            className="h-[110px] sm:h-[140px] lg:h-[160px] relative"
-            style={{
-              background:
-                'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
-              style={{
-                background:
-                  'radial-gradient(circle at 20% 0%, rgba(255,255,255,0.6) 0%, transparent 50%), radial-gradient(circle at 80% 100%, rgba(0,0,0,0.4) 0%, transparent 60%)',
-              }}
-            />
+          {/* Cover photo / gradient */}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleCoverUpload}
+          />
+          <div className="group h-[110px] sm:h-[140px] lg:h-[160px] relative overflow-hidden">
+            {coverImage ? (
+              <img src={coverImage} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div
+                className="w-full h-full"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+                }}
+              >
+                <div
+                  className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(circle at 20% 0%, rgba(255,255,255,0.6) 0%, transparent 50%), radial-gradient(circle at 80% 100%, rgba(0,0,0,0.4) 0%, transparent 60%)',
+                  }}
+                />
+              </div>
+            )}
+            {uploadingCover && (
+              <div className="absolute inset-0 bg-black/50 grid place-items-center z-10">
+                <span className="text-white text-sm font-medium">アップロード中…</span>
+              </div>
+            )}
+            {/* Cover edit controls (top-right) */}
+            <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                disabled={uploadingCover}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md text-white text-[12px] font-semibold hover:bg-black/70 transition-colors"
+                aria-label="カバー画像を変更"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                {coverImage ? 'カバーを変更' : 'カバーを追加'}
+              </button>
+              {coverImage && (
+                <button
+                  onClick={handleRemoveCover}
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
+                  aria-label="カバーを削除"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="px-5 sm:px-7 lg:px-8 pb-6 lg:pb-7">
@@ -273,21 +341,21 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 {/* Name + email */}
                 <div className="min-w-0 sm:pb-1.5">
                   {editingNickname ? (
-                    <div className="flex flex-col gap-2">
-                      <input
-                        value={nicknameInput}
-                        onChange={(e) => setNicknameInput(e.target.value)}
-                        className="text-[22px] lg:text-[26px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[260px] text-[var(--text-primary)]"
-                        style={{ borderColor: 'var(--accent-orange)' }}
-                        autoFocus
-                        maxLength={50}
-                      />
-                      {nicknameError && <p className="text-red-500 text-xs">{nicknameError}</p>}
-                      <div className="flex gap-2">
-                        <button onClick={handleSaveNickname} className="text-xs px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
-                        <button onClick={() => setEditingNickname(false)} className="text-xs px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
+                    <>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          value={nicknameInput}
+                          onChange={(e) => setNicknameInput(e.target.value)}
+                          className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[200px] text-[var(--text-primary)] py-0.5"
+                          style={{ borderColor: 'var(--accent-orange)' }}
+                          autoFocus
+                          maxLength={50}
+                        />
+                        <button onClick={handleSaveNickname} className="text-[12px] font-semibold px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
+                        <button onClick={() => setEditingNickname(false)} className="text-[12px] font-semibold px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
                       </div>
-                    </div>
+                      {nicknameError && <p className="text-red-500 text-[11px] mt-1">{nicknameError}</p>}
+                    </>
                   ) : (
                     <>
                       <h1 className="text-[22px] sm:text-[24px] lg:text-[28px] font-extrabold tracking-[-0.02em] truncate">
