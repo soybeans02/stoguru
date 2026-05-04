@@ -320,6 +320,8 @@ export interface SearchResult {
     restaurantId: string;
     name: string;
     address?: string;
+    lat?: number;
+    lng?: number;
     genres?: string[];
     priceRange?: string;
     photoUrls?: string[];
@@ -329,6 +331,8 @@ export interface SearchResult {
     restaurantId: string;
     name: string;
     address?: string;
+    lat?: number;
+    lng?: number;
     genres?: string[];
     priceRange?: string;
     photoUrls?: string[];

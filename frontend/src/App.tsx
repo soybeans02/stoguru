@@ -270,6 +270,7 @@ function MainApp() {
   const refreshFeed = useCallback(() => setFeedRefreshKey(k => k + 1), []);
   const [socialInitView, setSocialInitView] = useState<string | null>(null);
   const [socialInitQuery, setSocialInitQuery] = useState<string | null>(null);
+  const [socialInitGeo, setSocialInitGeo] = useState<{ lat: number; lng: number; radiusKm: number } | null>(null);
 
   const handleShowOnMap = useCallback((lat: number, lng: number, restaurant?: StockedRestaurant) => {
     setPanTo({ lat, lng, restaurant });
@@ -292,7 +293,7 @@ function MainApp() {
               onOpenSwipe={() => setTab('swipe')}
               onOpenAccount={() => setTab('account')}
               onOpenSaved={() => setTab('stock')}
-              onSearch={(q) => { setSocialInitQuery(q); setTab('social'); }}
+              onSearch={(q, geo) => { setSocialInitQuery(q); setSocialInitGeo(geo ?? null); setTab('social'); }}
               userPosition={position}
               stockedIds={stockedIds}
               visitedIds={visitedIds}
@@ -347,6 +348,8 @@ function MainApp() {
               onInitViewConsumed={() => setSocialInitView(null)}
               initialQuery={socialInitQuery}
               onInitQueryConsumed={() => setSocialInitQuery(null)}
+              initialGeo={socialInitGeo}
+              onInitGeoConsumed={() => setSocialInitGeo(null)}
               onGoHome={() => setTab('home')}
             />
           )}

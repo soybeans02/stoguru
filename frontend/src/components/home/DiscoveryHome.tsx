@@ -53,6 +53,13 @@ interface SearchFields {
   genre: string;
   price: string;
   account: string;
+  /** Google Places から選択した時のメタ。点（駅/POI）→ 半径 3km、行政区画 → 住所キーワードで絞り込み */
+  areaGeo?: {
+    lat: number;
+    lng: number;
+    /** 'point' = 駅/POI（半径 3km）, 'admin' = 県/市/区（住所キーワードマッチ）*/
+    kind: 'point' | 'admin';
+  };
 }
 
 interface Props {
@@ -62,8 +69,9 @@ interface Props {
   onOpenSwipe: () => void;
   onOpenAccount?: () => void;
   onOpenSaved?: () => void;
-  /** ヒーロー検索で送信されたクエリ。検索画面を呼び出す */
-  onSearch?: (q: string) => void;
+  /** ヒーロー検索で送信されたクエリ。検索画面を呼び出す。
+   *  geo を指定した場合、SocialScreen 側で半径 3km 圏内に絞り込みする。 */
+  onSearch?: (q: string, geo?: { lat: number; lng: number; radiusKm: number }) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   visitedIds: string[];
@@ -120,11 +128,22 @@ export function DiscoveryHome({
   const submitSearch = (override?: SearchFields) => {
     const f = override ?? searchFields;
     // アカウント検索が入っていれば @ を付けてユーザー寄りに振る
-    const composed = f.account.trim()
-      ? `@${f.account.trim().replace(/^@/, '')}`
-      : [f.area, f.name, f.genre, f.price].map((s) => s.trim()).filter(Boolean).join(' ');
-    if (!composed) return;
-    onSearch?.(composed);
+    if (f.account.trim()) {
+      onSearch?.(`@${f.account.trim().replace(/^@/, '')}`);
+      return;
+    }
+    // エリアが「点」（駅/POI）の場合：エリアラベルはキーワードに含めず geo で絞り込み。
+    // 「行政区画」（県/市/区）の場合：住所マッチが効くようキーワードに含める。
+    const isPoint = f.areaGeo?.kind === 'point';
+    const keywordParts = [isPoint ? '' : f.area, f.name, f.genre, f.price]
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const keyword = keywordParts.join(' ');
+    const geo = isPoint && f.areaGeo
+      ? { lat: f.areaGeo.lat, lng: f.areaGeo.lng, radiusKm: 3 }
+      : undefined;
+    if (!keyword && !geo) return;
+    onSearch?.(keyword, geo);
   };
 
   // テーマ一覧：microCMS の記事 + fallback を自動取得して並べる。
@@ -772,6 +791,8 @@ function MultiFieldSearchBar({
 
   // ─── Google Places autocomplete（エリア用）───
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const placesDiv = useRef<HTMLDivElement | null>(null);
   const [areaSuggestions, setAreaSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const areaTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -782,6 +803,8 @@ function MultiFieldSearchBar({
     const init = () => {
       if (window.google?.maps?.places && !autocompleteService.current) {
         autocompleteService.current = new google.maps.places.AutocompleteService();
+        if (!placesDiv.current) placesDiv.current = document.createElement('div');
+        placesService.current = new google.maps.places.PlacesService(placesDiv.current);
       }
     };
     if (window.google?.maps?.places) { init(); return; }
@@ -798,13 +821,15 @@ function MultiFieldSearchBar({
   }, []);
 
   function handleAreaChange(v: string) {
-    set('area', v);
+    // 手動編集すると過去の geo メタは無効化
+    onChange({ ...fields, area: v, areaGeo: undefined });
     if (areaTimer.current) clearTimeout(areaTimer.current);
     if (!v.trim()) { setAreaSuggestions([]); setShowAreaSuggestions(false); return; }
     areaTimer.current = setTimeout(() => {
       if (!autocompleteService.current) return;
+      // (regions) に絞ると駅が出ないので type 制限は外す。日本国内のみ。
       autocompleteService.current.getPlacePredictions(
-        { input: v, types: ['(regions)'], componentRestrictions: { country: 'jp' }, language: 'ja' },
+        { input: v, componentRestrictions: { country: 'jp' }, language: 'ja' },
         (predictions, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
             setAreaSuggestions(predictions.slice(0, 6));
@@ -817,12 +842,48 @@ function MultiFieldSearchBar({
     }, 250);
   }
 
-  function pickArea(label: string) {
-    // 「渋谷区, 東京都, 日本」→「渋谷区」だけ取り出す（住所マッチを効かせるため）
+  // 行政区画タイプ（県/市/区/町/村） — これらが含まれていれば「住所キーワード」マッチ
+  const ADMIN_TYPES = new Set([
+    'administrative_area_level_1', // 都道府県
+    'administrative_area_level_2', // 郡 / 一部の市
+    'administrative_area_level_3',
+    'locality',                    // 市
+    'sublocality_level_1',         // 区
+    'sublocality_level_2',
+    'postal_code',
+    'country',
+  ]);
+
+  function pickArea(prediction: google.maps.places.AutocompletePrediction) {
+    const label = prediction.structured_formatting?.main_text || prediction.description;
     const short = label.split(/[、,]/)[0].trim();
-    set('area', short);
     setShowAreaSuggestions(false);
     setAreaSuggestions([]);
+    if (!placesService.current) {
+      // Places SDK が未ロードならジオ無しでテキストだけセット
+      onChange({ ...fields, area: short, areaGeo: undefined });
+      return;
+    }
+    placesService.current.getDetails(
+      { placeId: prediction.place_id, fields: ['geometry', 'types'] },
+      (place, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
+          onChange({ ...fields, area: short, areaGeo: undefined });
+          return;
+        }
+        const types = place.types ?? [];
+        const isAdmin = types.some((t) => ADMIN_TYPES.has(t));
+        onChange({
+          ...fields,
+          area: short,
+          areaGeo: {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+            kind: isAdmin ? 'admin' : 'point',
+          },
+        });
+      },
+    );
   }
 
   // form は overflow-visible にして、エリア候補ドロップダウンが下にはみ出せるようにする
@@ -851,7 +912,7 @@ function MultiFieldSearchBar({
                     key={p.place_id}
                     type="button"
                     onMouseDown={(e) => e.preventDefault() /* blur 抑止 */}
-                    onClick={() => pickArea(p.structured_formatting?.main_text || p.description)}
+                    onClick={() => pickArea(p)}
                     className="w-full text-left px-3 py-2 text-[13px] hover:bg-[var(--bg-soft)] transition-colors"
                   >
                     <div className="font-semibold truncate">{p.structured_formatting?.main_text || p.description}</div>

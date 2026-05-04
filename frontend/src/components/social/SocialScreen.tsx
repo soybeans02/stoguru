@@ -5,6 +5,17 @@ import { UserProfileModal } from '../user/UserProfileModal';
 
 type SubView = 'main' | 'notifications' | 'following' | 'requests';
 
+/** 2 点間の球面距離（km）。Haversine */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
 interface Props {
   onUnreadCount?: (count: number) => void;
   initialView?: string | null;
@@ -13,9 +24,12 @@ interface Props {
   /** ホームから検索が呼ばれた時の初期クエリ */
   initialQuery?: string | null;
   onInitQueryConsumed?: () => void;
+  /** ホームのエリア欄で「点」（駅/POI）が選ばれた時の半径フィルタ */
+  initialGeo?: { lat: number; lng: number; radiusKm: number } | null;
+  onInitGeoConsumed?: () => void;
 }
 
-export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome, initialQuery, onInitQueryConsumed }: Props) {
+export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome, initialQuery, onInitQueryConsumed, initialGeo, onInitGeoConsumed }: Props) {
   const { user } = useAuth();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
@@ -36,6 +50,8 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   // Search
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<api.SearchResult>({ users: [], restaurants: [], urlMatch: null });
+  /** ホームから渡された半径フィルタ（駅/POI 選択時のみ）。検索バー手動入力で解除 */
+  const [geoFilter, setGeoFilter] = useState<{ lat: number; lng: number; radiusKm: number } | null>(null);
   const [placesResults, setPlacesResults] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [stockingUrl, setStockingUrl] = useState(false);
@@ -100,14 +116,19 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     }
   }, [initialView]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ホームから初期クエリが渡されたら検索実行
+  // ホームから初期クエリ / geo フィルタが渡されたら検索実行
   useEffect(() => {
-    if (initialQuery) {
+    // initialGeo は initialQuery と同時に来るので一括で処理
+    if (initialQuery !== null && initialQuery !== undefined) {
       setView('main');
-      handleSearch(initialQuery);
+      // 先に geo フィルタをセット（handleSearch 内で参照されるよう state ではなく ref 経由）
+      if (initialGeo) setGeoFilter(initialGeo);
+      else setGeoFilter(null);
+      handleSearch(initialQuery, initialGeo ?? null);
       onInitQueryConsumed?.();
+      onInitGeoConsumed?.();
     }
-  }, [initialQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialQuery, initialGeo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load counts on mount
   useEffect(() => {
@@ -130,11 +151,15 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   }, [myId, onUnreadCount]);
 
   // Search with debounce
-  const handleSearch = useCallback((q: string) => {
+  // geoOverride を渡すとそれを優先（ホームから初期検索される時に使う）。
+  // 渡さなければ state の geoFilter を参照。
+  const handleSearch = useCallback((q: string, geoOverride?: { lat: number; lng: number; radiusKm: number } | null) => {
     setSearchQuery(q);
     setStockSuccess(null);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!q.trim()) {
+    const effectiveGeo = geoOverride !== undefined ? geoOverride : geoFilter;
+    // クエリも geo も無ければ結果クリア
+    if (!q.trim() && !effectiveGeo) {
       setSearchResults({ users: [], restaurants: [], urlMatch: null });
       setPlacesResults([]);
       return;
@@ -142,15 +167,60 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await api.unifiedSearch(q.trim());
-        results.users = results.users.filter(r => r.userId !== myId);
+        let results: api.SearchResult;
+        if (q.trim()) {
+          results = await api.unifiedSearch(q.trim());
+          results.users = results.users.filter((r) => r.userId !== myId);
+        } else {
+          // キーワード無し + geo のみ：周辺フィードを取得して「お店」一覧に流用
+          results = { users: [], restaurants: [], urlMatch: null };
+          if (effectiveGeo) {
+            try {
+              const nearby = (await api.fetchRestaurantFeed(effectiveGeo.lat, effectiveGeo.lng, effectiveGeo.radiusKm * 1000, 50)) as Array<{
+                id: string; name: string; address?: string; lat?: number; lng?: number;
+                genres?: string[]; priceRange?: string; photoUrls?: string[]; influencer?: string;
+              }>;
+              results.restaurants = (nearby ?? []).map((r) => ({
+                restaurantId: r.id,
+                name: r.name,
+                address: r.address,
+                lat: r.lat,
+                lng: r.lng,
+                genres: r.genres,
+                priceRange: r.priceRange,
+                photoUrls: r.photoUrls,
+                influencer: r.influencer,
+              }));
+            } catch { /* ignore */ }
+          }
+        }
+        // geo フィルタ適用：lat/lng が分かるレストランのみを残し、半径外を除外
+        if (effectiveGeo) {
+          results.restaurants = results.restaurants.filter((r) => {
+            if (typeof r.lat !== 'number' || typeof r.lng !== 'number') return false;
+            return haversineKm(effectiveGeo.lat, effectiveGeo.lng, r.lat, r.lng) <= effectiveGeo.radiusKm;
+          });
+          if (results.urlMatch) {
+            const u = results.urlMatch;
+            if (typeof u.lat !== 'number' || typeof u.lng !== 'number' ||
+                haversineKm(effectiveGeo.lat, effectiveGeo.lng, u.lat, u.lng) > effectiveGeo.radiusKm) {
+              results.urlMatch = null;
+            }
+          }
+        }
         setSearchResults(results);
       } catch { setSearchResults({ users: [], restaurants: [], urlMatch: null }); }
       // Google Places の汎用「すべてのお店」リストは web では表示しないので fetch も省略
       setPlacesResults([]);
       setSearching(false);
     }, 400);
-  }, [myId]);
+  }, [myId, geoFilter]);
+
+  // SocialScreen 内の検索バー手動入力で値が変わると geo フィルタは解除
+  const handleSearchInputChange = useCallback((q: string) => {
+    setGeoFilter(null);
+    handleSearch(q, null);
+  }, [handleSearch]);
 
   const handleStockByUrl = useCallback(async (url: string) => {
     setStockingUrl(true);
@@ -379,7 +449,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
           </div>
           <input
             value={searchQuery}
-            onChange={e => handleSearch(e.target.value)}
+            onChange={e => handleSearchInputChange(e.target.value)}
             placeholder="ユーザー・お店・URLで検索..."
             className="w-full bg-gray-100 dark:bg-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
           />
