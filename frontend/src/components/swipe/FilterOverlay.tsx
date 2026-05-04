@@ -1,4 +1,5 @@
-import { SCENES, GENRES } from '../../data/mockRestaurants';
+import { useState } from 'react';
+import { SCENES, GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
 
 interface Props {
   selectedScenes: string[];
@@ -12,6 +13,8 @@ interface Props {
   onApply?: () => void;
 }
 
+const VISIBLE_GENRE_COUNT = 5;
+
 export function FilterOverlay({
   selectedScenes,
   selectedGenres,
@@ -23,6 +26,10 @@ export function FilterOverlay({
   onClose,
   onApply,
 }: Props) {
+  // 「その他」展開フラグ。選択中のジャンルが先頭 5 件に無ければ自動で展開
+  const someSelectedHidden = selectedGenres.some((g) => !GENRES.slice(0, VISIBLE_GENRE_COUNT).includes(g as typeof GENRES[number]));
+  const [showAllGenres, setShowAllGenres] = useState(someSelectedHidden);
+
   function toggleScene(id: string) {
     onScenesChange(
       selectedScenes.includes(id)
@@ -60,14 +67,17 @@ export function FilterOverlay({
     onScenesChange([]);
     onGenresChange([]);
     onPriceChange?.(0, 10000);
+    setShowAllGenres(false);
   }
+
+  const visibleGenres = showAllGenres ? GENRES : GENRES.slice(0, VISIBLE_GENRE_COUNT);
 
   return (
     <div className="absolute inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
         <h2 className="text-base font-bold text-gray-900 dark:text-white">絞り込み</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" aria-label="閉じる">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -75,39 +85,97 @@ export function FilterOverlay({
       <div className="flex-1 overflow-y-auto px-5 py-5">
         {/* Scene */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">シーン</h3>
-        <div className="grid grid-cols-2 gap-2 mb-8">
-          {SCENES.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => toggleScene(s.id)}
-              className={`rounded-xl py-3.5 text-center text-sm font-medium transition-all ${
-                selectedScenes.includes(s.id)
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
+          {SCENES.map((s) => {
+            const active = selectedScenes.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                onClick={() => toggleScene(s.id)}
+                className={`relative aspect-[4/3] rounded-xl overflow-hidden transition-all ${
+                  active
+                    ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
+                    : 'hover:scale-[1.02]'
+                }`}
+              >
+                <img src={s.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: active
+                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.85), rgba(249, 115, 22, 0.4) 60%, rgba(249, 115, 22, 0.2))'
+                      : 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0))',
+                  }}
+                />
+                <span className="absolute left-2.5 bottom-2 text-[13px] font-bold text-white drop-shadow-sm flex items-center gap-1.5">
+                  {active && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                  {s.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Genre */}
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ジャンル</h3>
-        <div className="flex flex-wrap gap-2 mb-8">
-          {GENRES.map((g) => (
-            <button
-              key={g}
-              onClick={() => toggleGenre(g)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                selectedGenres.includes(g)
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {g}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">ジャンル</h3>
+          {selectedGenres.length > 0 && (
+            <span className="text-[11px] font-semibold text-orange-500">{selectedGenres.length} 選択中</span>
+          )}
         </div>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+          {visibleGenres.map((g) => {
+            const active = selectedGenres.includes(g);
+            const photo = GENRE_PHOTOS[g];
+            return (
+              <button
+                key={g}
+                onClick={() => toggleGenre(g)}
+                className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
+                  active
+                    ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
+                    : 'hover:scale-[1.04]'
+                }`}
+              >
+                {photo ? (
+                  <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" />
+                )}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: active
+                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.85), rgba(249, 115, 22, 0.4) 60%, rgba(249, 115, 22, 0.15))'
+                      : 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0))',
+                  }}
+                />
+                {active && (
+                  <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white grid place-items-center shadow-sm">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </span>
+                )}
+                <span className="absolute left-1.5 right-1.5 bottom-1.5 text-[11px] sm:text-[12px] font-bold text-white text-center leading-tight drop-shadow-md">
+                  {g}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {GENRES.length > VISIBLE_GENRE_COUNT && (
+          <button
+            onClick={() => setShowAllGenres((v) => !v)}
+            className="w-full py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-8"
+          >
+            {showAllGenres ? '閉じる' : `その他のジャンルを見る (${GENRES.length - VISIBLE_GENRE_COUNT})`}
+          </button>
+        )}
 
         {/* Price Range - free input */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
