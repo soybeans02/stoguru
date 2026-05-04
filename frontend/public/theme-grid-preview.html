@@ -122,28 +122,28 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: 16px;
+    padding: 20px;
     box-shadow: var(--shadow-sm);
   }
   .filter-card h3 {
-    font-size: 13px; font-weight: 800; margin: 0 0 12px;
+    font-size: 15px; font-weight: 800; margin: 0 0 16px;
     display: flex; align-items: center; justify-content: space-between;
   }
-  .clear-btn { font-size: 11px; color: var(--accent-orange); font-weight: 600; }
-  .filter-section { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .clear-btn { font-size: 12.5px; color: var(--accent-orange); font-weight: 600; }
+  .filter-section { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
   .filter-section:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
   .filter-label {
-    font-size: 10.5px; font-weight: 600;
+    font-size: 12px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--text-tertiary);
-    margin-bottom: 8px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
   }
   .pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .pill {
-    font-size: 11.5px; font-weight: 600;
-    padding: 4px 10px; border-radius: 9999px;
+    font-size: 13px; font-weight: 600;
+    padding: 6px 12px; border-radius: 9999px;
     border: 1px solid var(--border-strong);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     background: white;
     transition: all 0.15s;
   }
@@ -152,80 +152,80 @@
     background: var(--accent-orange); color: white;
     border-color: transparent;
   }
-  .more-btn { font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-top: 8px; }
+  .more-btn { font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 10px; }
   .price-input {
     display: flex; align-items: center; gap: 8px;
   }
   .price-input > div { flex: 1; position: relative; }
   .price-input input {
     width: 100%;
-    padding: 6px 8px 6px 18px;
+    padding: 8px 10px 8px 22px;
     border: 1px solid var(--border-strong);
     background: var(--bg-soft);
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: 10px;
+    font-size: 13px;
     outline: none;
   }
   .price-input input:focus { border-color: var(--accent-orange); }
   .price-input .yen {
-    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-    font-size: 11.5px; color: var(--text-tertiary);
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--text-secondary); font-weight: 600;
   }
   /* Time of day filter */
   .time-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    gap: 8px;
   }
   .time-pill {
-    display: flex; flex-direction: column; align-items: center; gap: 5px;
-    padding: 9px 4px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px 6px 10px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-strong);
+    border: 1.5px solid var(--border-strong);
     background: white;
     transition: all 0.15s;
   }
   .time-pill:hover { background: var(--bg-soft); }
   .time-pill.active {
-    background: var(--bg-soft);
+    background: rgba(244,128,15,0.08);
     border-color: var(--accent-orange);
   }
   .time-pill .time-icon {
-    width: 26px; height: 26px;
+    width: 32px; height: 32px;
     border-radius: 50%;
     display: grid; place-items: center;
   }
   .time-label {
-    font-size: 11.5px; font-weight: 700;
+    font-size: 13px; font-weight: 700;
     color: var(--text-primary);
     line-height: 1.25; text-align: center;
   }
   .time-sub {
-    font-size: 9.5px; font-weight: 500;
+    font-size: 10.5px; font-weight: 500;
     color: var(--text-tertiary);
   }
 
-  .sort-options { display: flex; flex-direction: column; gap: 2px; }
+  .sort-options { display: flex; flex-direction: column; gap: 4px; }
   .sort-option {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 8px; border-radius: 6px;
-    font-size: 12px; color: var(--text-secondary);
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    font-size: 13.5px; color: var(--text-primary);
     text-align: left;
     transition: background 0.15s;
   }
   .sort-option:hover { background: var(--bg-soft); }
-  .sort-option.active { color: var(--accent-orange); font-weight: 600; background: var(--bg-soft); }
+  .sort-option.active { color: var(--accent-orange); font-weight: 700; background: rgba(244,128,15,0.08); }
   .radio {
-    width: 14px; height: 14px; border-radius: 50%;
+    width: 16px; height: 16px; border-radius: 50%;
     border: 2px solid var(--border-strong);
     flex-shrink: 0;
   }
   .sort-option.active .radio { border-color: var(--accent-orange); }
   .sort-option.active .radio::after {
     content: ''; display: block;
-    width: 6px; height: 6px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: var(--accent-orange);
-    margin: 2px;
+    margin: 2.5px;
   }
 
   /* Main */
@@ -384,6 +384,131 @@
     background: rgba(244,128,15,0.1);
   }
 
+  /* Detail modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+    animation: fadeIn 0.2s ease-out;
+  }
+  .modal-backdrop.open { display: flex; }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  .modal {
+    background: white;
+    border-radius: var(--radius-2xl);
+    max-width: 560px; width: 100%;
+    max-height: 90vh; overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column;
+    animation: slideUp 0.25s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  .modal-photos {
+    position: relative;
+    aspect-ratio: 4/3;
+    background: var(--bg-soft);
+    overflow: hidden;
+  }
+  .modal-photos img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .modal-photo-bar {
+    position: absolute; top: 12px; left: 16px; right: 16px;
+    display: flex; gap: 4px; z-index: 5;
+  }
+  .modal-photo-bar > div {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.4);
+  }
+  .modal-photo-bar > div.active { background: white; }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    display: grid; place-items: center;
+    color: white;
+    z-index: 10;
+  }
+  .modal-save {
+    position: absolute; bottom: 14px; right: 14px;
+    background: var(--accent-orange);
+    color: white;
+    font-size: 13px; font-weight: 700;
+    padding: 9px 18px; border-radius: 9999px;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+  }
+  .modal-body {
+    padding: 22px 24px 24px;
+    overflow-y: auto;
+  }
+  .modal-name {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  .modal-meta {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    font-size: 13px; color: var(--text-secondary);
+    margin-bottom: 14px;
+  }
+  .modal-meta .price { color: var(--text-primary); font-weight: 700; }
+  .modal-desc {
+    font-size: 14px; color: var(--text-secondary);
+    line-height: 1.7; margin: 0 0 14px;
+  }
+  .modal-info-card {
+    background: var(--bg-soft);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin: 14px 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 18px;
+  }
+  .modal-info-row {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .modal-info-label {
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+  }
+  .modal-info-value {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-primary);
+  }
+  .modal-tags {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-top: 14px;
+  }
+  .modal-actions {
+    display: flex; gap: 10px;
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-action-btn {
+    flex: 1;
+    padding: 11px 16px; border-radius: 10px;
+    font-size: 13px; font-weight: 700;
+    border: 1px solid var(--border-strong);
+    background: white;
+    color: var(--text-primary);
+    transition: all 0.15s;
+  }
+  .modal-action-btn:hover { background: var(--bg-soft); }
+  .modal-action-btn.primary {
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    color: white;
+    border-color: transparent;
+  }
+
   /* Mobile */
   @media (max-width: 1024px) {
     .grid { grid-template-columns: repeat(2, 1fr); }
@@ -524,7 +649,7 @@
 
     <div class="grid">
       <!-- Card 1 -->
-      <div class="card">
+      <div class="card" onclick="openModal('card1')">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800&q=85" alt="" />
           <div class="visited-badge">
@@ -551,10 +676,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-3a4 4 0 0 0-4-4l-7-3-3 3v7z"/></svg>
               焼肉
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥3,000〜¥5,000
-            </span>
+            <span class="meta-item price">¥3,000〜¥5,000</span>
           </div>
           <p class="card-desc">炭火で焼く A5 ランクの神戸牛が看板。コース ¥4,800 から、グループ向け個室あり。</p>
           <div class="scene-tags">
@@ -566,7 +688,7 @@
       </div>
 
       <!-- Card 2 -->
-      <div class="card">
+      <div class="card" onclick="openModal()">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=800&q=85" alt="" />
           <button class="save-btn">
@@ -589,10 +711,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h10v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/></svg>
               居酒屋
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥1,500〜¥2,500
-            </span>
+            <span class="meta-item price">¥1,500〜¥2,500</span>
           </div>
           <p class="card-desc">ガード下の 5 坪、立ち飲み。25 時を過ぎると近所の店主たちが集まる夜の終着点。</p>
           <div class="scene-tags">
@@ -604,7 +723,7 @@
       </div>
 
       <!-- Card 3 -->
-      <div class="card">
+      <div class="card" onclick="openModal()">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=800&q=85" alt="" />
           <button class="save-btn saved">
@@ -623,10 +742,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14c2-3 6-5 9-5s7 2 9 5"/><path d="M3 14h18l-2 5H5l-2-5z"/></svg>
               韓国料理
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥2,500〜¥4,000
-            </span>
+            <span class="meta-item price">¥2,500〜¥4,000</span>
           </div>
           <p class="card-desc">分厚いサムギョプサルとチーズタッカルビが名物。8 名以上で個室予約可。</p>
           <div class="scene-tags">
@@ -637,7 +753,7 @@
       </div>
 
       <!-- Card 4 -->
-      <div class="card">
+      <div class="card" onclick="openModal()">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=800&q=85" alt="" />
           <button class="save-btn">
@@ -660,10 +776,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-3a4 4 0 0 0-4-4l-7-3-3 3v7z"/></svg>
               焼肉
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥4,500〜¥7,000
-            </span>
+            <span class="meta-item price">¥4,500〜¥7,000</span>
           </div>
           <p class="card-desc">一頭買いの黒毛和牛をリーズナブルに。看板はタン塩、ハラミ、特上カルビ。</p>
           <div class="scene-tags">
@@ -675,7 +788,7 @@
       </div>
 
       <!-- Card 5 -->
-      <div class="card">
+      <div class="card" onclick="openModal()">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=85" alt="" />
           <button class="save-btn">
@@ -694,10 +807,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
               イタリアン
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥3,500〜¥5,500
-            </span>
+            <span class="meta-item price">¥3,500〜¥5,500</span>
           </div>
           <p class="card-desc">薪窯で焼くナポリピッツァが評判。生パスタと自然派ワインの組合せが◎。</p>
           <div class="scene-tags">
@@ -708,7 +818,7 @@
       </div>
 
       <!-- Card 6 -->
-      <div class="card">
+      <div class="card" onclick="openModal()">
         <div class="card-image">
           <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=85" alt="" />
           <button class="save-btn">
@@ -730,10 +840,7 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h10v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/></svg>
               居酒屋
             </span>
-            <span class="meta-item price">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              ¥3,000〜¥4,500
-            </span>
+            <span class="meta-item price">¥3,000〜¥4,500</span>
           </div>
           <p class="card-desc">毎朝市場直送の魚介と、180 種類超の日本酒。10 名以上で奥座敷貸切可。</p>
           <div class="scene-tags">
@@ -751,6 +858,92 @@
     </p>
   </main>
 </div>
+
+<!-- Detail modal -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-photos">
+      <div class="modal-photo-bar">
+        <div class="active"></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()" aria-label="閉じる">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <button class="modal-save" onclick="event.stopPropagation()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        保存する
+      </button>
+      <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&q=85" alt="" />
+    </div>
+    <div class="modal-body">
+      <h2 class="modal-name">炭火焼肉 三田屋 心斎橋本店</h2>
+      <div class="modal-meta">
+        <span>📍 大阪 · 心斎橋</span>
+        <span>·</span>
+        <span>焼肉</span>
+        <span>·</span>
+        <span class="price">¥3,000〜¥5,000</span>
+      </div>
+      <p class="modal-desc">
+        炭火で焼く A5 ランクの神戸牛が看板。コース ¥4,800 から、グループ向けの個室あり。
+        週末は予約必須。タン塩・ハラミ・特上カルビが鉄板で、〆の冷麺もファン多数。
+      </p>
+      <div class="modal-info-card">
+        <div class="modal-info-row">
+          <span class="modal-info-label">アクセス</span>
+          <span class="modal-info-value">心斎橋駅 5 分</span>
+        </div>
+        <div class="modal-info-row">
+          <span class="modal-info-label">営業時間</span>
+          <span class="modal-info-value">17:00 – 23:30</span>
+        </div>
+        <div class="modal-info-row">
+          <span class="modal-info-label">座席</span>
+          <span class="modal-info-value">カウンター 8 / 個室 4</span>
+        </div>
+        <div class="modal-info-row">
+          <span class="modal-info-label">予約</span>
+          <span class="modal-info-value">推奨</span>
+        </div>
+      </div>
+      <div class="modal-tags">
+        <span class="scene-tag">友達</span>
+        <span class="scene-tag">飲み</span>
+        <span class="scene-tag">記念日</span>
+        <span class="scene-tag">A5和牛</span>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-action-btn">
+          🗺 マップで見る
+        </button>
+        <button class="modal-action-btn primary">
+          公式サイトを開く →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
 
 </body>
 </html>
