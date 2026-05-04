@@ -150,7 +150,7 @@ export const en: TranslationKeys = {
     howFaq1Q: 'Does it work offline?',
     howFaq1A: 'Yes — your saves and map pins stay viewable offline. Discovering new spots needs internet.',
     howFaq2Q: 'Can I post my own spots?',
-    howFaq2A: 'Yep. Once logged in, hit "Edit spots" on your profile and add anything you found. No review needed.',
+    howFaq2A: 'Apply via "Apply to post" in your account settings. Once we approve, "Edit spots" unlocks and you can start adding spots.',
     howFaq3Q: 'Who can see my saves?',
     howFaq3A: 'Only you by default. Flip on Private account in settings, or limit visibility to followers.',
     feedTitle: 'Picked for you',
