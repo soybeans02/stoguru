@@ -40,8 +40,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
   const [searching, setSearching] = useState(false);
   const [stockingUrl, setStockingUrl] = useState(false);
   const [stockSuccess, setStockSuccess] = useState<string | null>(null);
-  const [stockedPlaces, setStockedPlaces] = useState<Set<string>>(new Set());
-  const [stockingPlace, setStockingPlace] = useState<string | null>(null);
   const [stockedRestaurants, setStockedRestaurants] = useState<Set<string>>(new Set());
   const [stockingRestaurant, setStockingRestaurant] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -143,35 +141,13 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     }
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
-      const isUrl = q.trim().startsWith('http://') || q.trim().startsWith('https://');
       try {
         const results = await api.unifiedSearch(q.trim());
         results.users = results.users.filter(r => r.userId !== myId);
         setSearchResults(results);
       } catch { setSearchResults({ users: [], restaurants: [], urlMatch: null }); }
-
-      // Google Places検索（クライアント直接・キャッシュなし）
-      if (!isUrl && autocompleteService.current && q.trim().length >= 2) {
-        try {
-          const predictions = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve) => {
-            autocompleteService.current!.getPlacePredictions(
-              { input: q.trim(), types: ['establishment'], componentRestrictions: { country: 'jp' } },
-              (preds, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && preds) {
-                  resolve(preds.slice(0, 5));
-                } else {
-                  resolve([]);
-                }
-              },
-            );
-          });
-          setPlacesResults(predictions);
-        } catch {
-          setPlacesResults([]);
-        }
-      } else {
-        setPlacesResults([]);
-      }
+      // Google Places の汎用「すべてのお店」リストは web では表示しないので fetch も省略
+      setPlacesResults([]);
       setSearching(false);
     }, 400);
   }, [myId]);
@@ -185,32 +161,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     finally { setStockingUrl(false); }
   }, []);
 
-  const handleStockPlace = useCallback(async (placeId: string) => {
-    if (!placeId || !placesService.current) return;
-    setStockingPlace(placeId);
-    try {
-      const detail = await new Promise<google.maps.places.PlaceResult | null>((resolve) => {
-        placesService.current!.getDetails(
-          { placeId, fields: ['name', 'formatted_address', 'geometry', 'photos'] },
-          (result, status) => resolve(status === google.maps.places.PlacesServiceStatus.OK ? result : null),
-        );
-      });
-      if (!detail) throw new Error('詳細取得失敗');
-      await api.putRestaurant({
-        id: `gp_${placeId}`,
-        name: detail.name ?? '',
-        address: detail.formatted_address ?? '',
-        lat: detail.geometry?.location?.lat(),
-        lng: detail.geometry?.location?.lng(),
-        photoUrls: detail.photos?.slice(0, 1).map(p => p.getUrl({ maxWidth: 400 })) ?? [],
-        source: 'google_places',
-      });
-      setStockedPlaces(prev => new Set(prev).add(placeId));
-    } catch {}
-    finally { setStockingPlace(null); }
-  }, []);
-
-  const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurants'][0]) => {
+const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurants'][0]) => {
     setStockingRestaurant(r.restaurantId);
     try {
       await api.putRestaurant({
@@ -526,39 +477,6 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Google Places results */}
-        {placesResults.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">すべてのお店</h3>
-            {placesResults.map(p => (
-              <div key={p.place_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0">
-                  <span className="text-base">📍</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {p.structured_formatting.main_text}
-                  </p>
-                  <p className="text-[11px] text-gray-400 truncate">
-                    {p.structured_formatting.secondary_text}
-                  </p>
-                </div>
-                {stockedPlaces.has(p.place_id) ? (
-                  <span className="text-xs text-green-500 font-medium shrink-0">追加済み</span>
-                ) : (
-                  <button
-                    onClick={() => handleStockPlace(p.place_id)}
-                    disabled={stockingPlace === p.place_id}
-                    className="px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg shrink-0 disabled:opacity-50"
-                  >
-                    {stockingPlace === p.place_id ? '...' : '追加'}
-                  </button>
-                )}
-              </div>
-            ))}
           </div>
         )}
 
