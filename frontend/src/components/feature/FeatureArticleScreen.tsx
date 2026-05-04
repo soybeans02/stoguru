@@ -372,7 +372,7 @@ export function FooterStrip() {
   return (
     <footer className="border-t border-[var(--border)] py-10 px-6">
       <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
-        <button onClick={() => navigate('/p/about')} className="hover:text-[var(--accent-orange)] transition-colors">運営会社</button>
+        <button onClick={() => navigate('/p/about')} className="hover:text-[var(--accent-orange)] transition-colors">運営者情報</button>
         <button onClick={() => navigate('/p/contact')} className="hover:text-[var(--accent-orange)] transition-colors">お問い合わせ</button>
         <button onClick={() => navigate('/p/privacy')} className="hover:text-[var(--accent-orange)] transition-colors">プライバシーポリシー</button>
         <button onClick={() => navigate('/p/terms')} className="hover:text-[var(--accent-orange)] transition-colors">利用規約</button>

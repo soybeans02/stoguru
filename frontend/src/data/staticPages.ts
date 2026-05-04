@@ -27,7 +27,7 @@ const ul = (items: string[]) => h('ul', { className: 'text-[15px] leading-[1.85]
 export const STATIC_PAGES: StaticPage[] = [
   {
     slug: 'about',
-    title: '運営会社',
+    title: '運営者情報',
     subtitle: 'stoguru について',
     body: () => h(Fragment, null,
       p('stoguru（ストグル）は、大阪を拠点に開発されている個人プロジェクトです。「TikTok や Instagram で見つけたあのお店、もう忘れない」を合言葉に、スワイプで気軽に保存できるグルメ管理アプリを目指しています。'),

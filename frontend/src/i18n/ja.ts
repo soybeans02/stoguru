@@ -189,7 +189,7 @@ export const ja = {
     footerFeatures: '機能紹介',
     footerPricing: '料金',
     footerDownload: 'アプリをダウンロード',
-    footerAbout: '運営会社',
+    footerAbout: '運営者情報',
     footerCareers: '採用情報',
     footerContact: 'お問い合わせ',
     footerPrivacy: 'プライバシーポリシー',
