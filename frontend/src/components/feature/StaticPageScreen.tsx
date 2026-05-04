@@ -17,7 +17,7 @@ export function StaticPageScreen({ slug }: Props) {
   const page = findStaticPage(slug);
 
   return (
-    <div className="min-h-svh bg-[var(--bg)] text-[var(--text-primary)] flex flex-col">
+    <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)] flex flex-col">
       <ArticleTopBar
         isAnonymous={isAnonymous}
         onSignUp={() => setAuthModal('signup')}

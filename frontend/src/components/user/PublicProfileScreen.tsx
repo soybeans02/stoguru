@@ -82,7 +82,7 @@ export function PublicProfileScreen({ userId }: Props) {
   const goHome = () => { window.history.pushState({}, '', '/'); window.location.reload(); };
 
   return (
-    <div className="min-h-svh bg-[var(--bg)] text-[var(--text-primary)]">
+    <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)]">
       {/* Top nav */}
       <nav
         className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"

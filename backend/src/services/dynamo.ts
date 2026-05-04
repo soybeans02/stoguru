@@ -886,8 +886,16 @@ export async function loadActivity(): Promise<Record<string, { lastSeen: number;
 // アカウント削除
 // =============================================
 
+/**
+ * アカウント削除：このユーザーに紐づくデータを徹底的に消す。
+ * - 自分のストック・投稿・設定・プロフィール・フォロー関係・通知・シェア・
+ *   フォローリクエスト（双方向）・フィードバックすべて削除
+ * - 自分が投稿したレストラン V2 は他ユーザーのストックを壊さないよう
+ *   visibility=hidden + postedBy='' に匿名化（論理削除）
+ * - 他ユーザーから自分への follow / follow request も逆引きで削除
+ */
 export async function deleteAllUserData(userId: string) {
-  // 新テーブル: UserStocks削除 + stockCount減算
+  // 1. UserStocks 削除 + stockCount 減算
   const stocks = await getUserStocks(userId);
   for (const chunk of chunkArray(stocks, 25)) {
     await db.send(new BatchWriteCommand({
@@ -897,11 +905,10 @@ export async function deleteAllUserData(userId: string) {
         })),
       },
     }));
-    // stockCountを減算
     await Promise.all(chunk.map((s) => incrementStockCount(s.restaurantId, -1).catch(() => {})));
   }
 
-  // 旧テーブル: レストラン全削除
+  // 2. 旧テーブル：レストラン全削除
   const restaurants = await getRestaurants(userId);
   for (const chunk of chunkArray(restaurants, 25)) {
     await db.send(new BatchWriteCommand({
@@ -913,10 +920,30 @@ export async function deleteAllUserData(userId: string) {
     }));
   }
 
-  // 設定削除
+  // 3. V2: 自分が投稿したレストランは匿名化＋hidden 化
+  //    （他ユーザーが保存している可能性があるため hard delete はしない）
+  const postedV2 = await queryRestaurantsByPostedBy(userId);
+  for (const r of postedV2) {
+    try {
+      await db.send(new UpdateCommand({
+        TableName: TABLE.restaurantsV2,
+        Key: { restaurantId: r.restaurantId },
+        UpdateExpression: 'SET visibility = :v, postedBy = :p, updatedAt = :u',
+        ExpressionAttributeValues: { ':v': 'hidden', ':p': '', ':u': Date.now() },
+      }));
+      // URL インデックスも消す
+      if (r.urls?.length) await deleteUrlIndexEntries(r.urls).catch(() => {});
+    } catch { /* skip */ }
+  }
+  invalidateSearchCache();
+
+  // 4. インフルエンサープロフィール削除
+  await db.send(new DeleteCommand({ TableName: TABLE.influencerProfiles, Key: { influencerId: userId } })).catch(() => {});
+
+  // 5. 設定削除
   await db.send(new DeleteCommand({ TableName: TABLE.settings, Key: { userId } }));
 
-  // フォロー関係削除
+  // 6. 自分がフォローしている人を削除
   const following = await getFollowing(userId);
   for (const chunk of chunkArray(following, 25)) {
     await db.send(new BatchWriteCommand({
@@ -928,7 +955,50 @@ export async function deleteAllUserData(userId: string) {
     }));
   }
 
-  // 通知削除
+  // 7. 自分のフォロワー（誰かがこのユーザーをフォローしている）も削除
+  const followers = await getFollowers(userId);
+  for (const chunk of chunkArray(followers, 25)) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.follows]: chunk.map((f) => ({
+          DeleteRequest: { Key: { followerId: f.followerId, followeeId: userId } },
+        })),
+      },
+    }));
+  }
+
+  // 8. このユーザー宛のフォローリクエスト削除
+  const incomingReqs = await getFollowRequests(userId);
+  for (const chunk of chunkArray(incomingReqs, 25)) {
+    await db.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE.followRequests]: chunk.map((r) => ({
+          DeleteRequest: { Key: { targetId: userId, requesterId: r.requesterId } },
+        })),
+      },
+    }));
+  }
+
+  // 9. このユーザーが送ったフォローリクエストも削除（GSI 無いので Scan）
+  try {
+    const outgoing = await db.send(new ScanCommand({
+      TableName: TABLE.followRequests,
+      FilterExpression: 'requesterId = :uid',
+      ExpressionAttributeValues: { ':uid': userId },
+    }));
+    const items = (outgoing.Items ?? []) as { targetId: string; requesterId: string }[];
+    for (const chunk of chunkArray(items, 25)) {
+      await db.send(new BatchWriteCommand({
+        RequestItems: {
+          [TABLE.followRequests]: chunk.map((r) => ({
+            DeleteRequest: { Key: { targetId: r.targetId, requesterId: r.requesterId } },
+          })),
+        },
+      }));
+    }
+  } catch { /* skip */ }
+
+  // 10. 通知削除
   const notifications = await getNotifications(userId, 1000);
   for (const chunk of chunkArray(notifications, 25)) {
     await db.send(new BatchWriteCommand({
@@ -940,7 +1010,7 @@ export async function deleteAllUserData(userId: string) {
     }));
   }
 
-  // シェア削除
+  // 11. シェア削除
   const shares = await getSharesByUser(userId, 1000);
   for (const chunk of chunkArray(shares, 25)) {
     await db.send(new BatchWriteCommand({
@@ -951,6 +1021,19 @@ export async function deleteAllUserData(userId: string) {
       },
     }));
   }
+
+  // 12. フィードバック削除（このユーザーが送ったもの全部）
+  try {
+    const fb = await db.send(new ScanCommand({
+      TableName: TABLE.feedback,
+      FilterExpression: 'userId = :uid',
+      ExpressionAttributeValues: { ':uid': userId },
+    }));
+    const items = (fb.Items ?? []) as { id: string }[];
+    for (const it of items) {
+      await db.send(new DeleteCommand({ TableName: TABLE.feedback, Key: { id: it.id } })).catch(() => {});
+    }
+  } catch { /* skip */ }
 }
 
 // =============================================

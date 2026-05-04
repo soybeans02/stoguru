@@ -20,7 +20,7 @@ export function FeatureArticleScreen({ slug }: Props) {
 
   if (!article) {
     return (
-      <div className="min-h-svh bg-[var(--bg)] text-[var(--text-primary)] flex flex-col">
+      <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)] flex flex-col">
         <ArticleTopBar
           isAnonymous={isAnonymous}
           onSignUp={() => setAuthModal('signup')}
@@ -54,7 +54,7 @@ export function FeatureArticleScreen({ slug }: Props) {
   };
 
   return (
-    <div className="min-h-svh bg-[var(--bg)] text-[var(--text-primary)]">
+    <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)]">
       <ArticleTopBar
         isAnonymous={isAnonymous}
         onSignUp={() => setAuthModal('signup')}
