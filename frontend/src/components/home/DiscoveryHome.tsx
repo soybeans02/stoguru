@@ -706,7 +706,47 @@ export function DiscoveryHome({
    ───────────────────────────────────── */
 
 /* 食べログ風 5 セル検索バー（エリア/店名/ジャンル/価格帯/アカウント） */
-const PRICE_OPTIONS = ['〜1,000円', '1,000〜3,000円', '3,000〜5,000円', '5,000〜10,000円', '10,000円〜'];
+/* 価格帯：1,000 円刻み + 10,000 円〜 */
+const PRICE_OPTIONS = [
+  '〜1,000円',
+  '1,000〜2,000円',
+  '2,000〜3,000円',
+  '3,000〜4,000円',
+  '4,000〜5,000円',
+  '5,000〜6,000円',
+  '6,000〜7,000円',
+  '7,000〜8,000円',
+  '8,000〜9,000円',
+  '9,000〜10,000円',
+  '10,000円〜',
+];
+/* ジャンル：GENRES_AS_THEMES（ホームのタイル）より広く、検索用の細かい分類 */
+const GENRE_OPTIONS = [
+  // 麺
+  'ラーメン', 'つけ麺', '担々麺', 'うどん', 'そば', 'パスタ',
+  // 和食
+  '寿司', '回転寿司', '海鮮丼', '天ぷら', 'うなぎ', 'とんかつ', 'おでん', '串揚げ', '串カツ',
+  '焼き鳥', '焼肉', 'ホルモン', 'すき焼き', 'しゃぶしゃぶ', 'もつ鍋', '鍋',
+  '居酒屋', 'バル', '立ち飲み', '日本酒バー',
+  '定食', '丼', 'お好み焼き', 'たこ焼き', '鉄板焼き', 'もんじゃ',
+  // 洋食
+  'イタリアン', 'ピザ', 'フレンチ', 'スペイン料理', 'ステーキ', 'ハンバーグ',
+  'ハンバーガー', 'サンドイッチ',
+  // アジア
+  '中華', '小籠包', '点心', '北京料理', '四川料理', '台湾料理',
+  '韓国料理', 'サムギョプサル', 'チゲ',
+  'タイ料理', 'ベトナム料理', 'インド料理', 'ネパール料理', 'インドネシア料理',
+  // その他
+  'メキシカン', '南米料理', '中東料理', 'トルコ料理', 'アフリカ料理',
+  // カフェ・甘味
+  'カフェ', 'コーヒー専門', 'ベーカリー', 'スイーツ', 'パンケーキ', 'クレープ', 'かき氷',
+  // ヘルシー・ベジ
+  'ヴィーガン', 'ベジタリアン', 'サラダ', 'スムージー',
+  // バー
+  'バー', 'ワインバー', 'クラフトビール', 'カクテルバー', 'シーシャ',
+  // ファストフード・テイクアウト
+  'ファストフード', 'お弁当', 'デリ',
+];
 const SELECT_BG_DATAURI = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")';
 const NO_OUTLINE: React.CSSProperties = { outline: 'none', boxShadow: 'none' };
 
@@ -843,8 +883,8 @@ function MultiFieldSearchBar({
             style={{ outline: 'none', boxShadow: 'none', backgroundImage: SELECT_BG_DATAURI, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
             <option value="">指定しない</option>
-            {GENRES_AS_THEMES.map((g) => (
-              <option key={g.id} value={g.label}>{g.label}</option>
+            {GENRE_OPTIONS.map((g) => (
+              <option key={g} value={g}>{g}</option>
             ))}
           </select>
         </Cell>
