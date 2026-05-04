@@ -291,15 +291,15 @@ export function DiscoveryHome({
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* ─── Hero ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12 items-center py-10 sm:py-14">
+        <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-12 items-center py-8 sm:py-10 lg:py-12">
           <div>
-            <h1 className="text-[clamp(32px,5vw,48px)] font-extrabold leading-[1.15] tracking-[-0.025em] mb-5">
+            <h1 className="text-[clamp(28px,4.5vw,44px)] font-extrabold leading-[1.15] tracking-[-0.025em] mb-4">
               {t('home.heroTitleA')}
               <br />
               <span style={{ color: 'var(--accent-orange)' }}>{t('home.heroTitleAccent')}</span>
               {t('home.heroTitleB')}
             </h1>
-            <p className="text-[15px] sm:text-[17px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-6">
+            <p className="text-[14px] sm:text-[16px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-5">
               {t('home.heroDescription')}
             </p>
             {/* Tabelog 風ヒーロー検索 */}
@@ -419,32 +419,30 @@ export function DiscoveryHome({
           </div>
         </section>
 
-        {/* ─── Categories ─── */}
-        <section>
-          <SectionHead
-            title={t('home.categoriesTitle')}
-            subtitle={t('home.categoriesSubtitle')}
-          />
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
+        {/* ─── Categories (sticky) ─── */}
+        <section
+          className="sticky top-[60px] z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 backdrop-blur-xl"
+          style={{ background: 'color-mix(in srgb, var(--bg) 90%, transparent)', borderBottom: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+            <span className="flex-shrink-0 text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.05em] hidden sm:inline">{t('home.categoriesTitle')}</span>
             {CATEGORIES.map((c) => {
               const active = activeCategory === c.id;
               return (
                 <button
                   key={c.id}
                   onClick={() => setActiveCategory(c.id)}
-                  className={`flex-shrink-0 flex items-center gap-2.5 rounded-full pl-2 pr-4 py-1.5 text-[13px] font-semibold border transition-all ${
+                  className={`flex-shrink-0 flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1 text-[12.5px] font-semibold border transition-all ${
                     active
                       ? 'bg-[var(--text-primary)] text-[var(--bg)] border-[var(--text-primary)]'
-                      : 'bg-[var(--card-bg)] border-[var(--border-strong)] hover:-translate-y-0.5 hover:shadow-[var(--shadow)]'
+                      : 'bg-[var(--card-bg)] border-[var(--border-strong)] hover:border-[var(--accent-orange)] hover:-translate-y-0.5'
                   }`}
                 >
                   <span
-                    className={`w-8 h-8 rounded-full grid place-items-center ${
-                      active ? 'bg-white/15' : ''
-                    }`}
+                    className="w-7 h-7 rounded-full grid place-items-center"
                     style={{ background: active ? 'rgba(255,255,255,0.15)' : 'var(--bg-soft)' }}
                   >
-                    <c.Icon size={16} />
+                    <c.Icon size={14} />
                   </span>
                   {t(c.i18nKey)}
                 </button>
@@ -682,7 +680,6 @@ export function DiscoveryHome({
             <FooterCol
               heading={t('home.footerCompany')}
               items={[
-                { label: t('home.footerAbout'), href: '/p/about' },
                 { label: t('home.footerCareers'), href: '/p/careers' },
                 { label: t('home.footerContact'), href: '/p/contact' },
               ]}
@@ -1184,96 +1181,92 @@ function RestaurantCard({
   return (
     <div
       onClick={onClick}
-      className="bg-[var(--card-bg)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] border border-[var(--border)] cursor-pointer"
+      className="group bg-[var(--card-bg)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)] cursor-pointer flex flex-col"
     >
-      <div className="aspect-square relative overflow-hidden">
+      <div className="aspect-[4/3] relative overflow-hidden bg-[var(--bg-soft)]">
         <img
           src={photo}
           alt={restaurant.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id);
           }}
         />
+        {/* 下端のグラデでキャプション読みやすく */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)' }}
+        />
+
+        {/* 保存ボタン */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onBookmark();
-          }}
-          aria-label="bookmark"
-          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 ${
-            bookmarked ? '' : 'bg-white/92'
+          onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+          aria-label={bookmarked ? '保存解除' : '保存'}
+          className={`absolute top-2.5 right-2.5 w-9 h-9 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 ${
+            bookmarked ? '' : 'bg-white/92 backdrop-blur'
           }`}
-          style={
-            bookmarked
-              ? { background: 'var(--accent-orange)' }
-              : { background: 'rgba(255,255,255,0.92)' }
-          }
+          style={bookmarked ? { background: 'var(--accent-orange)' } : { background: 'rgba(255,255,255,0.92)' }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill={bookmarked ? 'white' : 'none'}
-            stroke={bookmarked ? 'white' : '#1a1a1a'}
-            strokeWidth="2"
-          >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={bookmarked ? 'white' : 'none'} stroke={bookmarked ? 'white' : '#1a1a1a'} strokeWidth="2.2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
         </button>
+
+        {/* 行ったバッジ（左上） */}
+        {visited && (
+          <span
+            className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-1 rounded-full text-white shadow-sm"
+            style={{ background: 'var(--visited-green)' }}
+          >
+            <CheckIcon size={10} /> {visitedLabel}
+          </span>
+        )}
+
+        {/* 写真枚数 */}
         {photoCount > 1 && (
           <span className="absolute bottom-2.5 right-2.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
             <CameraIcon size={11} /> {photoCount}
           </span>
         )}
+
+        {/* 投稿者ハンドル（左下） */}
         {handle && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onInfluencerClick(restaurant.influencerUserId);
-            }}
-            className="absolute bottom-2.5 left-2.5 bg-black/55 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            onClick={(e) => { e.stopPropagation(); onInfluencerClick(restaurant.influencerUserId); }}
+            className="absolute bottom-2.5 left-2.5 bg-black/55 backdrop-blur-md text-white text-[10.5px] font-semibold px-2 py-0.5 rounded-full hover:bg-black/70 transition-colors"
           >
             {handle.startsWith('@') ? handle : `@${handle}`}
           </button>
         )}
       </div>
-      <div className="px-3 py-3">
+
+      <div className="px-3.5 py-3 flex-1 flex flex-col">
         <div
-          className="text-[14px] font-bold tracking-[-0.01em] mb-1 overflow-hidden text-ellipsis whitespace-nowrap"
+          className="text-[14.5px] font-bold tracking-[-0.01em] leading-snug mb-1.5 line-clamp-1"
           title={restaurant.name}
         >
           {restaurant.name}
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] mb-2 flex-wrap">
-          {distance && <span>{distance}</span>}
-          {distance && restaurant.genre && <span className="opacity-50">·</span>}
+        <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)] mb-2 flex-wrap">
+          {distance && <span className="font-medium">{distance}</span>}
+          {distance && restaurant.genre && <span className="opacity-40">·</span>}
           {restaurant.genre && <span>{restaurant.genre}</span>}
-          {restaurant.priceRange && <span className="opacity-50">·</span>}
-          {restaurant.priceRange && <span>{restaurant.priceRange}</span>}
+          {restaurant.priceRange && <span className="opacity-40">·</span>}
+          {restaurant.priceRange && <span className="text-[var(--text-primary)] font-semibold tabular-nums">{restaurant.priceRange}</span>}
         </div>
-        <div className="flex gap-1 flex-wrap">
-          {visited && (
-            <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
-              style={{
-                background: 'rgba(140,199,64,0.15)',
-                color: '#5e9023',
-              }}
-            >
-              <CheckIcon size={10} />
-              {visitedLabel}
-            </span>
-          )}
-          {restaurant.scene?.slice(0, 2).map((s) => (
-            <span
-              key={s}
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]"
-            >
-              {s}
-            </span>
-          ))}
-        </div>
+        {restaurant.scene && restaurant.scene.length > 0 && (
+          <div className="flex gap-1 flex-wrap mt-auto">
+            {restaurant.scene.slice(0, 3).map((s) => (
+              <span
+                key={s}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
