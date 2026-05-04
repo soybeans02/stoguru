@@ -171,41 +171,7 @@
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
     font-size: 13px; color: var(--text-secondary); font-weight: 600;
   }
-  /* Time of day filter */
-  .time-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  .time-pill {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 12px 6px 10px;
-    border-radius: var(--radius-md);
-    border: 1.5px solid var(--border-strong);
-    background: white;
-    transition: all 0.15s;
-  }
-  .time-pill:hover { background: var(--bg-soft); }
-  .time-pill.active {
-    background: rgba(244,128,15,0.08);
-    border-color: var(--accent-orange);
-  }
-  .time-pill .time-icon {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: grid; place-items: center;
-  }
-  .time-label {
-    font-size: 13px; font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.25; text-align: center;
-  }
-  .time-sub {
-    font-size: 10.5px; font-weight: 500;
-    color: var(--text-tertiary);
-  }
-
-  .sort-options { display: flex; flex-direction: column; gap: 4px; }
+.sort-options { display: flex; flex-direction: column; gap: 4px; }
   .sort-option {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 10px; border-radius: 8px;
@@ -573,30 +539,6 @@
           <button class="pill">天王寺</button>
         </div>
         <button class="more-btn">+ もっと見る (12)</button>
-      </div>
-
-      <div class="filter-section">
-        <div class="filter-label">時間帯</div>
-        <div class="time-grid">
-          <button class="time-pill">
-            <span class="time-icon" style="background: rgba(245, 184, 0, 0.15); color: #d97706;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
-            </span>
-            <span class="time-label">朝<br/><span class="time-sub">6-11時</span></span>
-          </button>
-          <button class="time-pill active">
-            <span class="time-icon" style="background: rgba(249, 115, 22, 0.15); color: var(--accent-orange);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
-            </span>
-            <span class="time-label">昼<br/><span class="time-sub">11-15時</span></span>
-          </button>
-          <button class="time-pill">
-            <span class="time-icon" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            </span>
-            <span class="time-label">晩<br/><span class="time-sub">17-23時</span></span>
-          </button>
-        </div>
       </div>
 
       <div class="filter-section">
