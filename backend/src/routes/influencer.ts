@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import {
   putInfluencerProfile, getInfluencerProfile,
   // V2
@@ -201,8 +201,9 @@ router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Res
 });
 
 // ─── 公開プロフィール ───
+// 共有リンク経由での閲覧を許可するため optionalAuth
 
-router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/:id/public', optionalAuth, async (req: AuthRequest, res: Response) => {
   const profile = await getInfluencerProfile(req.params.id as string);
   if (!profile) {
     res.status(404).json({ error: 'インフルエンサーが見つかりません' });
@@ -226,7 +227,7 @@ router.get('/:id/public', requireAuth, async (req: AuthRequest, res: Response) =
 
 // ─── 公開レストラン一覧（V2: GSI-PostedBy） ───
 
-router.get('/:id/restaurants', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/:id/restaurants', optionalAuth, async (req: AuthRequest, res: Response) => {
   const id = req.params.id as string;
   const profile = await getInfluencerProfile(id);
   if (!profile) {
@@ -234,10 +235,11 @@ router.get('/:id/restaurants', requireAuth, async (req: AuthRequest, res: Respon
     return;
   }
   const items = await queryRestaurantsByPostedBy(id);
-  // hiddenを除外、mutualは本人のみ
+  // hidden を除外、mutual は本人のみ（匿名は除外）
+  const viewerId = req.user?.userId;
   const visible = items.filter((r) => {
     if (r.visibility === 'hidden') return false;
-    if (r.visibility === 'mutual' && r.postedBy !== req.user!.userId) return false;
+    if (r.visibility === 'mutual' && r.postedBy !== viewerId) return false;
     return true;
   });
 

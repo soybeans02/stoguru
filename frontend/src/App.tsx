@@ -12,6 +12,7 @@ import { StockScreen } from './components/stock/StockScreen';
 import type { StockedRestaurant } from './components/stock/StockScreen';
 import { AccountScreen } from './components/account/AccountScreen';
 import { SocialScreen } from './components/social/SocialScreen';
+import { PublicProfileScreen } from './components/user/PublicProfileScreen';
 
 const LazyMapView = lazy(() =>
   import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
@@ -360,8 +361,26 @@ function MainApp() {
   );
 }
 
+/* シンプル URL ルーター: /u/{userId} のみ特殊扱い、それ以外は通常アプリ */
+function useRouteUserId(): string | null {
+  const [userId, setUserId] = useState<string | null>(() => {
+    const m = window.location.pathname.match(/^\/u\/([^/]+)$/);
+    return m ? decodeURIComponent(m[1]) : null;
+  });
+  useEffect(() => {
+    const onPop = () => {
+      const m = window.location.pathname.match(/^\/u\/([^/]+)$/);
+      setUserId(m ? decodeURIComponent(m[1]) : null);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  return userId;
+}
+
 export default function App() {
   const { loading } = useAuth();
+  const profileUserId = useRouteUserId();
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_done') === '1'
   );
@@ -380,6 +399,11 @@ export default function App() {
         <p className="text-gray-400 dark:text-gray-500">読み込み中...</p>
       </div>
     );
+  }
+
+  // 共有プロフィール URL: 匿名でも、オンボーディング前でも閲覧可能
+  if (profileUserId) {
+    return <ErrorBoundary><PublicProfileScreen userId={profileUserId} /></ErrorBoundary>;
   }
 
   // 匿名でもオンボーディング → メインアプリへ進める。AuthScreen 強制ガードは廃止。

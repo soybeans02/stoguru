@@ -387,7 +387,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   )}
                   <button
                     onClick={async () => {
-                      const url = `https://soybeans02.github.io/stoguru/u/${user?.userId ?? ''}`;
+                      const url = `${window.location.origin}/u/${user?.userId ?? ''}`;
                       try {
                         if (navigator.share) {
                           await navigator.share({ title: 'stoguru', url });
