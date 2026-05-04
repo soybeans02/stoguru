@@ -10,9 +10,12 @@ interface Props {
   initialView?: string | null;
   onInitViewConsumed?: () => void;
   onGoHome?: () => void;
+  /** ホームから検索が呼ばれた時の初期クエリ */
+  initialQuery?: string | null;
+  onInitQueryConsumed?: () => void;
 }
 
-export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome }: Props) {
+export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome, initialQuery, onInitQueryConsumed }: Props) {
   const { user } = useAuth();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
@@ -98,6 +101,15 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
       onInitViewConsumed?.();
     }
   }, [initialView]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ホームから初期クエリが渡されたら検索実行
+  useEffect(() => {
+    if (initialQuery) {
+      setView('main');
+      handleSearch(initialQuery);
+      onInitQueryConsumed?.();
+    }
+  }, [initialQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load counts on mount
   useEffect(() => {

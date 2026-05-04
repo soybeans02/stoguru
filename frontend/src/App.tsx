@@ -63,11 +63,11 @@ function IconUser({ active }: { active: boolean }) {
 /* ─── Sidebar (PC) ─── */
 function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
   const { t } = useTranslation();
+  // 「検索」タブは消し、ホームのヒーロー検索に集約
   const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
     { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
     { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
     { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
-    { key: 'social', label: t('tabs.social'), icon: (a) => <IconSearch active={a} /> },
     { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
   ];
 
@@ -111,11 +111,11 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
 /* ─── Bottom Tab (Mobile) ─── */
 function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
   const { t } = useTranslation();
+  // 「検索」タブは消し、ホームのヒーロー検索に集約
   const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
     { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
     { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
     { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
-    { key: 'social', label: t('tabs.social'), icon: (a) => <IconSearch active={a} /> },
     { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
   ];
 
@@ -257,6 +257,7 @@ function MainApp() {
   const visitedIds = useMemo(() => stocks.filter(s => s.visited).map(s => s.id), [stocks]);
   const refreshFeed = useCallback(() => setFeedRefreshKey(k => k + 1), []);
   const [socialInitView, setSocialInitView] = useState<string | null>(null);
+  const [socialInitQuery, setSocialInitQuery] = useState<string | null>(null);
 
   const handleShowOnMap = useCallback((lat: number, lng: number, restaurant?: StockedRestaurant) => {
     setPanTo({ lat, lng, restaurant });
@@ -279,6 +280,7 @@ function MainApp() {
               onOpenSwipe={() => setTab('swipe')}
               onOpenAccount={() => setTab('account')}
               onOpenSaved={() => setTab('stock')}
+              onSearch={(q) => { setSocialInitQuery(q); setTab('social'); }}
               userPosition={position}
               stockedIds={stockedIds}
               visitedIds={visitedIds}
@@ -326,7 +328,13 @@ function MainApp() {
             </Suspense>
           )}
           {tab === 'social' && (
-            <SocialScreen initialView={socialInitView} onInitViewConsumed={() => setSocialInitView(null)} onGoHome={() => setTab('home')} />
+            <SocialScreen
+              initialView={socialInitView}
+              onInitViewConsumed={() => setSocialInitView(null)}
+              initialQuery={socialInitQuery}
+              onInitQueryConsumed={() => setSocialInitQuery(null)}
+              onGoHome={() => setTab('home')}
+            />
           )}
           {tab === 'account' && (
             isAnonymous ? (

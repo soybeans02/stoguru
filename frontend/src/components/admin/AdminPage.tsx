@@ -158,7 +158,7 @@ function FeedbackBaseSection({
     try {
       await fetch(`${API}/feedback/${id}/read`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       setItems((prev) => prev.map((f) => f.id === id ? { ...f, read: true } : f));
     } catch {/* noop */}
@@ -169,7 +169,7 @@ function FeedbackBaseSection({
     try {
       await fetch(`${API}/feedback/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       setItems((prev) => prev.filter((f) => f.id !== id));
     } catch {/* noop */}
@@ -305,7 +305,7 @@ function UploadApplicationsSection({ token }: { token: string }) {
     try {
       const res = await fetch(`${API}/upload-applications/${userId}/${kind}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -512,7 +512,7 @@ export function AdminPage() {
         : `${API}/users/${userId}/${action}`;
       const res = await fetch(url, {
         method,
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error); return; }

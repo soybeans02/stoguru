@@ -37,6 +37,8 @@ interface Props {
   onOpenSwipe: () => void;
   onOpenAccount?: () => void;
   onOpenSaved?: () => void;
+  /** ヒーロー検索で送信されたクエリ。検索画面を呼び出す */
+  onSearch?: (q: string) => void;
   userPosition: GPSPosition | null;
   stockedIds: string[];
   visitedIds: string[];
@@ -95,6 +97,7 @@ export function DiscoveryHome({
   onRemoveStock,
   onOpenMap,
   onOpenSwipe,
+  onSearch,
   userPosition,
   stockedIds,
   visitedIds,
@@ -107,6 +110,11 @@ export function DiscoveryHome({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const submitSearch = (q?: string) => {
+    const v = (q ?? searchQuery).trim();
+    if (!v) return;
+    onSearch?.(v);
+  };
   const [showHowTo, setShowHowTo] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
   const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
@@ -190,6 +198,7 @@ export function DiscoveryHome({
       <DiscoveryTopBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onSubmitSearch={() => submitSearch()}
         onSignUp={() => setAuthModal('signup')}
         onLogIn={() => setAuthModal('login')}
         onOpenMap={onOpenMap}
@@ -207,9 +216,38 @@ export function DiscoveryHome({
               <span style={{ color: 'var(--accent-orange)' }}>{t('home.heroTitleAccent')}</span>
               {t('home.heroTitleB')}
             </h1>
-            <p className="text-[15px] sm:text-[17px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-7">
+            <p className="text-[15px] sm:text-[17px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-6">
               {t('home.heroDescription')}
             </p>
+            {/* Tabelog 風ヒーロー検索 */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); submitSearch(); }}
+              className="flex items-center gap-2 p-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-strong)] shadow-[var(--shadow-md)] max-w-[520px] mb-7 focus-within:shadow-[var(--shadow-lg)] focus-within:border-[var(--accent-orange)] transition-all"
+            >
+              <span className="pl-3 pr-1 text-[var(--text-tertiary)] flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('home.searchPlaceholder')}
+                className="flex-1 bg-transparent border-0 outline-none text-[14px] sm:text-[15px] py-2 placeholder:text-[var(--text-tertiary)] min-w-0"
+              />
+              <button
+                type="submit"
+                disabled={!searchQuery.trim()}
+                className="px-5 sm:px-6 py-2 rounded-full text-[13px] sm:text-[14px] font-bold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+                }}
+              >
+                {t('common.search')}
+              </button>
+            </form>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleHeroCTA}
@@ -572,6 +610,7 @@ export function DiscoveryHome({
 function DiscoveryTopBar({
   searchQuery,
   onSearchChange,
+  onSubmitSearch,
   onSignUp,
   onLogIn,
   onOpenMap,
@@ -580,6 +619,7 @@ function DiscoveryTopBar({
 }: {
   searchQuery: string;
   onSearchChange: (v: string) => void;
+  onSubmitSearch?: () => void;
   onSignUp: () => void;
   onLogIn: () => void;
   onOpenMap: () => void;
@@ -607,7 +647,10 @@ function DiscoveryTopBar({
           stoguru
         </div>
         {/* Search */}
-        <div className="flex-1 flex items-center gap-2.5 px-4 py-2 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--border-strong)] transition-all">
+        <form
+          onSubmit={(e) => { e.preventDefault(); onSubmitSearch?.(); }}
+          className="flex-1 flex items-center gap-2.5 px-4 py-2 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--border-strong)] transition-all"
+        >
           <svg
             width="16"
             height="16"
@@ -626,7 +669,7 @@ function DiscoveryTopBar({
             placeholder={t('home.searchPlaceholder')}
             className="flex-1 bg-transparent border-0 outline-none text-[14px] placeholder:text-[var(--text-tertiary)]"
           />
-        </div>
+        </form>
         {/* Right side */}
         <div className="hidden md:flex items-center gap-5">
           {/* PC では左サイドバーに「マップ」タブがあるため、二重化を避けて lg 以上では非表示 */}
