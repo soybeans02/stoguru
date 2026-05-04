@@ -8,6 +8,7 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { AuthModal } from '../auth/AuthModal';
+import { SwipeCard } from '../swipe/SwipeCard';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, FilterIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
@@ -108,6 +109,7 @@ export function DiscoveryHome({
   const [searchQuery, setSearchQuery] = useState('');
   const [showHowTo, setShowHowTo] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
+  const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
 
   // Feed
   const [feed, setFeed] = useState<FeedRestaurant[]>([]);
@@ -399,13 +401,14 @@ export function DiscoveryHome({
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {filteredFeed.slice(0, 12).map((r) => (
+              {filteredFeed.slice(0, 8).map((r) => (
                 <RestaurantCard
                   key={r.id}
                   restaurant={r}
                   bookmarked={stockedIds.includes(r.id)}
                   visited={visitedIds.includes(r.id)}
                   userPosition={userPosition}
+                  onClick={() => setPreviewRestaurant(r)}
                   onBookmark={() => handleBookmark(r)}
                   onInfluencerClick={(uid) => uid && setProfileUserId(uid)}
                   visitedLabel={t('home.visitedTag')}
@@ -544,6 +547,18 @@ export function DiscoveryHome({
       )}
       {showHowTo && <HowToGuideModal onClose={() => setShowHowTo(false)} />}
       {showThemes && <ThemesListModal onClose={() => setShowThemes(false)} />}
+      {previewRestaurant && (
+        <RestaurantPreviewModal
+          restaurant={previewRestaurant}
+          userPosition={userPosition}
+          bookmarked={stockedIds.includes(previewRestaurant.id)}
+          onBookmark={() => {
+            handleBookmark(previewRestaurant);
+            setPreviewRestaurant(null);
+          }}
+          onClose={() => setPreviewRestaurant(null)}
+        />
+      )}
     </div>
   );
 }
@@ -786,6 +801,7 @@ function RestaurantCard({
   bookmarked,
   visited,
   userPosition,
+  onClick,
   onBookmark,
   onInfluencerClick,
   visitedLabel,
@@ -794,6 +810,7 @@ function RestaurantCard({
   bookmarked: boolean;
   visited: boolean;
   userPosition: GPSPosition | null;
+  onClick?: () => void;
   onBookmark: () => void;
   onInfluencerClick: (uid: string | undefined) => void;
   visitedLabel: string;
@@ -812,7 +829,10 @@ function RestaurantCard({
     : restaurant.distance || '';
 
   return (
-    <div className="bg-[var(--card-bg)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] border border-[var(--border)] cursor-pointer">
+    <div
+      onClick={onClick}
+      className="bg-[var(--card-bg)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] border border-[var(--border)] cursor-pointer"
+    >
       <div className="aspect-square relative overflow-hidden">
         <img
           src={photo}
@@ -1091,6 +1111,76 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   Restaurant preview modal — フィードのカードをタップした時に
+   スワイプ画面と同じ大きいカードを一時的に表示
+   ───────────────────────────────────── */
+function RestaurantPreviewModal({
+  restaurant,
+  userPosition,
+  bookmarked,
+  onBookmark,
+  onClose,
+}: {
+  restaurant: FeedRestaurant;
+  userPosition: GPSPosition | null;
+  bookmarked: boolean;
+  onBookmark: () => void;
+  onClose: () => void;
+}) {
+  const distance = userPosition
+    ? formatDistance(
+        distanceMetres(userPosition.lat, userPosition.lng, restaurant.lat, restaurant.lng),
+      )
+    : restaurant.distance || '';
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[560px] md:h-[620px] lg:h-[680px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SwipeCard
+          restaurant={restaurant}
+          distance={distance}
+          onSwipeComplete={() => onClose()}
+          active={false}
+        />
+        {/* 閉じるボタン */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md grid place-items-center text-white hover:bg-black/70 transition-colors"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+        {/* 保存ボタン */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+          aria-label={bookmarked ? 'Unsave' : 'Save'}
+          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md grid place-items-center hover:bg-black/70 transition-colors"
+          style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill={bookmarked ? 'white' : 'none'}
+            stroke="white"
+            strokeWidth="2"
+          >
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
       </div>
     </div>
   );
