@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
 import type { GPSPosition } from '../../hooks/useGPS';
@@ -707,6 +707,8 @@ export function DiscoveryHome({
 
 /* 食べログ風 5 セル検索バー（エリア/店名/ジャンル/価格帯/アカウント） */
 const PRICE_OPTIONS = ['〜1,000円', '1,000〜3,000円', '3,000〜5,000円', '5,000〜10,000円', '10,000円〜'];
+const SELECT_BG_DATAURI = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")';
+const NO_OUTLINE: React.CSSProperties = { outline: 'none', boxShadow: 'none' };
 
 function MultiFieldSearchBar({
   fields,
@@ -728,21 +730,99 @@ function MultiFieldSearchBar({
   const btnPad = size === 'lg' ? 'px-5 sm:px-6 h-11 sm:h-12' : 'px-4 sm:px-5 h-9 sm:h-10';
   const btnFont = size === 'lg' ? 'text-[13px] sm:text-[14px]' : 'text-[12.5px] sm:text-[13px]';
 
-  // 各セル：mobile では横スクロール、sm 以上では均等分割
+  // ─── Google Places autocomplete（エリア用）───
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
+  const [areaSuggestions, setAreaSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
+  const areaTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return;
+    const init = () => {
+      if (window.google?.maps?.places && !autocompleteService.current) {
+        autocompleteService.current = new google.maps.places.AutocompleteService();
+      }
+    };
+    if (window.google?.maps?.places) { init(); return; }
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', init);
+      return () => existing.removeEventListener('load', init);
+    }
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
+    s.async = true;
+    s.onload = init;
+    document.head.appendChild(s);
+  }, []);
+
+  function handleAreaChange(v: string) {
+    set('area', v);
+    if (areaTimer.current) clearTimeout(areaTimer.current);
+    if (!v.trim()) { setAreaSuggestions([]); setShowAreaSuggestions(false); return; }
+    areaTimer.current = setTimeout(() => {
+      if (!autocompleteService.current) return;
+      autocompleteService.current.getPlacePredictions(
+        { input: v, types: ['(regions)'], componentRestrictions: { country: 'jp' }, language: 'ja' },
+        (predictions, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setAreaSuggestions(predictions.slice(0, 6));
+            setShowAreaSuggestions(true);
+          } else {
+            setAreaSuggestions([]);
+          }
+        },
+      );
+    }, 250);
+  }
+
+  function pickArea(label: string) {
+    // 「渋谷区, 東京都, 日本」→「渋谷区」だけ取り出す（住所マッチを効かせるため）
+    const short = label.split(/[、,]/)[0].trim();
+    set('area', short);
+    setShowAreaSuggestions(false);
+    setAreaSuggestions([]);
+  }
+
+  // form は overflow-visible にして、エリア候補ドロップダウンが下にはみ出せるようにする
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
-      className="flex items-stretch p-1 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border-strong)] shadow-[var(--shadow-md)] focus-within:shadow-[var(--shadow-lg)] focus-within:border-[var(--accent-orange)] transition-all overflow-hidden"
+      className="flex items-stretch p-1 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border-strong)] shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow"
     >
       <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 min-w-0">
-        {/* エリア */}
+        {/* エリア（Google Places autocomplete 付き） */}
         <Cell label="エリア" first cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
-          <input
-            value={fields.area}
-            onChange={(e) => set('area', e.target.value)}
-            placeholder="渋谷・大阪 など"
-            className={`w-full bg-transparent border-0 outline-none ${cellFont} placeholder:text-[var(--text-tertiary)]`}
-          />
+          <div className="relative w-full">
+            <input
+              value={fields.area}
+              onChange={(e) => handleAreaChange(e.target.value)}
+              onFocus={() => fields.area && areaSuggestions.length > 0 && setShowAreaSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
+              placeholder="渋谷・大阪 など"
+              className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}
+              style={NO_OUTLINE}
+            />
+            {showAreaSuggestions && areaSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-[var(--radius-lg)] bg-[var(--card-bg)] border border-[var(--border)] shadow-[var(--shadow-lg)] py-1 max-h-[260px] overflow-y-auto min-w-[220px]">
+                {areaSuggestions.map((p) => (
+                  <button
+                    key={p.place_id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault() /* blur 抑止 */}
+                    onClick={() => pickArea(p.structured_formatting?.main_text || p.description)}
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-[var(--bg-soft)] transition-colors"
+                  >
+                    <div className="font-semibold truncate">{p.structured_formatting?.main_text || p.description}</div>
+                    {p.structured_formatting?.secondary_text && (
+                      <div className="text-[11px] text-[var(--text-tertiary)] truncate">{p.structured_formatting.secondary_text}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </Cell>
         {/* お店の名前 */}
         <Cell label="お店の名前" cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
@@ -750,7 +830,8 @@ function MultiFieldSearchBar({
             value={fields.name}
             onChange={(e) => set('name', e.target.value)}
             placeholder="店名・キーワード"
-            className={`w-full bg-transparent border-0 outline-none ${cellFont} placeholder:text-[var(--text-tertiary)]`}
+            className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}
+            style={NO_OUTLINE}
           />
         </Cell>
         {/* ジャンル */}
@@ -758,8 +839,8 @@ function MultiFieldSearchBar({
           <select
             value={fields.genre}
             onChange={(e) => set('genre', e.target.value)}
-            className={`w-full bg-transparent border-0 outline-none ${cellFont} appearance-none cursor-pointer pr-3 ${fields.genre ? '' : 'text-[var(--text-tertiary)]'}`}
-            style={{ backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
+            className={`w-full bg-transparent border-0 ${cellFont} appearance-none cursor-pointer pr-3 ${fields.genre ? '' : 'text-[var(--text-tertiary)]'}`}
+            style={{ outline: 'none', boxShadow: 'none', backgroundImage: SELECT_BG_DATAURI, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
             <option value="">指定しない</option>
             {GENRES_AS_THEMES.map((g) => (
@@ -772,8 +853,8 @@ function MultiFieldSearchBar({
           <select
             value={fields.price}
             onChange={(e) => set('price', e.target.value)}
-            className={`w-full bg-transparent border-0 outline-none ${cellFont} appearance-none cursor-pointer pr-3 ${fields.price ? '' : 'text-[var(--text-tertiary)]'}`}
-            style={{ backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
+            className={`w-full bg-transparent border-0 ${cellFont} appearance-none cursor-pointer pr-3 ${fields.price ? '' : 'text-[var(--text-tertiary)]'}`}
+            style={{ outline: 'none', boxShadow: 'none', backgroundImage: SELECT_BG_DATAURI, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
             <option value="">指定しない</option>
             {PRICE_OPTIONS.map((p) => (
@@ -787,7 +868,8 @@ function MultiFieldSearchBar({
             value={fields.account}
             onChange={(e) => set('account', e.target.value)}
             placeholder="@username"
-            className={`w-full bg-transparent border-0 outline-none ${cellFont} placeholder:text-[var(--text-tertiary)]`}
+            className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}
+            style={NO_OUTLINE}
           />
         </Cell>
       </div>

@@ -521,15 +521,19 @@ export function invalidateSearchCache() {
 }
 
 export async function searchRestaurantsV2(query: string, limit = 20): Promise<RestaurantV2[]> {
-  const q = query.toLowerCase();
+  // 「渋谷 ラーメン」のような空白区切りクエリは AND マッチ（全トークンが
+  // name / address / genres の連結文字列内に含まれるレストランを返す）。
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return [];
   const cache = await getSearchCache();
   return cache
     .filter((r) => {
       if (r.visibility === 'hidden') return false;
       const nameLower = (r.nameLower ?? r.name?.toLowerCase() ?? '');
       const addressLower = r.address?.toLowerCase() ?? '';
-      const genreMatch = (r.genres ?? []).some((g) => g?.toLowerCase().includes(q));
-      return nameLower.includes(q) || addressLower.includes(q) || genreMatch;
+      const genresLower = (r.genres ?? []).map((g) => g?.toLowerCase() ?? '').join(' ');
+      const hay = `${nameLower} ${addressLower} ${genresLower}`;
+      return tokens.every((tok) => hay.includes(tok));
     })
     .slice(0, limit);
 }
