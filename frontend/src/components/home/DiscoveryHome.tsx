@@ -204,6 +204,12 @@ export function DiscoveryHome({
   const [ranking, setRanking] = useState<api.RankedUser[]>([]);
   const [spotRanking, setSpotRanking] = useState<api.RankedSpot[]>([]);
 
+  // GPS は watchPosition で高頻度に微小更新が来るので、~1km 粒度に丸めて
+  // 「意味のある移動」だけ deps として扱う。サブメートルのジッターで
+  // 毎秒フィードを再取得して画面が「リロード」状態になる症状の対策。
+  const bucketLat = userPosition ? Math.round(userPosition.lat * 100) / 100 : null;
+  const bucketLng = userPosition ? Math.round(userPosition.lng * 100) / 100 : null;
+
   /* Fetch feed */
   useEffect(() => {
     let cancelled = false;
@@ -230,7 +236,8 @@ export function DiscoveryHome({
     return () => {
       cancelled = true;
     };
-  }, [userPosition?.lat, userPosition?.lng, refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bucketLat, bucketLng, refreshKey]);
 
   /* Fetch rankings (Top 3 each) */
   useEffect(() => {

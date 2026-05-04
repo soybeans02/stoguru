@@ -83,6 +83,12 @@ export function ThemeListScreen({ themeId }: Props) {
     }
   }, [mapsLoaded]);
 
+  // GPS は watchPosition で高頻度に微小更新が来るので、~1km 粒度に丸めて
+  // 「意味のある移動」だけ deps として扱う（サブメートルのジッターで毎秒
+  // フィードを再取得して画面が「リロード」状態になる症状の対策）。
+  const bucketLat = position ? Math.round(position.lat * 100) / 100 : null;
+  const bucketLng = position ? Math.round(position.lng * 100) / 100 : null;
+
   // フィードを広めの半径で取得
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +103,8 @@ export function ThemeListScreen({ themeId }: Props) {
       .catch(() => { if (!cancelled) setFeed([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [position?.lat, position?.lng]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bucketLat, bucketLng]);
 
   // エリア検索（debounce）
   function handleAreaInputChange(v: string) {
@@ -246,7 +253,9 @@ export function ThemeListScreen({ themeId }: Props) {
     else if (sortBy === 'price-desc') out = [...out].sort((a, b) => priceOf(b) - priceOf(a));
 
     return out.slice(0, 60);
-  }, [theme, feed, selectedAreas, selectedGenres, priceMin, priceMax, sortBy, timeSlot, position?.lat, position?.lng]);
+    // bucketLat/Lng を deps に使って、GPS の微小ジッターでは並び替えしない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme, feed, selectedAreas, selectedGenres, priceMin, priceMax, sortBy, timeSlot, bucketLat, bucketLng]);
 
   if (!theme) {
     return (
