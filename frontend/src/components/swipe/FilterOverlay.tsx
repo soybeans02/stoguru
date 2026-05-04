@@ -103,16 +103,21 @@ export function FilterOverlay({
                   className="absolute inset-0"
                   style={{
                     background: active
-                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.85), rgba(249, 115, 22, 0.4) 60%, rgba(249, 115, 22, 0.2))'
-                      : 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0))',
+                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.7), rgba(249, 115, 22, 0.35) 70%, rgba(249, 115, 22, 0.15))'
+                      : 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15))',
                   }}
                 />
-                <span className="absolute left-2.5 bottom-2 text-[13px] font-bold text-white drop-shadow-sm flex items-center gap-1.5">
-                  {active && (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                {active && (
+                  <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white grid place-items-center shadow-md">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                  )}
+                  </span>
+                )}
+                <span
+                  className="absolute inset-0 grid place-items-center text-white text-[20px] sm:text-[22px] font-extrabold tracking-[-0.01em]"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.5)' }}
+                >
                   {s.label}
                 </span>
               </button>
@@ -150,18 +155,21 @@ export function FilterOverlay({
                   className="absolute inset-0"
                   style={{
                     background: active
-                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.85), rgba(249, 115, 22, 0.4) 60%, rgba(249, 115, 22, 0.15))'
-                      : 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0))',
+                      ? 'linear-gradient(to top, rgba(249, 115, 22, 0.7), rgba(249, 115, 22, 0.35) 70%, rgba(249, 115, 22, 0.15))'
+                      : 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15))',
                   }}
                 />
                 {active && (
-                  <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white grid place-items-center shadow-sm">
+                  <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white grid place-items-center shadow-md">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </span>
                 )}
-                <span className="absolute left-1.5 right-1.5 bottom-1.5 text-[11px] sm:text-[12px] font-bold text-white text-center leading-tight drop-shadow-md">
+                <span
+                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[16px] font-extrabold tracking-[-0.01em] text-center leading-tight px-1.5"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65), 0 1px 3px rgba(0,0,0,0.5)' }}
+                >
                   {g}
                 </span>
               </button>

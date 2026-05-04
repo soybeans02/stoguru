@@ -153,10 +153,14 @@ export const GENRE_EMOJI: Record<string, string> = {
 };
 
 export const SCENES = [
-  { id: 'ひとり', emoji: '🧑', label: 'ひとり', photo: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=400&q=80' },
-  { id: 'デート', emoji: '👫', label: 'デート', photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80' },
-  { id: '友達', emoji: '👥', label: '友達', photo: 'https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=400&q=80' },
-  { id: '飲み', emoji: '🍻', label: '飲み', photo: 'https://images.unsplash.com/photo-1514218953589-2d7d37efd2dc?w=400&q=80' },
+  // ひとり：カウンター席で一人の食事
+  { id: 'ひとり', emoji: '🧑', label: 'ひとり', photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80' },
+  // デート：キャンドルとワイン
+  { id: 'デート', emoji: '👫', label: 'デート', photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80' },
+  // 友達：乾杯シーン
+  { id: '友達', emoji: '👥', label: '友達', photo: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=600&q=80' },
+  // 飲み：ビアジョッキで乾杯
+  { id: '飲み', emoji: '🍻', label: '飲み', photo: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&q=80' },
 ] as const;
 
 // 上位 5 ジャンルが先頭。残りは「その他」展開で表示
@@ -169,32 +173,32 @@ export const GENRES = [
   'インド料理', 'バー',
 ] as const;
 
-/** ジャンル名 → 代表写真 URL */
+/** ジャンル名 → 代表写真 URL（Unsplash、重複なし） */
 export const GENRE_PHOTOS: Record<string, string> = {
-  ラーメン: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80',
-  寿司: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&q=80',
-  焼肉: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&q=80',
-  イタリアン: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400&q=80',
-  カフェ: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80',
-  居酒屋: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&q=80',
-  カレー: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80',
-  ハンバーガー: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80',
-  中華: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&q=80',
-  韓国料理: 'https://images.unsplash.com/photo-1583224944844-5b268c057b72?w=400&q=80',
-  スイーツ: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80',
-  パン: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80',
-  うどん: 'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?w=400&q=80',
-  和食: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80',
-  フレンチ: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80',
-  そば: 'https://images.unsplash.com/photo-1607330289024-1535c6b4e1c1?w=400&q=80',
-  天ぷら: 'https://images.unsplash.com/photo-1562158074-0b9e4ba33d9e?w=400&q=80',
-  とんかつ: 'https://images.unsplash.com/photo-1607330289024-1535c6b4e1c1?w=400&q=80',
-  お好み焼き: 'https://images.unsplash.com/photo-1611601679008-3a0db49ed4d6?w=400&q=80',
-  たこ焼き: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&q=80',
-  ステーキ: 'https://images.unsplash.com/photo-1558030006-450675393462?w=400&q=80',
-  タイ料理: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=400&q=80',
-  ベトナム料理: 'https://images.unsplash.com/photo-1583032015879-e5022cb87c3b?w=400&q=80',
-  メキシカン: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&q=80',
-  インド料理: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80',
-  バー: 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=400&q=80',
+  ラーメン: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+  寿司: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=80',
+  焼肉: 'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=600&q=80',
+  イタリアン: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=80',
+  カフェ: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=600&q=80',
+  居酒屋: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=80',
+  カレー: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&q=80',
+  ハンバーガー: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
+  中華: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=80',
+  韓国料理: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=80',
+  スイーツ: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&q=80',
+  パン: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&q=80',
+  うどん: 'https://images.unsplash.com/photo-1631898037220-32d1aa00b8a5?w=600&q=80',
+  和食: 'https://images.unsplash.com/photo-1580651315530-69c8e0903883?w=600&q=80',
+  フレンチ: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=600&q=80',
+  そば: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=80',
+  天ぷら: 'https://images.unsplash.com/photo-1606502288749-f0c6c2b63b4d?w=600&q=80',
+  とんかつ: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=600&q=80',
+  お好み焼き: 'https://images.unsplash.com/photo-1611601679008-3a0db49ed4d6?w=600&q=80',
+  たこ焼き: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=600&q=80',
+  ステーキ: 'https://images.unsplash.com/photo-1558030006-450675393462?w=600&q=80',
+  タイ料理: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=600&q=80',
+  ベトナム料理: 'https://images.unsplash.com/photo-1503764654157-72d979d9af2f?w=600&q=80',
+  メキシカン: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&q=80',
+  インド料理: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80',
+  バー: 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80',
 };
