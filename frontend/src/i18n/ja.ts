@@ -275,6 +275,9 @@ export const ja = {
     changePassword: 'パスワード変更',
     changeEmail: 'メールアドレス変更',
     other: 'その他',
+    applyToPost: '投稿を申請',
+    pendingReview: '申請中',
+    applicationRejected: '申請が却下されました',
     profileShareCopied: '共有リンクをコピーしました',
   },
   // フィードバック

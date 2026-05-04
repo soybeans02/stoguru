@@ -266,6 +266,9 @@ export const en: TranslationKeys = {
     changePassword: 'Change password',
     changeEmail: 'Change email',
     other: 'More',
+    applyToPost: 'Apply to post',
+    pendingReview: 'Pending review',
+    applicationRejected: 'Application rejected',
     profileShareCopied: 'Link copied',
   },
   feedback: {

@@ -6,7 +6,7 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
-import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback } from '../services/dynamo';
+import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback, getUserSettings, putUserSettings, listPendingUploadApplications } from '../services/dynamo';
 import { invalidateTokenCache } from '../middleware/auth';
 import { stats, userActivity } from '../state';
 
@@ -202,6 +202,50 @@ router.delete('/feedback/:id', requireAdmin, async (req: Request, res: Response)
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '削除に失敗しました' });
+  }
+});
+
+// ─── 投稿許可申請の管理 ───
+
+router.get('/upload-applications', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const pending = await listPendingUploadApplications();
+    const items = await Promise.all(pending.map(async (s) => {
+      const user = await getUserById(s.userId).catch(() => null);
+      return {
+        userId: s.userId,
+        nickname: user?.nickname ?? '',
+        appliedAt: s.uploadAppliedAt,
+      };
+    }));
+    res.json({ items });
+  } catch (err) {
+    console.error('Upload application list failed:', err);
+    res.status(500).json({ error: '申請一覧の取得に失敗しました' });
+  }
+});
+
+router.post('/upload-applications/:userId/approve', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId as string;
+    const settings = await getUserSettings(userId);
+    await putUserSettings(userId, { ...settings, uploadStatus: 'approved' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '承認に失敗しました' });
+  }
+});
+
+router.post('/upload-applications/:userId/reject', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId as string;
+    const settings = await getUserSettings(userId);
+    await putUserSettings(userId, { ...settings, uploadStatus: 'rejected' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '却下に失敗しました' });
   }
 });
 
