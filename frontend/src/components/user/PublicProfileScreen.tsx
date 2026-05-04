@@ -3,7 +3,7 @@ import * as api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { AuthModal } from '../auth/AuthModal';
-import { navigate } from '../../utils/navigate';
+import { navigate, goBack } from '../../utils/navigate';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 
 interface PublicProfile {
@@ -90,10 +90,20 @@ export function PublicProfileScreen({ userId }: Props) {
         className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
         style={{ background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)' }}
       >
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2.5 sm:gap-3">
+          {/* 戻るボタン */}
+          <button
+            onClick={goBack}
+            aria-label="戻る"
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] hover:bg-[var(--bg-soft)] transition-colors flex-shrink-0"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
           <button
             onClick={goHome}
-            className="text-[22px] font-extrabold tracking-[-0.02em]"
+            className="text-[20px] sm:text-[22px] font-extrabold tracking-[-0.02em]"
             style={{
               background:
                 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',

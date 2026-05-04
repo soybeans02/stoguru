@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { findFeature, findRelated } from '../../data/features';
 import type { FeatureArticle, FeatureEntry } from '../../data/features';
 import { AuthModal } from '../auth/AuthModal';
-import { navigate } from '../../utils/navigate';
+import { navigate, goBack } from '../../utils/navigate';
 
 interface Props {
   slug: string;
@@ -320,10 +320,20 @@ export function ArticleTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)' }}
     >
-      <div className="max-w-[1100px] mx-auto px-5 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2.5 sm:gap-3">
+        {/* 戻るボタン */}
+        <button
+          onClick={goBack}
+          aria-label="戻る"
+          className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] hover:bg-[var(--bg-soft)] transition-colors flex-shrink-0"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
         <button
           onClick={() => navigate('/')}
-          className="text-[22px] font-extrabold tracking-[-0.02em]"
+          className="text-[20px] sm:text-[22px] font-extrabold tracking-[-0.02em]"
           style={{
             background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
             WebkitBackgroundClip: 'text',
@@ -336,12 +346,12 @@ export function ArticleTopBar({
         <div className="flex-1" />
         {isAnonymous ? (
           <>
-            <button onClick={onLogIn} className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-2 hidden sm:block">
+            <button onClick={onLogIn} className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 sm:px-3 py-2 hidden sm:block">
               ログイン
             </button>
             <button
               onClick={onSignUp}
-              className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all"
+              className="px-3.5 sm:px-4 py-2 rounded-full text-[12px] sm:text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all"
               style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
             >
               新規登録
