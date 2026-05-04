@@ -296,8 +296,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </div>
 
           <div className="px-5 sm:px-7 lg:px-8 pb-6 lg:pb-7">
-            {/* Avatar + identity row */}
-            <div className="-mt-12 sm:-mt-14 lg:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            {/* Avatar + identity row — pull-up を浅めにして名前とカバーの間に余白を確保 */}
+            <div className="-mt-8 sm:-mt-10 lg:-mt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 min-w-0">
                 {/* Avatar */}
                 <input

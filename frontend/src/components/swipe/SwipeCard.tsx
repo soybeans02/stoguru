@@ -104,11 +104,11 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
     };
   }, [handleMove, handleEnd]);
 
-  // 写真左右タップナビゲーション
+  // 写真左右タップナビゲーション (active カード or プレビューカード)
   const handlePhotoTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!active || exiting) return;
-    // ドラッグ後はスキップ
-    if (Math.abs(offsetRef.current.x) > 5 || Math.abs(offsetRef.current.y) > 5) return;
+    if ((!active && !preview) || exiting) return;
+    // ドラッグ後はスキップ（プレビュー時はドラッグ無し）
+    if (!preview && (Math.abs(offsetRef.current.x) > 5 || Math.abs(offsetRef.current.y) > 5)) return;
 
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
@@ -123,7 +123,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
       // 右タップ → 次の写真
       setPhotoIndex(prev => Math.min(photoCount - 1, prev + 1));
     }
-  }, [active, exiting, photoCount]);
+  }, [active, preview, exiting, photoCount]);
 
   let transform: string;
   let opacity = 1;

@@ -21,6 +21,17 @@ type SvgIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 /* ─────────────────────────────────────
    Types
    ───────────────────────────────────── */
+/* テーマ定義：マッチに使うキーワードと表示用メタ */
+interface ThemeConfig {
+  id: string;
+  image: string;
+  tag: string;
+  title: string;
+  desc: string;
+  /** feed から絞り込むキーワード（genre/name/description/scene を対象） */
+  keywords: string[];
+}
+
 interface FeedRestaurant extends SwipeRestaurant {
   // optional API extras
   photoUrls?: string[];
@@ -115,9 +126,20 @@ export function DiscoveryHome({
     if (!v) return;
     onSearch?.(v);
   };
+
+  // テーマ一覧（i18n に依存するのでここで定義）
+  const themeConfigs: ThemeConfig[] = useMemo(() => ([
+    { id: 'late-night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800', tag: t('home.editorialTag1'), title: t('home.editorialTitle1'), desc: t('home.editorialDesc1'), keywords: ['バー', 'bar', '深夜', '居酒屋'] },
+    { id: 'date-night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', tag: t('home.editorialTag2'), title: t('home.editorialTitle2'), desc: t('home.editorialDesc2'), keywords: ['イタリアン', 'フレンチ', 'デート', '記念日'] },
+    { id: 'cheap-lunch', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800', tag: t('home.editorialTag3'), title: t('home.editorialTitle3'), desc: t('home.editorialDesc3'), keywords: ['ランチ', 'ラーメン', 'うどん', 'そば', '定食'] },
+    { id: 'special', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800', tag: t('home.themeMoreTag1'), title: t('home.themeMoreTitle1'), desc: t('home.themeMoreDesc1'), keywords: ['フレンチ', '寿司', '懐石', '記念日', 'プロポーズ'] },
+    { id: 'solo', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800', tag: t('home.themeMoreTag2'), title: t('home.themeMoreTitle2'), desc: t('home.themeMoreDesc2'), keywords: ['焼肉', 'ラーメン', 'カウンター', 'ひとり'] },
+    { id: 'takeout', image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800', tag: t('home.themeMoreTag3'), title: t('home.themeMoreTitle3'), desc: t('home.themeMoreDesc3'), keywords: ['テイクアウト', 'お弁当', 'サンドイッチ', 'バーガー'] },
+  ]), [t]);
   const [showHowTo, setShowHowTo] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
   const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | null>(null);
 
   // Feed
   const [feed, setFeed] = useState<FeedRestaurant[]>([]);
@@ -428,24 +450,16 @@ export function DiscoveryHome({
             onLinkClick={() => setShowThemes(true)}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-            <Story
-              image="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600"
-              tag={t('home.editorialTag1')}
-              title={t('home.editorialTitle1')}
-              desc={t('home.editorialDesc1')}
-            />
-            <Story
-              image="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600"
-              tag={t('home.editorialTag2')}
-              title={t('home.editorialTitle2')}
-              desc={t('home.editorialDesc2')}
-            />
-            <Story
-              image="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600"
-              tag={t('home.editorialTag3')}
-              title={t('home.editorialTitle3')}
-              desc={t('home.editorialDesc3')}
-            />
+            {themeConfigs.slice(0, 3).map((th) => (
+              <Story
+                key={th.id}
+                image={th.image}
+                tag={th.tag}
+                title={th.title}
+                desc={th.desc}
+                onClick={() => setSelectedTheme(th)}
+              />
+            ))}
           </div>
         </section>
 
@@ -615,7 +629,27 @@ export function DiscoveryHome({
         />
       )}
       {showHowTo && <HowToGuideModal onClose={() => setShowHowTo(false)} />}
-      {showThemes && <ThemesListModal onClose={() => setShowThemes(false)} />}
+      {showThemes && (
+        <ThemesListModal
+          themes={themeConfigs}
+          onSelectTheme={(th) => { setShowThemes(false); setSelectedTheme(th); }}
+          onClose={() => setShowThemes(false)}
+        />
+      )}
+      {selectedTheme && (
+        <ThemeDetailModal
+          theme={selectedTheme}
+          feed={feed}
+          stockedIds={stockedIds}
+          visitedIds={visitedIds}
+          userPosition={userPosition}
+          visitedLabel={t('home.visitedTag')}
+          onPreview={(r) => setPreviewRestaurant(r)}
+          onBookmark={handleBookmark}
+          onInfluencerClick={(uid) => uid && setProfileUserId(uid)}
+          onClose={() => setSelectedTheme(null)}
+        />
+      )}
       {previewRestaurant && (
         <RestaurantPreviewModal
           restaurant={previewRestaurant}
@@ -948,15 +982,18 @@ function Story({
   tag,
   title,
   desc,
+  onClick,
 }: {
   image: string;
   tag: string;
   title: string;
   desc: string;
+  onClick?: () => void;
 }) {
   return (
     <button
-      className="relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left"
+      onClick={onClick}
+      className="relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
     >
       <img src={image} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
       <div
@@ -1509,46 +1546,16 @@ function RestaurantPreviewModal({
 /* ─────────────────────────────────────
    Themes list modal (拡張版エディトリアル)
    ───────────────────────────────────── */
-function ThemesListModal({ onClose }: { onClose: () => void }) {
+function ThemesListModal({
+  themes,
+  onSelectTheme,
+  onClose,
+}: {
+  themes: ThemeConfig[];
+  onSelectTheme: (th: ThemeConfig) => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
-  const themes = [
-    {
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600',
-      tag: t('home.editorialTag1'),
-      title: t('home.editorialTitle1'),
-      desc: t('home.editorialDesc1'),
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600',
-      tag: t('home.editorialTag2'),
-      title: t('home.editorialTitle2'),
-      desc: t('home.editorialDesc2'),
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600',
-      tag: t('home.editorialTag3'),
-      title: t('home.editorialTitle3'),
-      desc: t('home.editorialDesc3'),
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
-      tag: t('home.themeMoreTag1'),
-      title: t('home.themeMoreTitle1'),
-      desc: t('home.themeMoreDesc1'),
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600',
-      tag: t('home.themeMoreTag2'),
-      title: t('home.themeMoreTitle2'),
-      desc: t('home.themeMoreDesc2'),
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600',
-      tag: t('home.themeMoreTag3'),
-      title: t('home.themeMoreTitle3'),
-      desc: t('home.themeMoreDesc3'),
-    },
-  ];
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto" onClick={onClose}>
       <div className="max-w-[1200px] mx-auto p-4 sm:p-8" onClick={(e) => e.stopPropagation()}>
@@ -1564,9 +1571,112 @@ function ThemesListModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {themes.map((th, i) => (
-            <Story key={i} image={th.image} tag={th.tag} title={th.title} desc={th.desc} />
+          {themes.map((th) => (
+            <Story key={th.id} image={th.image} tag={th.tag} title={th.title} desc={th.desc} onClick={() => onSelectTheme(th)} />
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   Theme detail modal — テーマに合うお店を一覧表示
+   ───────────────────────────────────── */
+function ThemeDetailModal({
+  theme,
+  feed,
+  stockedIds,
+  visitedIds,
+  userPosition,
+  visitedLabel,
+  onPreview,
+  onBookmark,
+  onInfluencerClick,
+  onClose,
+}: {
+  theme: ThemeConfig;
+  feed: FeedRestaurant[];
+  stockedIds: string[];
+  visitedIds: string[];
+  userPosition: GPSPosition | null;
+  visitedLabel: string;
+  onPreview: (r: FeedRestaurant) => void;
+  onBookmark: (r: FeedRestaurant) => void;
+  onInfluencerClick: (uid: string | undefined) => void;
+  onClose: () => void;
+}) {
+  const matched = useMemo(() => {
+    const kws = theme.keywords.map((k) => k.toLowerCase());
+    return feed.filter((r) => {
+      const text = [
+        r.name,
+        r.genre,
+        r.description,
+        ...(r.genres ?? []),
+        ...(r.scene ?? []),
+      ].join(' ').toLowerCase();
+      return kws.some((kw) => text.includes(kw));
+    }).slice(0, 24);
+  }, [theme, feed]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto animate-fade-in" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}>
+        {/* Hero */}
+        <div className="relative h-[220px] sm:h-[260px] lg:h-[300px] overflow-hidden">
+          <img src={theme.image} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.85) 100%)' }} />
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white grid place-items-center hover:bg-black/60 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+          <div className="absolute left-4 right-4 bottom-5 sm:left-8 sm:right-8 max-w-[1100px] mx-auto text-white">
+            <span
+              className="inline-block text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.05em] backdrop-blur-md mb-3"
+              style={{ background: 'rgba(255,255,255,0.2)' }}
+            >
+              {theme.tag}
+            </span>
+            <h1 className="text-[24px] sm:text-[30px] lg:text-[36px] font-extrabold tracking-[-0.02em] leading-tight whitespace-pre-line">
+              {theme.title}
+            </h1>
+            <p className="text-[13px] sm:text-[14px] opacity-90 leading-relaxed mt-2 max-w-[640px]">{theme.desc}</p>
+          </div>
+        </div>
+
+        {/* Restaurants */}
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-end justify-between mb-4">
+            <h2 className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.015em]">マッチしたお店</h2>
+            <span className="text-[13px] text-[var(--text-tertiary)]">{matched.length} 件</span>
+          </div>
+          {matched.length === 0 ? (
+            <div className="py-16 text-center text-[var(--text-tertiary)] text-sm bg-[var(--card-bg)] rounded-[var(--radius-xl)] border border-[var(--border)]">
+              このテーマに合うお店がまだありません
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {matched.map((r) => (
+                <RestaurantCard
+                  key={r.id}
+                  restaurant={r}
+                  bookmarked={stockedIds.includes(r.id)}
+                  visited={visitedIds.includes(r.id)}
+                  userPosition={userPosition}
+                  onClick={() => onPreview(r)}
+                  onBookmark={() => onBookmark(r)}
+                  onInfluencerClick={onInfluencerClick}
+                  visitedLabel={visitedLabel}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
