@@ -52,6 +52,7 @@ export function ThemeListScreen({ themeId }: Props) {
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(10000);
   const [sortBy, setSortBy] = useState<'distance' | 'price-asc' | 'price-desc'>('distance');
+  const [timeSlot, setTimeSlot] = useState<'morning' | 'lunch' | 'dinner' | null>(null);
 
   // Google Places
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
@@ -169,12 +170,21 @@ export function ThemeListScreen({ themeId }: Props) {
     setSelectedGenres([]);
     setPriceMin(0);
     setPriceMax(10000);
+    setTimeSlot(null);
   }
 
   const filterCount =
     selectedAreas.length +
     selectedGenres.length +
-    (priceMin > 0 || priceMax < 10000 ? 1 : 0);
+    (priceMin > 0 || priceMax < 10000 ? 1 : 0) +
+    (timeSlot ? 1 : 0);
+
+  // 時間帯 → キーワード（実データに営業時間が無いので推定マッチ）
+  const TIME_SLOT_KEYWORDS: Record<'morning' | 'lunch' | 'dinner', string[]> = {
+    morning: ['モーニング', '朝食', 'カフェ', 'パン', 'コーヒー', 'ベーカリー', 'ブランチ'],
+    lunch: ['ランチ', '定食', 'ラーメン', 'うどん', 'そば', 'カレー', '丼', '麺'],
+    dinner: ['ディナー', '居酒屋', 'バー', 'bar', '焼肉', '寿司', '深夜', '夜'],
+  };
 
   // フィルタリング + ソート
   const matched = useMemo(() => {
@@ -216,6 +226,16 @@ export function ThemeListScreen({ themeId }: Props) {
       });
     }
 
+    // 時間帯（実データに営業時間無いのでキーワード推定マッチ）
+    if (timeSlot) {
+      const tkws = TIME_SLOT_KEYWORDS[timeSlot].map((k) => k.toLowerCase());
+      out = out.filter((r) => {
+        const text = [r.name, r.genre, r.description, ...(r.genres ?? []), ...(r.scene ?? [])]
+          .join(' ').toLowerCase();
+        return tkws.some((kw) => text.includes(kw));
+      });
+    }
+
     // 並び替え
     const lat = position?.lat ?? 34.7025;
     const lng = position?.lng ?? 135.4959;
@@ -226,7 +246,7 @@ export function ThemeListScreen({ themeId }: Props) {
     else if (sortBy === 'price-desc') out = [...out].sort((a, b) => priceOf(b) - priceOf(a));
 
     return out.slice(0, 60);
-  }, [theme, feed, selectedAreas, selectedGenres, priceMin, priceMax, sortBy, position?.lat, position?.lng]);
+  }, [theme, feed, selectedAreas, selectedGenres, priceMin, priceMax, sortBy, timeSlot, position?.lat, position?.lng]);
 
   if (!theme) {
     return (
@@ -376,6 +396,81 @@ export function ThemeListScreen({ themeId }: Props) {
                     {a}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* 時間帯 */}
+            <div className="pb-4 mb-4 border-b border-[var(--border)]">
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">時間帯</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  {
+                    id: 'morning' as const,
+                    label: '朝',
+                    sub: '6-11時',
+                    iconBg: 'rgba(245, 184, 0, 0.15)',
+                    iconColor: '#d97706',
+                    icon: (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="4"/>
+                        <path d="M12 2v2"/><path d="M12 20v2"/>
+                        <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+                        <path d="M2 12h2"/><path d="M20 12h2"/>
+                      </svg>
+                    ),
+                  },
+                  {
+                    id: 'lunch' as const,
+                    label: '昼',
+                    sub: '11-15時',
+                    iconBg: 'rgba(249, 115, 22, 0.15)',
+                    iconColor: 'var(--accent-orange)',
+                    icon: (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2"/><path d="M12 21v2"/>
+                        <path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/>
+                        <path d="M1 12h2"/><path d="M21 12h2"/>
+                        <path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/>
+                      </svg>
+                    ),
+                  },
+                  {
+                    id: 'dinner' as const,
+                    label: '晩',
+                    sub: '17-23時',
+                    iconBg: 'rgba(99, 102, 241, 0.15)',
+                    iconColor: '#4f46e5',
+                    icon: (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                      </svg>
+                    ),
+                  },
+                ]).map((opt) => {
+                  const active = timeSlot === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => setTimeSlot(active ? null : opt.id)}
+                      className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-[var(--radius-md)] border transition-all ${
+                        active
+                          ? 'border-[var(--accent-orange)]'
+                          : 'border-[var(--border-strong)] hover:bg-[var(--bg-soft)]'
+                      }`}
+                      style={active ? { background: 'rgba(244,128,15,0.08)' } : undefined}
+                    >
+                      <span
+                        className="w-8 h-8 rounded-full grid place-items-center"
+                        style={{ background: opt.iconBg, color: opt.iconColor }}
+                      >
+                        {opt.icon}
+                      </span>
+                      <span className="text-[13px] font-bold leading-[1.25] text-[var(--text-primary)]">{opt.label}</span>
+                      <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{opt.sub}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
