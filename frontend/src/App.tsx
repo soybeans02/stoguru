@@ -59,7 +59,7 @@ function IconUser({ active }: { active: boolean }) {
 }
 
 /* ─── Sidebar (PC) ─── */
-function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
+function Sidebar({ tab, onTabChange, onLogoClick }: { tab: Tab; onTabChange: (t: Tab) => void; onLogoClick?: () => void }) {
   const { t } = useTranslation();
   // 「検索」タブは消し、ホームのヒーロー検索に集約
   const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
@@ -71,11 +71,12 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
 
   return (
     <aside className="hidden lg:flex flex-col w-[220px] min-w-[220px] border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 h-svh sticky top-0">
-      {/* Logo (click → home) */}
+      {/* Logo (click → home + reload feed)。ホームに居る時はその場でリフレッシュして
+          おすすめが個別最適化されたフィードを再生成 */}
       <button
-        onClick={() => onTabChange('home')}
+        onClick={() => { onTabChange('home'); onLogoClick?.(); }}
         className="flex items-center gap-2.5 px-5 py-6 hover:opacity-80 transition-opacity"
-        aria-label="ホームに戻る"
+        aria-label="ホームを再読み込み"
       >
         <img src="/app-icon.png" alt="" className="w-8 h-8 rounded-lg" />
         <span
@@ -280,7 +281,7 @@ function MainApp() {
   return (
     <div className="flex h-svh bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden">
       {/* PC: Left Sidebar */}
-      <Sidebar tab={tab} onTabChange={setTab} />
+      <Sidebar tab={tab} onTabChange={setTab} onLogoClick={refreshFeed} />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -294,7 +295,9 @@ function MainApp() {
               onOpenAccount={() => setTab('account')}
               onOpenSaved={() => setTab('stock')}
               onSearch={(q, geo) => { setSocialInitQuery(q); setSocialInitGeo(geo ?? null); setTab('social'); }}
+              onReload={refreshFeed}
               userPosition={position}
+              stocks={stocks}
               stockedIds={stockedIds}
               visitedIds={visitedIds}
               refreshKey={feedRefreshKey}

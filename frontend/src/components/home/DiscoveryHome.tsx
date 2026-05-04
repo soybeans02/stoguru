@@ -72,7 +72,11 @@ interface Props {
   /** ヒーロー検索で送信されたクエリ。検索画面を呼び出す。
    *  geo を指定した場合、SocialScreen 側で半径 3km 圏内に絞り込みする。 */
   onSearch?: (q: string, geo?: { lat: number; lng: number; radiusKm: number }) => void;
+  /** stoguru ロゴ（topbar / sidebar）タップ時にフィードを再生成 */
+  onReload?: () => void;
   userPosition: GPSPosition | null;
+  /** 保存済みのお店一覧（パーソナライズランキングに使う） */
+  stocks?: Array<{ id: string; genre?: string; genres?: string[]; scene?: string[]; visited?: boolean }>;
   stockedIds: string[];
   visitedIds: string[];
   refreshKey?: number;
@@ -105,6 +109,17 @@ function fallbackPhoto(id: string): string {
   return PHOTO_POOL[Math.abs(h) % PHOTO_POOL.length];
 }
 
+/** 同じ key で同じ値を返す決定的な疑似乱数 [0, 1)。
+ *  refreshKey と restaurantId を組み合わせると、リロードごとに順序がバラつく。 */
+function pseudoRandom(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 10000) / 10000;
+}
+
 /* ─────────────────────────────────────
    Main component
    ───────────────────────────────────── */
@@ -114,7 +129,9 @@ export function DiscoveryHome({
   onOpenMap,
   onOpenSwipe,
   onSearch,
+  onReload,
   userPosition,
+  stocks,
   stockedIds,
   visitedIds,
   refreshKey,
@@ -227,8 +244,40 @@ export function DiscoveryHome({
       .catch(() => setSpotRanking([]));
   }, []);
 
-  /* 絞り込みは検索バー（5 セル）経由に統一したのでフィードはそのまま表示 */
-  const filteredFeed = feed;
+  /* 絞り込みは検索バー（5 セル）経由に統一したのでフィードはそのまま使う。
+     ただし「あなたへのおすすめ」として、ユーザーの保存履歴（stocks）の
+     ジャンル/シーンに似ているお店を上位に並べ替える。
+     さらに refreshKey が変わるたびに同点内でランダムシャッフルしてバリエーションを出す。 */
+  const filteredFeed = useMemo(() => {
+    if (!feed.length) return feed;
+    // ユーザーの嗜好シグナル：visited は stocked より重み 2 倍
+    const genreWeight = new Map<string, number>();
+    const sceneWeight = new Map<string, number>();
+    (stocks ?? []).forEach((s) => {
+      const w = s.visited ? 2 : 1;
+      const gs = [s.genre, ...(s.genres ?? [])].filter(Boolean) as string[];
+      gs.forEach((g) => genreWeight.set(g, (genreWeight.get(g) ?? 0) + w));
+      (s.scene ?? []).forEach((sc) => sceneWeight.set(sc, (sceneWeight.get(sc) ?? 0) + w));
+    });
+    const noPrefs = genreWeight.size === 0 && sceneWeight.size === 0;
+    // 既保存はフィードから外して、まだ知らないお店を提案する
+    const stockedSet = new Set(stockedIds);
+    const candidates = feed.filter((r) => !stockedSet.has(r.id));
+    // 各レストランにスコアを付ける
+    // refreshKey から決定的な擬似乱数を生成して同点内シャッフル
+    const scored = candidates.map((r) => {
+      const gs = [r.genre, ...(r.genres ?? [])].filter(Boolean) as string[];
+      const genreScore = gs.reduce((acc, g) => acc + (genreWeight.get(g) ?? 0), 0);
+      const sceneScore = (r.scene ?? []).reduce((acc, sc) => acc + (sceneWeight.get(sc) ?? 0), 0);
+      const stockBoost = Math.log1p(r.stockCount ?? 0) * 0.5; // 人気店は弱めにブースト
+      const noise = pseudoRandom(`${r.id}:${refreshKey ?? 0}`);
+      return { r, score: genreScore * 2 + sceneScore + stockBoost + noise };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const ranked = scored.map((s) => s.r);
+    // 嗜好シグナルが何も無い時は素直にシャッフルだけ
+    return noPrefs ? ranked : ranked;
+  }, [feed, stocks, stockedIds, refreshKey]);
 
   /* Handle bookmark click */
   const handleBookmark = (r: FeedRestaurant) => {
@@ -259,6 +308,7 @@ export function DiscoveryHome({
         onSignUp={() => setAuthModal('signup')}
         onLogIn={() => setAuthModal('login')}
         onOpenMap={onOpenMap}
+        onLogoClick={onReload}
         isAnonymous={isAnonymous}
         userNickname={user?.nickname}
       />
@@ -276,16 +326,8 @@ export function DiscoveryHome({
             <p className="text-[14px] sm:text-[16px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-5">
               {t('home.heroDescription')}
             </p>
-            {/* Tabelog 風 5 セル検索バー（ヒーロー） */}
-            <div className="mb-7 max-w-[820px]">
-              <MultiFieldSearchBar
-                fields={searchFields}
-                onChange={setSearchFields}
-                onSubmit={() => submitSearch()}
-                size="lg"
-              />
-            </div>
-            <div className="flex flex-wrap gap-3">
+            {/* ヒーロー検索は sticky topbar の方に集約したのでここには置かない（重複回避） */}
+            <div className="flex flex-wrap gap-3 mt-2">
               <button
                 onClick={handleHeroCTA}
                 className="px-5 py-2.5 rounded-full text-[13px] font-semibold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
@@ -1028,6 +1070,7 @@ function DiscoveryTopBar({
   onSignUp,
   onLogIn,
   onOpenMap,
+  onLogoClick,
   isAnonymous,
   userNickname,
 }: {
@@ -1037,6 +1080,8 @@ function DiscoveryTopBar({
   onSignUp: () => void;
   onLogIn: () => void;
   onOpenMap: () => void;
+  /** ロゴ（タブレットの "stoguru"）タップでフィードを再生成（パーソナライズ更新） */
+  onLogoClick?: () => void;
   isAnonymous: boolean;
   userNickname?: string;
 }) {
@@ -1047,9 +1092,13 @@ function DiscoveryTopBar({
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
       <div className="max-w-[1280px] xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
-        {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示 */}
-        <div
-          className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden flex-shrink-0"
+        {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示。
+            タップでホームを再読み込み（おすすめを再生成） */}
+        <button
+          type="button"
+          onClick={() => onLogoClick?.()}
+          aria-label="ホームを再読み込み"
+          className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden flex-shrink-0 hover:opacity-80 transition-opacity"
           style={{
             background:
               'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
@@ -1059,7 +1108,7 @@ function DiscoveryTopBar({
           }}
         >
           stoguru
-        </div>
+        </button>
         {/* sm 未満は単一検索（sticky 高さを抑えてモバイルのスクロールカクつき防止）。sm 以上は 5 セル */}
         <div className="flex-1 min-w-0">
           {/* Mobile: 単一の合算検索 */}
@@ -1319,7 +1368,7 @@ function RankCard({
         </div>
         <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
           <span className="font-semibold tabular-nums" style={{ color: 'var(--accent-orange)' }}>{user.totalStocks}</span>
-          <span>件のお店を投稿</span>
+          <span>回 保存された</span>
         </div>
       </div>
     </button>

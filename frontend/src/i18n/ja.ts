@@ -100,7 +100,7 @@ export const ja = {
     rankingViewAll: 'すべて見る →',
     rankingSavedCount: '{n} saved',
     posterRankingTitle: '投稿者ランキング',
-    posterRankingSubtitle: 'みんなに刺さるお店を出してる人たち',
+    posterRankingSubtitle: '投稿したお店が一番保存されてる人たち',
     editorialTitle: 'テーマで探す',
     editorialSubtitle: '編集部おすすめのまとめ',
     editorialViewAll: 'テーマ一覧 →',
