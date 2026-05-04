@@ -1,24 +1,19 @@
 /**
  * 特集記事データ
  *
- * ─── 新しい記事を追加する手順 ───
- * 1. 下の `FEATURES` 配列に新しいエントリを追加（slug を一意に）
- * 2. 必要なら `themeConfigs`（DiscoveryHome.tsx）の該当 theme に
- *    featureSlug を追加して、ホームのカードと記事を紐付け
- * 3. それだけ。/features/{slug} で自動的に記事ページが表示される
+ * 仕組み: バックエンド経由で microCMS から取得（プライマリ）+ 下の
+ * FALLBACK_FEATURES 配列（CMS が空 or 未設定時のフォールバック）
  *
- * ─── 各フィールドの書き方 ───
- * - slug: URL に使う英小文字 + ハイフン（例: 'late-night-bars'）
- * - tag: ヒーローに大きく出る「FEATURE · 特集」みたいな短文
- * - title: 記事タイトル（句読点 OK、改行不要）
- * - subtitle: ヒーロー下に出る 1〜2 行の要約
- * - heroImage: 高品質の横長画像 URL（Unsplash &q=85 推奨）
- * - intro: 本文上部の段落配列。リード文 + 通常段落を続ける
- * - pullQuote: 中央に大きく出す引用（任意）
- * - body: pullQuote の後の段落（任意）
- * - entries: 紹介する店の配列。各店に写真・コメント・情報・タグ
- * - closingCTA: 末尾のオレンジボタンの文言
- * - relatedSlugs: 関連記事の slug 配列（最大 3 つ表示）
+ * ─── 新しい記事を追加する手順 ───
+ * A. microCMS で書く場合（推奨）
+ *    1. microCMS の管理画面 → コンテンツ →「特集」→「+ 追加」
+ *    2. フィールドを埋めて公開ボタン
+ *    3. 5 分以内にサイトに反映（バックエンドキャッシュの TTL）
+ *
+ * B. ローカルにハードコードする場合（CMS 触らない場合）
+ *    1. 下の FALLBACK_FEATURES 配列にエントリ追加（slug を一意に）
+ *    2. git push → デプロイ
+ *    3. /features/{slug} で表示
  */
 
 export interface FeatureEntry {
@@ -61,10 +56,10 @@ export interface FeatureArticle {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   記事データ
+   フォールバック記事データ（CMS が空 or 未設定なら使われる）
    ═══════════════════════════════════════════════════════════════ */
 
-export const FEATURES: FeatureArticle[] = [
+export const FALLBACK_FEATURES: FeatureArticle[] = [
   {
     slug: 'late-night-bars',
     tag: 'FEATURE · 特集',
@@ -220,13 +215,110 @@ export const FEATURES: FeatureArticle[] = [
   },
 ];
 
-export function findFeature(slug: string): FeatureArticle | null {
-  return FEATURES.find((f) => f.slug === slug) ?? null;
+/* ═══════════════════════════════════════════════════════════════
+   非同期取得：microCMS + フォールバックをマージ
+   ═══════════════════════════════════════════════════════════════ */
+
+import { fetchFeaturesFromCMS } from '../utils/api';
+
+let featuresPromise: Promise<FeatureArticle[]> | null = null;
+
+/** microCMS のレスポンスを FeatureArticle 形に正規化 */
+function normalizeCMSFeature(raw: Record<string, unknown>): FeatureArticle | null {
+  const slug = typeof raw.slug === 'string' ? raw.slug : null;
+  const title = typeof raw.title === 'string' ? raw.title : null;
+  if (!slug || !title) return null;
+
+  // microCMS の画像フィールドは { url, height, width } の形
+  const imgUrl = (v: unknown): string => {
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object' && 'url' in v) return String((v as { url: unknown }).url ?? '');
+    return '';
+  };
+
+  // 繰り返しフィールドは配列。CMS 上のフィールド ID 揺れに耐性を持たせる
+  const arrayOf = <T>(v: unknown, mapper: (item: Record<string, unknown>) => T | null): T[] => {
+    if (!Array.isArray(v)) return [];
+    return v.map((it) => mapper(it as Record<string, unknown>)).filter((x): x is T => x !== null);
+  };
+
+  return {
+    slug,
+    tag: String(raw.tag ?? ''),
+    title,
+    subtitle: String(raw.subtitle ?? ''),
+    heroImage: imgUrl(raw.heroImage),
+    cardImage: imgUrl(raw.cardImage) || undefined,
+    author: {
+      name: String(raw.authorName ?? 'stoguru 編集部'),
+      initial: String(raw.authorInitial ?? '編'),
+    },
+    date: String(raw.date ?? ''),
+    readMinutes: typeof raw.readMinutes === 'number' ? raw.readMinutes : 5,
+    location: raw.location ? String(raw.location) : undefined,
+    intro: arrayOf<string>(raw.intro, (it) => typeof it.text === 'string' ? it.text : null),
+    pullQuote: raw.pullQuote ? String(raw.pullQuote) : undefined,
+    body: arrayOf<string>(raw.body, (it) => typeof it.text === 'string' ? it.text : null),
+    entries: arrayOf<FeatureEntry>(raw.entries, (it) => {
+      const name = typeof it.name === 'string' ? it.name : null;
+      if (!name) return null;
+      return {
+        number: String(it.number ?? ''),
+        name,
+        location: String(it.location ?? ''),
+        genre: String(it.genre ?? ''),
+        hours: String(it.hours ?? ''),
+        photo: imgUrl(it.photo),
+        comment: arrayOf<string>(it.comment, (c) => typeof c.text === 'string' ? c.text : null),
+        info: {
+          price: String(it.price ?? ''),
+          access: String(it.access ?? ''),
+          seats: String(it.seats ?? ''),
+          reservation: String(it.reservation ?? ''),
+        },
+        tags: arrayOf<string>(it.tags, (c) => typeof c.text === 'string' ? c.text : null),
+        restaurantId: it.restaurantId ? String(it.restaurantId) : undefined,
+      };
+    }),
+    closingCTA: String(raw.closingCTA ?? '紹介した店をすべて保存'),
+    relatedSlugs: arrayOf<string>(raw.relatedSlugs, (it) => typeof it.slug === 'string' ? it.slug : null),
+  };
 }
 
-export function findRelated(slugs?: string[]): FeatureArticle[] {
+/** 全記事を取得：CMS 優先、失敗時は FALLBACK にマージダウン */
+export async function loadAllFeatures(): Promise<FeatureArticle[]> {
+  if (!featuresPromise) {
+    featuresPromise = (async () => {
+      const cmsRaw = await fetchFeaturesFromCMS();
+      const cmsArticles = cmsRaw
+        .map((r) => normalizeCMSFeature(r as Record<string, unknown>))
+        .filter((a): a is FeatureArticle => a !== null);
+      // CMS にあるものを優先、無い slug は FALLBACK で補完
+      const cmsSlugs = new Set(cmsArticles.map((a) => a.slug));
+      const merged = [
+        ...cmsArticles,
+        ...FALLBACK_FEATURES.filter((f) => !cmsSlugs.has(f.slug)),
+      ];
+      return merged;
+    })();
+  }
+  return featuresPromise;
+}
+
+export async function findFeature(slug: string): Promise<FeatureArticle | null> {
+  const all = await loadAllFeatures();
+  return all.find((f) => f.slug === slug) ?? null;
+}
+
+export async function findRelated(slugs?: string[]): Promise<FeatureArticle[]> {
   if (!slugs || slugs.length === 0) return [];
+  const all = await loadAllFeatures();
   return slugs
-    .map((s) => FEATURES.find((f) => f.slug === s))
+    .map((s) => all.find((f) => f.slug === s))
     .filter((f): f is FeatureArticle => !!f);
+}
+
+/** テスト・デバッグ用 */
+export function _resetFeaturesCache() {
+  featuresPromise = null;
 }

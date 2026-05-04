@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import dataRouter from './routes/data';
 import uploadRouter from './routes/upload';
 import adminRouter from './routes/admin';
+import featuresRouter from './routes/features';
 import influencerRouter from './routes/influencer';
 import feedbackRouter from './routes/feedback';
 import publicRouter from './routes/public';
@@ -143,6 +144,7 @@ app.use('/api/feedback', feedbackRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
+app.use('/api', featuresRouter); // /features (匿名アクセス可)
 
 // ─── ヘルスチェック ───
 app.get('/health', (_req, res) => {

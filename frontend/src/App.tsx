@@ -69,11 +69,15 @@ function Sidebar({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void
 
   return (
     <aside className="hidden lg:flex flex-col w-[220px] min-w-[220px] border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 h-svh sticky top-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-6">
-        <img src="/app-icon.png" alt="ストグル" className="w-8 h-8 rounded-lg" />
+      {/* Logo (click → home) */}
+      <button
+        onClick={() => onTabChange('home')}
+        className="flex items-center gap-2.5 px-5 py-6 hover:opacity-80 transition-opacity"
+        aria-label="ホームに戻る"
+      >
+        <img src="/app-icon.png" alt="" className="w-8 h-8 rounded-lg" />
         <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">ストグル</span>
-      </div>
+      </button>
 
       {/* Nav items */}
       <nav className="flex-1 flex flex-col gap-1 px-3 mt-2">

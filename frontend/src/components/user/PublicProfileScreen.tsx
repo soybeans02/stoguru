@@ -3,6 +3,8 @@ import * as api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { AuthModal } from '../auth/AuthModal';
+import { navigate } from '../../utils/navigate';
+import { FooterStrip } from '../feature/FeatureArticleScreen';
 
 interface PublicProfile {
   influencerId: string;
@@ -79,7 +81,7 @@ export function PublicProfileScreen({ userId }: Props) {
     return () => { cancelled = true; };
   }, [userId]);
 
-  const goHome = () => { window.history.pushState({}, '', '/'); window.location.reload(); };
+  const goHome = () => navigate('/');
 
   return (
     <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)]">
@@ -242,6 +244,8 @@ export function PublicProfileScreen({ userId }: Props) {
           </>
         )}
       </div>
+
+      <FooterStrip />
 
       <AuthModal
         isOpen={authModal !== null}

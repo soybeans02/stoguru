@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { findFeature, findRelated } from '../../data/features';
-import type { FeatureEntry } from '../../data/features';
+import type { FeatureArticle, FeatureEntry } from '../../data/features';
 import { AuthModal } from '../auth/AuthModal';
 import { navigate } from '../../utils/navigate';
 
@@ -14,9 +14,42 @@ export function FeatureArticleScreen({ slug }: Props) {
   const isAnonymous = !user;
   const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
   const [savedToast, setSavedToast] = useState(false);
+  const [article, setArticle] = useState<FeatureArticle | null>(null);
+  const [related, setRelated] = useState<FeatureArticle[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const article = findFeature(slug);
-  const related = findRelated(article?.relatedSlugs);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    findFeature(slug).then(async (a) => {
+      if (cancelled) return;
+      setArticle(a);
+      if (a) {
+        const r = await findRelated(a.relatedSlugs);
+        if (!cancelled) setRelated(r);
+      } else {
+        setRelated([]);
+      }
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="h-svh overflow-y-auto bg-[var(--bg)] text-[var(--text-primary)] flex flex-col">
+        <ArticleTopBar
+          isAnonymous={isAnonymous}
+          onSignUp={() => setAuthModal('signup')}
+          onLogIn={() => setAuthModal('login')}
+        />
+        <div className="flex-1 grid place-items-center px-6 py-20 text-center">
+          <p className="text-[14px] text-[var(--text-tertiary)]">読み込み中…</p>
+        </div>
+        <AuthModal isOpen={authModal !== null} initialMode={authModal ?? 'signup'} onClose={() => setAuthModal(null)} />
+      </div>
+    );
+  }
 
   if (!article) {
     return (

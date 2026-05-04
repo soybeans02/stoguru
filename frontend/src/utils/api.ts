@@ -299,6 +299,19 @@ export async function getSpotRanking(): Promise<RankedSpot[]> {
   return res.json();
 }
 
+// ─── 特集記事（microCMS 経由） ───
+
+export async function fetchFeaturesFromCMS(): Promise<unknown[]> {
+  try {
+    const res = await fetch(`${BASE}/features`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.contents) ? data.contents : [];
+  } catch {
+    return [];
+  }
+}
+
 // ─── 統合検索 ───
 
 export interface SearchResult {

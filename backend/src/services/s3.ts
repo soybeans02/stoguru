@@ -16,7 +16,15 @@ export async function generatePresignedUploadUrl(
   contentType: string,
   filename: string,
 ): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
-  const ext = path.extname(filename).replace('.', '') || 'jpg';
+  // 拡張子はホワイトリストから決定（filename 経由の偽装防止）
+  const extByMime: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  };
+  const fallbackExt = path.extname(filename).replace('.', '').toLowerCase();
+  const safeExtFromFilename = ['jpg', 'jpeg', 'png', 'webp'].includes(fallbackExt) ? fallbackExt : 'jpg';
+  const ext = extByMime[contentType] ?? safeExtFromFilename;
   const key = `photos/${userId}/${randomUUID()}.${ext}`;
 
   const command = new PutObjectCommand({

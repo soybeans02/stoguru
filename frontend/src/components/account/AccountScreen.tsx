@@ -124,39 +124,63 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('JPEG / PNG / WebP のみアップロードできます');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ファイルサイズは 5MB までです');
+      e.target.value = '';
+      return;
+    }
     setUploadingPhoto(true);
     try {
       const url = await api.uploadPhoto(file);
       setProfileImage(url);
       localStorage.setItem('cache:profileImage', url);
       await api.putSettings({ profileImage: url });
-    } catch {}
-    finally { setUploadingPhoto(false); }
+    } catch (err) {
+      console.error('Profile photo upload failed:', err);
+      alert('アップロードに失敗しました。もう一度お試しください。');
+    } finally { setUploadingPhoto(false); }
     e.target.value = '';
   }
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
-    if (file.size > 8 * 1024 * 1024) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('JPEG / PNG / WebP のみアップロードできます');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert('ファイルサイズは 8MB までです');
+      e.target.value = '';
+      return;
+    }
     setUploadingCover(true);
     try {
       const url = await api.uploadPhoto(file);
       setCoverImage(url);
       localStorage.setItem('cache:coverImage', url);
       await api.putSettings({ coverImage: url });
-    } catch {}
-    finally { setUploadingCover(false); }
+    } catch (err) {
+      console.error('Cover photo upload failed:', err);
+      alert('アップロードに失敗しました。もう一度お試しください。');
+    } finally { setUploadingCover(false); }
     e.target.value = '';
   }
 
   async function handleRemoveCover() {
     setCoverImage('');
     localStorage.removeItem('cache:coverImage');
-    try { await api.putSettings({ coverImage: '' }); } catch {}
+    try {
+      await api.putSettings({ coverImage: '' });
+    } catch (err) {
+      console.error('Failed to remove cover:', err);
+    }
   }
 
   if (showInfluencerDashboard) {
