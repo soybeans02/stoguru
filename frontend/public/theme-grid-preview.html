@@ -325,6 +325,25 @@
     background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 45%);
     pointer-events: none;
   }
+  .photo-bar {
+    position: absolute; top: 8px; left: 12px; right: 12px;
+    display: flex; gap: 3px; z-index: 4;
+    pointer-events: none;
+  }
+  .photo-bar > div {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.45);
+    transition: background 0.2s;
+  }
+  .photo-bar > div.active { background: white; }
+  /* Photo nav touch zones (covers left/right halves of photo) */
+  .photo-nav {
+    position: absolute; top: 0; bottom: 0;
+    width: 35%; z-index: 3;
+    cursor: pointer;
+  }
+  .photo-nav.left { left: 0; }
+  .photo-nav.right { right: 0; }
   .save-btn {
     position: absolute; top: 12px; right: 12px;
     width: 40px; height: 40px;
@@ -906,7 +925,10 @@
     <div class="modal-body">
       <h2 class="modal-name">炭火焼肉 三田屋 心斎橋本店</h2>
       <div class="modal-meta">
-        <span>📍 大阪 · 心斎橋</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary)"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          大阪 · 心斎橋
+        </span>
         <span>·</span>
         <span>焼肉</span>
         <span>·</span>
@@ -942,10 +964,12 @@
       </div>
       <div class="modal-actions">
         <button class="modal-action-btn">
-          🗺 マップで見る
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+          マップで見る
         </button>
         <button class="modal-action-btn primary">
-          公式サイトを開く →
+          公式サイトを開く
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </button>
       </div>
     </div>
@@ -953,7 +977,27 @@
 </div>
 
 <script>
+  /* ─── 詳細モーダル ─── */
+  const MODAL_PHOTOS = [
+    'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&q=85',
+    'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=1200&q=85',
+    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1200&q=85',
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=1200&q=85',
+    'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=1200&q=85',
+    'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=1200&q=85',
+  ];
+  let modalPhotoIndex = 0;
+  function setModalPhoto(i) {
+    modalPhotoIndex = (i + MODAL_PHOTOS.length) % MODAL_PHOTOS.length;
+    const img = document.querySelector('#modal .modal-photos > img');
+    if (img) img.src = MODAL_PHOTOS[modalPhotoIndex];
+    document.querySelectorAll('#modal .modal-photo-bar > div').forEach((d, idx) => {
+      d.classList.toggle('active', idx === modalPhotoIndex);
+    });
+  }
   function openModal() {
+    modalPhotoIndex = 0;
+    setModalPhoto(0);
     document.getElementById('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -962,7 +1006,66 @@
     document.body.style.overflow = '';
   }
   document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('modal').classList.contains('open')) return;
     if (e.key === 'Escape') closeModal();
+    if (e.key === 'ArrowLeft') setModalPhoto(modalPhotoIndex - 1);
+    if (e.key === 'ArrowRight') setModalPhoto(modalPhotoIndex + 1);
+  });
+
+  /* ─── カードの写真ナビ ─── */
+  // 各カードに 3-4 枚の写真をランダムに割り当ててプロトタイプ化
+  const CARD_PHOTO_POOL = [
+    'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800&q=85',
+    'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=800&q=85',
+    'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=800&q=85',
+    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=85',
+    'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=800&q=85',
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&q=85',
+    'https://images.unsplash.com/photo-1611601679008-3a0db49ed4d6?w=800&q=85',
+    'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=85',
+  ];
+
+  function setupCardPhotos(cardImage, photos) {
+    const img = cardImage.querySelector('img');
+    if (!img) return;
+    let idx = 0;
+    // photo-bar 追加
+    const bar = document.createElement('div');
+    bar.className = 'photo-bar';
+    photos.forEach((_, i) => {
+      const dot = document.createElement('div');
+      if (i === 0) dot.classList.add('active');
+      bar.appendChild(dot);
+    });
+    cardImage.insertBefore(bar, cardImage.firstChild);
+    // 左右ナビゾーン
+    const leftZone = document.createElement('div');
+    leftZone.className = 'photo-nav left';
+    const rightZone = document.createElement('div');
+    rightZone.className = 'photo-nav right';
+    cardImage.appendChild(leftZone);
+    cardImage.appendChild(rightZone);
+    function update(newIdx) {
+      idx = (newIdx + photos.length) % photos.length;
+      img.src = photos[idx];
+      bar.querySelectorAll('div').forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+    leftZone.addEventListener('click', (e) => { e.stopPropagation(); update(idx - 1); });
+    rightZone.addEventListener('click', (e) => { e.stopPropagation(); update(idx + 1); });
+  }
+
+  // 各カードに 3-5 枚の写真を割り当て
+  document.querySelectorAll('.card .card-image').forEach((ci, cardIdx) => {
+    const count = 3 + (cardIdx % 3); // 3, 4, 5 の循環
+    const start = cardIdx % CARD_PHOTO_POOL.length;
+    const photos = [];
+    for (let i = 0; i < count; i++) {
+      photos.push(CARD_PHOTO_POOL[(start + i) % CARD_PHOTO_POOL.length]);
+    }
+    // 初期画像を pool の最初に
+    const img = ci.querySelector('img');
+    if (img) img.src = photos[0];
+    setupCardPhotos(ci, photos);
   });
 </script>
 
