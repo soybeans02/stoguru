@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './context/LanguageContext';
 import { useGPS } from './hooks/useGPS';
@@ -17,7 +18,7 @@ import { FeatureArticleScreen } from './components/feature/FeatureArticleScreen'
 import { StaticPageScreen } from './components/feature/StaticPageScreen';
 import { ThemeListScreen } from './components/theme/ThemeListScreen';
 
-const LazyMapView = lazy(() =>
+const LazyMapView = lazyWithRetry(() =>
   import.meta.env.VITE_MAP_PROVIDER === 'mapbox'
     ? import('./components/map/SimpleMapViewMapbox').then(m => ({ default: m.SimpleMapViewMapbox }))
     : import('./components/map/SimpleMapView').then(m => ({ default: m.SimpleMapView }))
@@ -329,14 +330,16 @@ function MainApp() {
             )
           )}
           {tab === 'map' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">マップを読み込み中...</p></div>}>
-              <LazyMapView
-                stocks={stocks}
-                panTo={panTo}
-                onPanComplete={() => setPanTo(null)}
-                userPosition={position}
-              />
-            </Suspense>
+            <ErrorBoundary scope="inline">
+              <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">マップを読み込み中...</p></div>}>
+                <LazyMapView
+                  stocks={stocks}
+                  panTo={panTo}
+                  onPanComplete={() => setPanTo(null)}
+                  userPosition={position}
+                />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {tab === 'social' && (
             <SocialScreen
