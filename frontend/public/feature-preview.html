@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>深夜まで営業する隠れバー 12 選 | stoguru</title>
+<style>
+  :root {
+    --accent-orange: #f97316;
+    --accent-orange-grad-1: #fb923c;
+    --accent-orange-grad-2: #f97316;
+    --accent-gold: #f5b800;
+    --bg: #ffffff;
+    --bg-soft: #f5f3ee;
+    --card-bg: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --border: #f3f4f6;
+    --border-strong: #e5e7eb;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    color: var(--text-primary);
+    background: var(--bg);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+
+  /* ─── Top nav ─── */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    backdrop-filter: blur(20px);
+    background: color-mix(in srgb, #ffffff 88%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1100px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .logo {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-link { color: var(--text-secondary); font-size: 13px; font-weight: 500; padding: 8px 12px; }
+  .topbar-link:hover { color: var(--text-primary); }
+  .topbar-cta {
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    color: white; font-weight: 600; font-size: 12.5px;
+    padding: 9px 18px; border-radius: 9999px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .topbar-cta:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  /* ─── Hero ─── */
+  .hero {
+    position: relative;
+    height: 480px;
+    overflow: hidden;
+  }
+  .hero img {
+    width: 100%; height: 100%; object-fit: cover;
+    filter: brightness(0.85);
+  }
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%);
+  }
+  .hero-content {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-width: 1100px; margin: 0 auto;
+    padding: 0 24px 48px;
+    color: white;
+  }
+  .hero-tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(255,255,255,0.2); backdrop-filter: blur(12px);
+    padding: 5px 12px; border-radius: 9999px;
+    margin-bottom: 16px;
+  }
+  .hero-title {
+    font-size: 44px; font-weight: 800; letter-spacing: -0.025em;
+    line-height: 1.15; margin: 0 0 16px;
+    max-width: 760px;
+  }
+  .hero-subtitle {
+    font-size: 16px; opacity: 0.92;
+    max-width: 640px; line-height: 1.6;
+  }
+  .hero-meta {
+    display: flex; align-items: center; gap: 14px;
+    margin-top: 24px; font-size: 13px; opacity: 0.88;
+  }
+  .author-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    display: grid; place-items: center; font-weight: 700; color: white;
+    font-size: 14px;
+  }
+  .author-meta { display: flex; flex-direction: column; gap: 1px; }
+  .author-name { font-weight: 600; }
+  .author-date { opacity: 0.75; font-size: 12px; }
+  .meta-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.3); }
+
+  /* ─── Article body ─── */
+  .article {
+    max-width: 760px; margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  .lead {
+    font-size: 18px; line-height: 1.85;
+    color: var(--text-primary);
+    margin: 0 0 32px;
+  }
+  .article p {
+    font-size: 16px; line-height: 1.85;
+    color: var(--text-primary);
+    margin: 0 0 22px;
+  }
+  .article h2 {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
+    margin: 56px 0 16px;
+  }
+  .pull-quote {
+    border-left: 3px solid var(--accent-orange);
+    padding: 4px 0 4px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 17px;
+  }
+
+  /* ─── Restaurant entries ─── */
+  .entries { max-width: 880px; margin: 0 auto; padding: 0 24px 80px; }
+  .entry {
+    border-top: 1px solid var(--border-strong);
+    padding: 56px 0;
+  }
+  .entry:last-child { border-bottom: 1px solid var(--border-strong); }
+  .entry-header {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .entry-number {
+    font-size: 56px; font-weight: 800; line-height: 1;
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.04em;
+    flex-shrink: 0;
+  }
+  .entry-title-block { flex: 1; min-width: 0; }
+  .entry-name {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+  .entry-meta {
+    color: var(--text-tertiary); font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .entry-meta .dot { opacity: 0.5; }
+  .entry-photo {
+    aspect-ratio: 16/9;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+  }
+  .entry-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .entry-comment p { font-size: 16px; line-height: 1.85; margin: 0 0 18px; }
+  .entry-card {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .info-list {
+    display: flex; flex-wrap: wrap; gap: 14px 24px;
+    font-size: 13px;
+  }
+  .info-item { display: flex; flex-direction: column; gap: 2px; }
+  .info-label { color: var(--text-tertiary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .info-value { color: var(--text-primary); font-weight: 600; }
+  .save-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: 9999px;
+    background: white;
+    border: 1px solid var(--border-strong);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+  }
+  .save-btn:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .save-btn svg { fill: none; stroke: currentColor; stroke-width: 2; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag-pill {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 9999px;
+    color: var(--accent-orange);
+    background: rgba(244, 128, 15, 0.1);
+  }
+
+  /* ─── Closing / Related ─── */
+  .closing {
+    max-width: 760px; margin: 0 auto;
+    padding: 0 24px 80px;
+    text-align: center;
+  }
+  .closing-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2));
+    color: white; font-weight: 700; font-size: 14px;
+    padding: 14px 28px; border-radius: 9999px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+  }
+  .closing-cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  .related {
+    background: var(--bg-soft);
+    padding: 64px 24px 80px;
+  }
+  .related-inner { max-width: 1100px; margin: 0 auto; }
+  .related-title {
+    font-size: 24px; font-weight: 800; letter-spacing: -0.02em;
+    margin: 0 0 24px;
+  }
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .related-card {
+    aspect-ratio: 4/3;
+    border-radius: 14px; overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .related-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .related-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.7s ease; }
+  .related-card:hover img { transform: scale(1.05); }
+  .related-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.85) 100%);
+    color: white;
+    padding: 20px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .related-overlay .tag { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.9; text-transform: uppercase; }
+  .related-overlay h3 { font-size: 16px; font-weight: 700; margin: 4px 0 0; line-height: 1.4; }
+
+  /* ─── Footer ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+
+  /* ─── Mobile ─── */
+  @media (max-width: 768px) {
+    .hero { height: 380px; }
+    .hero-title { font-size: 30px; }
+    .hero-subtitle { font-size: 14px; }
+    .article { padding: 40px 20px 60px; }
+    .article p, .lead { font-size: 15px; }
+    .lead { font-size: 17px; }
+    .entries { padding: 0 20px 60px; }
+    .entry { padding: 40px 0; }
+    .entry-number { font-size: 42px; }
+    .entry-name { font-size: 22px; }
+    .entry-card { grid-template-columns: 1fr; gap: 14px; }
+    .related-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top nav -->
+<nav class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="logo">stoguru</a>
+    <div class="topbar-spacer"></div>
+    <a href="/" class="topbar-link">特集一覧</a>
+    <a href="/" class="topbar-link">ホーム</a>
+    <a href="/" class="topbar-cta">アプリで開く</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <img src="https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=1600&q=85" alt="" />
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <span class="hero-tag">FEATURE · 特集</span>
+    <h1 class="hero-title">深夜まで営業する隠れバー、12 選。</h1>
+    <p class="hero-subtitle">
+      終電を逃した夜、もう一杯だけ。地元客に愛され、観光ガイドには載らない、
+      25 時以降も扉を開けてる大阪・梅田のバーを編集部が厳選。
+    </p>
+    <div class="hero-meta">
+      <div class="author-avatar">編</div>
+      <div class="author-meta">
+        <span class="author-name">stoguru 編集部</span>
+        <span class="author-date">2026年5月4日 · 読了 8 分</span>
+      </div>
+      <div class="meta-divider"></div>
+      <span>📍 大阪・梅田</span>
+    </div>
+  </div>
+</header>
+
+<!-- Article body -->
+<article class="article">
+  <p class="lead">
+    24 時を過ぎると、街は別の顔を見せる。観光客が引いて、店の灯りも半分以下。
+    そんな時間に、まだ静かに開いてる扉がある。今回は深夜営業を続ける、
+    地元の常連たちが愛するバーを 12 軒、編集部が実際に飲み歩いて選んだ。
+  </p>
+
+  <p>
+    「深夜営業」と一口に言っても色んなタイプがある。終電後の会社員が立ち寄る一杯系、
+    朝までジン一辺倒のオーセンティック、ラーメンと同居するカジュアルな立ち飲み。
+    今回ピックしたのは、その「店主の人柄」が滲み出ている店ばかり。一人で行っても
+    話しかけられすぎず、でも常連と隣り合えば自然と会話が生まれる、ちょうどいい空気感。
+  </p>
+
+  <div class="pull-quote">
+    深夜のバーは「もう一軒」じゃない。1 軒目に来ても、その店だけで完結する。
+  </div>
+
+  <p>
+    値段帯は 1 杯 ¥800〜¥1,800 程度。最初の 1 杯は店主のおすすめを聞くのが
+    間違いない。ジントニックやハイボールなら、その店の質がそのまま出る。
+  </p>
+</article>
+
+<!-- Restaurant entries -->
+<section class="entries">
+
+  <!-- Entry 1 -->
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-number">01</span>
+      <div class="entry-title-block">
+        <h2 class="entry-name">Bar 月光</h2>
+        <div class="entry-meta">
+          <span>大阪 · 北新地</span><span class="dot">·</span>
+          <span>オーセンティックバー</span><span class="dot">·</span>
+          <span>営業 19:00 – 5:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="entry-photo">
+      <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1200&q=85" alt="" />
+    </div>
+    <div class="entry-comment">
+      <p>
+        北新地のビルの地下、看板も控えめな扉を開けると、コの字のカウンターと
+        マスター・小林さん。1972 年生まれのこの店は、二代目が継いでもう 8 年。
+      </p>
+      <p>
+        「最初の 1 杯はジン、二杯目はウイスキー、三杯目は気分で」というルールが
+        常連の中だけにある。ジントニックの氷ひとつにかける時間が見ていて気持ちいい。
+        2 時を過ぎると常連同士の小声の会話が混じって、店の温度がじんわり上がる。
+      </p>
+    </div>
+    <div class="entry-card">
+      <div class="info-list">
+        <div class="info-item"><span class="info-label">価格帯</span><span class="info-value">¥3,000〜¥5,000</span></div>
+        <div class="info-item"><span class="info-label">アクセス</span><span class="info-value">北新地駅 3 分</span></div>
+        <div class="info-item"><span class="info-label">座席</span><span class="info-value">カウンター 8 / テーブル 4</span></div>
+        <div class="info-item"><span class="info-label">予約</span><span class="info-value">推奨</span></div>
+      </div>
+      <button class="save-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        保存する
+      </button>
+    </div>
+    <div class="tags">
+      <span class="tag-pill">バー</span>
+      <span class="tag-pill">深夜営業</span>
+      <span class="tag-pill">ジン</span>
+      <span class="tag-pill">カウンター</span>
+    </div>
+  </div>
+
+  <!-- Entry 2 -->
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-number">02</span>
+      <div class="entry-title-block">
+        <h2 class="entry-name">立ち呑み 三日月</h2>
+        <div class="entry-meta">
+          <span>大阪 · 西梅田</span><span class="dot">·</span>
+          <span>立ち飲みバー</span><span class="dot">·</span>
+          <span>営業 17:00 – 4:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="entry-photo">
+      <img src="https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=1200&q=85" alt="" />
+    </div>
+    <div class="entry-comment">
+      <p>
+        オーセンティックの対極。ガード下、5 坪、立ち飲み。それでも 25 時を過ぎる頃には
+        近所の店主たちが「上がり」で集まってくる、夜の終着点みたいな店。
+      </p>
+      <p>
+        オススメはハイボール ¥500 と、隣の中華屋から取り寄せる焼売 ¥400。
+        「うちはツマミは外注ですから」と笑う店主・橋本さんの飄々とした感じが
+        この店の空気を作ってる。一人客率 8 割。
+      </p>
+    </div>
+    <div class="entry-card">
+      <div class="info-list">
+        <div class="info-item"><span class="info-label">価格帯</span><span class="info-value">¥1,500〜¥2,500</span></div>
+        <div class="info-item"><span class="info-label">アクセス</span><span class="info-value">西梅田駅 1 分</span></div>
+        <div class="info-item"><span class="info-label">座席</span><span class="info-value">立ち飲み 12 名</span></div>
+        <div class="info-item"><span class="info-label">予約</span><span class="info-value">不可</span></div>
+      </div>
+      <button class="save-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        保存する
+      </button>
+    </div>
+    <div class="tags">
+      <span class="tag-pill">立ち飲み</span>
+      <span class="tag-pill">深夜営業</span>
+      <span class="tag-pill">ひとり飲み</span>
+      <span class="tag-pill">¥500 ハイボール</span>
+    </div>
+  </div>
+
+  <!-- Entry 3 -->
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-number">03</span>
+      <div class="entry-title-block">
+        <h2 class="entry-name">Coffee &amp; Bar 黒猫</h2>
+        <div class="entry-meta">
+          <span>大阪 · 中崎町</span><span class="dot">·</span>
+          <span>カフェバー</span><span class="dot">·</span>
+          <span>営業 14:00 – 3:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="entry-photo">
+      <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1200&q=85" alt="" />
+    </div>
+    <div class="entry-comment">
+      <p>
+        昼はコーヒー、夜はバー。中崎町の路地裏、築 70 年の長屋を改装した一軒。
+        オーナー田中さんは元バリスタ・元バーテンダーの異色の経歴。
+      </p>
+      <p>
+        深夜は本を読みに来る客が多い。BGM はジャズで、明かりは絞られている。
+        コーヒーカクテル「黒猫」¥900 がこの店の代名詞。エスプレッソとカルーア、
+        その上に薄く浮かぶクリーム。三度目に注文するとマスターが少し笑う。
+      </p>
+    </div>
+    <div class="entry-card">
+      <div class="info-list">
+        <div class="info-item"><span class="info-label">価格帯</span><span class="info-value">¥2,000〜¥3,500</span></div>
+        <div class="info-item"><span class="info-label">アクセス</span><span class="info-value">中崎町駅 4 分</span></div>
+        <div class="info-item"><span class="info-label">座席</span><span class="info-value">カウンター 6 / 小上がり 4</span></div>
+        <div class="info-item"><span class="info-label">予約</span><span class="info-value">夜のみ可</span></div>
+      </div>
+      <button class="save-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        保存する
+      </button>
+    </div>
+    <div class="tags">
+      <span class="tag-pill">カフェバー</span>
+      <span class="tag-pill">深夜営業</span>
+      <span class="tag-pill">読書</span>
+      <span class="tag-pill">古民家</span>
+    </div>
+  </div>
+
+  <!-- Entry 4-12 (省略表示) -->
+  <div class="entry" style="opacity: 0.5; text-align: center; padding: 80px 0; color: var(--text-tertiary); font-style: italic;">
+    [ 残り 04 — 12 軒分のエントリー ]<br/>
+    <small>本実装ではすべて表示</small>
+  </div>
+
+</section>
+
+<!-- Closing -->
+<div class="closing">
+  <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 20px;">
+    気になったお店は stoguru アプリで保存して、近くを通った時に思い出そう。
+  </p>
+  <button class="closing-cta">
+    12 軒すべてを保存リストに追加 →
+  </button>
+</div>
+
+<!-- Related features -->
+<section class="related">
+  <div class="related-inner">
+    <h2 class="related-title">他の特集</h2>
+    <div class="related-grid">
+      <div class="related-card">
+        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=85" alt="" />
+        <div class="related-overlay">
+          <span class="tag">DATE · デート</span>
+          <h3>夜景が綺麗な、デート向き 8 軒</h3>
+        </div>
+      </div>
+      <div class="related-card">
+        <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=85" alt="" />
+        <div class="related-overlay">
+          <span class="tag">LUNCH · ランチ</span>
+          <h3>ランチ ¥1,000 以下、ヒット 10 選</h3>
+        </div>
+      </div>
+      <div class="related-card">
+        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=85" alt="" />
+        <div class="related-overlay">
+          <span class="tag">SOLO · ひとり</span>
+          <h3>ひとりでも入りやすい、カウンター焼肉</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 stoguru · Made with 🧡 in Osaka
+</footer>
+
+</body>
+</html>
