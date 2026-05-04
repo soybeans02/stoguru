@@ -8,6 +8,7 @@ import {
   incrementStockCount, invalidateSearchCache,
   lookupRestaurantByUrl, searchRestaurantsV2,
   getStockRankingV2,
+  getTopRestaurantsByStockCount,
   // 既存
   getUserSettings, putUserSettings,
   followUser, unfollowUser, getFollowing,
@@ -813,7 +814,7 @@ router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Respons
   res.json({ ok: true });
 });
 
-// ─── 保存ランキング（投稿者別） ───
+// ─── 投稿者ランキング（保存数の合計） ───
 
 router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
   const ranking = await getStockRankingV2(5);
@@ -832,6 +833,13 @@ router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => 
     }
   }));
   res.json(withProfiles);
+});
+
+// ─── 保存ランキング（お店別） ───
+
+router.get('/ranking/spots', requireAuth, async (_req: AuthRequest, res: Response) => {
+  const spots = await getTopRestaurantsByStockCount(10);
+  res.json(spots);
 });
 
 // UserStock type import for sync

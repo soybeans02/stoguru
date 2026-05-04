@@ -280,6 +280,25 @@ export async function getStockRanking(): Promise<RankedUser[]> {
   return res.json();
 }
 
+// ─── 保存ランキング（お店別） ───
+
+export interface RankedSpot {
+  restaurantId: string;
+  name: string;
+  stockCount: number;
+  photoUrls?: string[];
+  genres?: string[];
+  priceRange?: string;
+  address?: string;
+  postedBy?: string;
+}
+
+export async function getSpotRanking(): Promise<RankedSpot[]> {
+  const res = await fetchWithRetry(`${BASE}/ranking/spots`, { headers: headers() });
+  if (!res.ok) throw new Error('保存ランキング取得に失敗しました');
+  return res.json();
+}
+
 // ─── 統合検索 ───
 
 export interface SearchResult {

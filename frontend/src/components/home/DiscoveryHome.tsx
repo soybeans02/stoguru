@@ -125,6 +125,7 @@ export function DiscoveryHome({
 
   // Ranking
   const [ranking, setRanking] = useState<api.RankedUser[]>([]);
+  const [spotRanking, setSpotRanking] = useState<api.RankedSpot[]>([]);
 
   /* Fetch feed */
   useEffect(() => {
@@ -154,12 +155,16 @@ export function DiscoveryHome({
     };
   }, [userPosition?.lat, userPosition?.lng, refreshKey]);
 
-  /* Fetch ranking (Top 3 only — drop ties beyond rank 3) */
+  /* Fetch rankings (Top 3 each) */
   useEffect(() => {
     api
       .getStockRanking()
       .then((r) => setRanking(r.slice(0, 3)))
       .catch(() => setRanking([]));
+    api
+      .getSpotRanking()
+      .then((s) => setSpotRanking(s.slice(0, 3)))
+      .catch(() => setSpotRanking([]));
   }, []);
 
   /* Filter feed by active category */
@@ -370,13 +375,36 @@ export function DiscoveryHome({
           </div>
         </section>
 
-        {/* ─── Ranking ─── */}
-        {ranking.length > 0 && (
+        {/* ─── Spot ranking (保存数の多いお店) ─── */}
+        {spotRanking.length > 0 && (
           <section className="py-10">
             <SectionHead
               title={t('home.rankingTitle')}
               subtitle={t('home.rankingSubtitle')}
-              link={t('home.rankingViewAll')}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {spotRanking.map((s, idx) => (
+                <SpotRankCard
+                  key={s.restaurantId}
+                  rank={idx + 1}
+                  spot={s}
+                  bookmarked={stockedIds.includes(s.restaurantId)}
+                  visited={visitedIds.includes(s.restaurantId)}
+                  onClick={() => setPreviewRestaurant(spotToFeedRestaurant(s))}
+                  onBookmark={() => handleBookmark(spotToFeedRestaurant(s))}
+                  visitedLabel={t('home.visitedTag')}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ─── Poster ranking (投稿者) ─── */}
+        {ranking.length > 0 && (
+          <section className="py-10">
+            <SectionHead
+              title={t('home.posterRankingTitle')}
+              subtitle={t('home.posterRankingSubtitle')}
             />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {ranking.map((u, idx) => (
@@ -739,6 +767,116 @@ function SectionHead({
       )}
     </div>
   );
+}
+
+/* お店ランキング用カード（保存数の多いお店） */
+function SpotRankCard({
+  rank,
+  spot,
+  bookmarked,
+  visited,
+  onClick,
+  onBookmark,
+  visitedLabel,
+}: {
+  rank: number;
+  spot: api.RankedSpot;
+  bookmarked: boolean;
+  visited: boolean;
+  onClick: () => void;
+  onBookmark: () => void;
+  visitedLabel: string;
+}) {
+  const colors = ['var(--accent-gold)', '#999', '#c47b3a'];
+  const photo = (spot.photoUrls && spot.photoUrls[0]) || fallbackPhoto(spot.restaurantId);
+  return (
+    <button
+      onClick={onClick}
+      className="group text-left bg-[var(--card-bg)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)]"
+    >
+      <div className="aspect-[16/10] relative overflow-hidden bg-[var(--bg-soft)]">
+        <img
+          src={photo}
+          alt={spot.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(spot.restaurantId);
+          }}
+        />
+        <div
+          className="absolute top-3 left-3 bg-[var(--card-bg)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
+          style={{ color: colors[rank - 1] ?? colors[2] }}
+        >
+          {rank === 1 ? <CrownIcon size={14} /> : <MedalIcon size={14} />} {rank}位
+        </div>
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+          {spot.stockCount} saved
+        </div>
+        <span
+          onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+          role="button"
+          aria-label="bookmark"
+          className={`absolute bottom-3 right-3 w-8 h-8 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 cursor-pointer ${
+            bookmarked ? '' : 'bg-white/92'
+          }`}
+          style={
+            bookmarked
+              ? { background: 'var(--accent-orange)' }
+              : { background: 'rgba(255,255,255,0.92)' }
+          }
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill={bookmarked ? 'white' : 'none'}
+            stroke={bookmarked ? 'white' : '#1a1a1a'}
+            strokeWidth="2"
+          >
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </span>
+      </div>
+      <div className="px-4 py-3.5">
+        <div className="text-[15px] font-bold tracking-[-0.01em] truncate" title={spot.name}>
+          {spot.name}
+        </div>
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mt-1 flex-wrap">
+          {spot.genres?.[0] && <span>{spot.genres[0]}</span>}
+          {spot.genres?.[0] && spot.priceRange && <span className="opacity-50">·</span>}
+          {spot.priceRange && <span>{spot.priceRange}</span>}
+        </div>
+        {visited && (
+          <span
+            className="inline-flex items-center gap-1 mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ color: 'var(--visited-green)', background: 'rgba(140,199,64,0.12)' }}
+          >
+            <CheckIcon size={11} /> {visitedLabel}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/* RankedSpot を FeedRestaurant に変換してプレビューモーダルに渡す */
+function spotToFeedRestaurant(s: api.RankedSpot): FeedRestaurant {
+  return {
+    id: s.restaurantId,
+    name: s.name,
+    address: s.address ?? '',
+    lat: 0,
+    lng: 0,
+    genre: s.genres?.[0] ?? '',
+    scene: [],
+    priceRange: s.priceRange ?? '',
+    distance: '',
+    influencer: { name: '', handle: '', platform: 'tiktok' },
+    videoUrl: '',
+    photoEmoji: '🍽️',
+    photoUrls: s.photoUrls,
+    genres: s.genres,
+  };
 }
 
 function RankCard({
@@ -1315,43 +1453,54 @@ function RestaurantPreviewModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[560px] md:h-[620px] lg:h-[680px]"
+        className="flex flex-col gap-3 w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <SwipeCard
-          restaurant={restaurant}
-          distance={distance}
-          onSwipeComplete={() => onClose()}
-          active={false}
-        />
-        {/* 閉じるボタン */}
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md grid place-items-center text-white hover:bg-black/70 transition-colors"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-        {/* 保存ボタン */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onBookmark(); }}
-          aria-label={bookmarked ? 'Unsave' : 'Save'}
-          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md grid place-items-center hover:bg-black/70 transition-colors"
-          style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill={bookmarked ? 'white' : 'none'}
-            stroke="white"
-            strokeWidth="2"
+        {/* ヘッダー：カードの外側に配置して被りを防ぐ */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-colors"
           >
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+            aria-label={bookmarked ? 'Unsave' : 'Save'}
+            className={`flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] backdrop-blur-md transition-colors ${
+              bookmarked
+                ? 'text-white'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+            style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill={bookmarked ? 'white' : 'none'}
+              stroke="white"
+              strokeWidth="2"
+            >
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            {bookmarked ? '保存済み' : '保存'}
+          </button>
+        </div>
+
+        {/* カード本体 */}
+        <div className="relative w-full h-[520px] md:h-[580px] lg:h-[640px]">
+          <SwipeCard
+            restaurant={restaurant}
+            distance={distance}
+            onSwipeComplete={() => onClose()}
+            active={false}
+            preview
+          />
+        </div>
       </div>
     </div>
   );

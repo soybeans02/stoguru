@@ -516,6 +516,8 @@ async function getSearchCache(): Promise<RestaurantV2[]> {
 
 export function invalidateSearchCache() {
   searchCacheExpiry = 0;
+  spotsRankingExpiry = 0;
+  rankingCacheExpiry = 0;
 }
 
 export async function searchRestaurantsV2(query: string, limit = 20): Promise<RestaurantV2[]> {
@@ -539,6 +541,34 @@ export async function searchRestaurantsV2(query: string, limit = 20): Promise<Re
 let rankingCache: { postedBy: string; totalStocks: number }[] = [];
 let rankingCacheExpiry = 0;
 const RANKING_CACHE_TTL = 10 * 60_000; // 10分
+
+// お店ごとのストック数ランキング（個別レストラン）
+let spotsRankingCache: RestaurantV2[] = [];
+let spotsRankingExpiry = 0;
+const SPOTS_RANKING_TTL = 10 * 60_000;
+
+export async function getTopRestaurantsByStockCount(limit = 10): Promise<RestaurantV2[]> {
+  if (Date.now() < spotsRankingExpiry && spotsRankingCache.length > 0) {
+    return spotsRankingCache.slice(0, limit);
+  }
+
+  const items: RestaurantV2[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.restaurantsV2,
+      ExclusiveStartKey: lastKey,
+    }));
+    items.push(...((result.Items ?? []) as RestaurantV2[]));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+
+  spotsRankingCache = items
+    .filter((r) => r.stockCount > 0 && r.visibility !== 'private' && r.visibility !== 'hidden')
+    .sort((a, b) => b.stockCount - a.stockCount);
+  spotsRankingExpiry = Date.now() + SPOTS_RANKING_TTL;
+  return spotsRankingCache.slice(0, limit);
+}
 
 export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string; totalStocks: number }[]> {
   if (Date.now() < rankingCacheExpiry && rankingCache.length > 0) {

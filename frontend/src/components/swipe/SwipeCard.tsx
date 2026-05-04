@@ -7,9 +7,11 @@ interface Props {
   onSwipeComplete: (direction: 'left' | 'right' | 'up') => void;
   active: boolean;
   flyOut?: 'left' | 'right' | 'up' | null;
+  /** プレビュー用：ドラッグ無効、不透明度 100%、写真ナビは可能 */
+  preview?: boolean;
 }
 
-export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOut }: Props) {
+export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOut, preview }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<'left' | 'right' | 'up' | null>(null);
@@ -134,6 +136,10 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
         ? 'translateX(120%) rotate(15deg)'
         : 'translateX(-120%) rotate(-15deg)';
     opacity = 0;
+  } else if (preview) {
+    // プレビューモード：完全に不透明、変形なし
+    transform = 'none';
+    opacity = 1;
   } else if (active) {
     transform = `translate(${offset.x}px, ${offset.y}px) rotate(${offset.x * 0.06}deg)`;
     opacity = Math.max(0.3, 1 - Math.abs(offset.x) / 400);
