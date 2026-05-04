@@ -289,7 +289,7 @@ export function DiscoveryHome({
         userNickname={user?.nickname}
       />
 
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1280px] xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* ─── Hero ─── */}
         <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-12 items-center py-8 sm:py-10 lg:py-12">
           <div>
@@ -557,16 +557,49 @@ export function DiscoveryHome({
             onLinkClick={onOpenSwipe}
           />
           {feedLoading ? (
-            <div className="py-20 text-center text-[var(--text-tertiary)] text-sm">
-              {t('home.feedLoading')}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {/* スケルトンカード（10 枚） */}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="bg-[var(--card-bg)] rounded-[var(--radius-lg)] border border-[var(--border)] overflow-hidden">
+                  <div className="aspect-[4/3] bg-[var(--bg-soft)] animate-pulse" />
+                  <div className="p-3.5">
+                    <div className="h-3.5 bg-[var(--bg-soft)] rounded animate-pulse w-3/4 mb-2" />
+                    <div className="h-2.5 bg-[var(--bg-soft)] rounded animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredFeed.length === 0 ? (
-            <div className="py-20 text-center text-[var(--text-tertiary)] text-sm">
-              {t('home.feedEmpty')}
+            <div className="py-16 px-6 text-center bg-[var(--card-bg)] rounded-[var(--radius-2xl)] border border-[var(--border)]">
+              <div
+                className="w-16 h-16 rounded-full mx-auto mb-4 grid place-items-center"
+                style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
+              >
+                <PlateIcon size={28} />
+              </div>
+              <p className="text-[15px] font-bold mb-1.5">該当するお店が見つかりませんでした</p>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mb-5 max-w-[360px] mx-auto">
+                絞り込み条件をゆるめるか、別のカテゴリを試してみて。新しいお店を保存するとレコメンドが磨かれます。
+              </p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <button
+                  onClick={() => { setActiveCategory('all'); setSelectedScenes([]); setSelectedGenres([]); setPriceMin(0); setPriceMax(10000); }}
+                  className="px-4 py-2 rounded-full border border-[var(--border-strong)] text-[12.5px] font-semibold hover:bg-[var(--bg-soft)] transition-colors"
+                >
+                  絞り込みをクリア
+                </button>
+                <button
+                  onClick={onOpenSwipe}
+                  className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all"
+                  style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
+                >
+                  スワイプで探す →
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {filteredFeed.slice(0, 8).map((r) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {filteredFeed.slice(0, 10).map((r) => (
                 <RestaurantCard
                   key={r.id}
                   restaurant={r}
@@ -583,64 +616,56 @@ export function DiscoveryHome({
           )}
         </section>
 
-        {/* ─── Map preview ─── */}
-        <section className="py-10">
-          <div className="bg-[var(--card-bg)] rounded-[var(--radius-2xl)] overflow-hidden shadow-[var(--shadow-md)] grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] min-h-[360px] border border-[var(--border)]">
-            <div className="p-6 sm:p-8 flex flex-col justify-center">
-              <h3 className="text-[22px] sm:text-[24px] font-extrabold tracking-[-0.015em] mb-2.5">
+        {/* ─── Map preview (compact) ─── */}
+        <section className="py-8">
+          <div className="bg-[var(--card-bg)] rounded-[var(--radius-2xl)] overflow-hidden shadow-[var(--shadow)] grid grid-cols-1 sm:grid-cols-[1.2fr_1fr] min-h-[180px] sm:min-h-[200px] border border-[var(--border)]">
+            <div className="p-5 sm:p-6 flex flex-col justify-center">
+              <h3 className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.015em] mb-1.5">
                 {t('home.mapTitle')}
               </h3>
-              <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-5">
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4 line-clamp-2 sm:line-clamp-none">
                 {t('home.mapDescription')}
               </p>
-              <div className="flex flex-col gap-3 mb-6">
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
                 {[
                   { Icon: MapPinIcon, text: t('home.mapFeature1') },
                   { Icon: FilterIcon, text: t('home.mapFeature2') },
                   { Icon: MapIcon, text: t('home.mapFeature3') },
                 ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-[13px]">
-                    <span
-                      className="w-7 h-7 rounded-lg grid place-items-center"
-                      style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}
-                    >
-                      <f.Icon size={14} />
-                    </span>
+                  <div key={i} className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]">
+                    <span style={{ color: 'var(--accent-orange)' }}><f.Icon size={12} /></span>
                     <span>{f.text}</span>
                   </div>
                 ))}
               </div>
               <button
                 onClick={onOpenMap}
-                className="self-start px-5 py-2.5 rounded-full text-[13px] font-semibold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                className="self-start px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
                 style={{
                   background:
                     'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
                 }}
               >
-                {t('home.mapOpen')}
+                {t('home.mapOpen')} →
               </button>
             </div>
             <div
-              className="relative min-h-[280px]"
+              className="relative min-h-[160px] sm:min-h-full"
               style={{
                 background:
                   'linear-gradient(135deg, #e8ebef 25%, transparent 25%, transparent 75%, #e8ebef 75%), linear-gradient(135deg, #e8ebef 25%, transparent 25%, transparent 75%, #e8ebef 75%), #f0f3f6',
-                backgroundSize: '32px 32px',
-                backgroundPosition: '0 0, 16px 16px',
+                backgroundSize: '24px 24px',
+                backgroundPosition: '0 0, 12px 12px',
               }}
             >
-              <div className="absolute top-4 left-4 right-4 bg-[var(--card-bg)] rounded-[var(--radius-lg)] px-3.5 py-2.5 flex items-center gap-2.5 shadow-[var(--shadow-md)] text-[13px] font-semibold">
-                <span style={{ color: 'var(--visited-green)' }}><MapPinIcon size={16} /></span>
-                {t('home.mapBanner')}
-                <span className="ml-auto text-[var(--text-tertiary)] font-normal">2件</span>
+              <div className="absolute top-3 left-3 right-3 bg-[var(--card-bg)] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-[var(--shadow-md)] text-[11.5px] font-semibold">
+                <span style={{ color: 'var(--visited-green)' }}><MapPinIcon size={13} /></span>
+                <span className="truncate">{t('home.mapBanner')}</span>
               </div>
-              <MapPin top="35%" left="22%" color="var(--accent-orange)"><BurgerIcon size={14} /></MapPin>
-              <MapPin top="48%" left="38%" color="var(--visited-green)"><NoodleIcon size={14} /></MapPin>
-              <MapPin top="30%" left="55%" color="var(--accent-orange)"><CafeIcon size={14} /></MapPin>
-              <MapPin top="60%" left="48%" color="var(--accent-purple)"><ItalianIcon size={14} /></MapPin>
-              <MapPin top="65%" left="68%" color="var(--text-primary)" cluster>12</MapPin>
-              <MapPin top="40%" left="75%" color="var(--accent-orange)"><MeatIcon size={14} /></MapPin>
+              <MapPin top="40%" left="22%" color="var(--accent-orange)"><BurgerIcon size={12} /></MapPin>
+              <MapPin top="55%" left="42%" color="var(--visited-green)"><NoodleIcon size={12} /></MapPin>
+              <MapPin top="35%" left="62%" color="var(--accent-orange)"><CafeIcon size={12} /></MapPin>
+              <MapPin top="68%" left="68%" color="var(--text-primary)" cluster>12</MapPin>
             </div>
           </div>
         </section>
@@ -797,7 +822,7 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
+      <div className="max-w-[1280px] xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示 */}
         <div
           className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden"
@@ -1053,12 +1078,10 @@ function RankCard({
 }) {
   const colors = ['var(--accent-gold)', '#999', '#c47b3a'];
   const photo = user.profilePhotoUrl || fallbackPhoto(user.userId);
-  // Synthesized rating + genre for visual richness (not from API)
-  const ratings = ['4.8', '4.6', '4.7'];
   return (
     <button
       onClick={onClick}
-      className="text-left bg-[var(--card-bg)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)]"
+      className="group text-left bg-[var(--card-bg)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)]"
     >
       <div className="aspect-[16/10] relative overflow-hidden bg-[var(--bg-soft)]">
         <img
@@ -1070,36 +1093,23 @@ function RankCard({
           }}
         />
         <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }}
+        />
+        <div
           className="absolute top-3 left-3 bg-[var(--card-bg)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
           style={{ color: colors[rank - 1] ?? colors[2] }}
         >
           {rank === 1 ? <CrownIcon size={14} /> : <MedalIcon size={14} />} {rank}位
         </div>
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          {user.totalStocks} saved
-        </div>
       </div>
       <div className="px-4 py-3.5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-            style={{
-              color: 'var(--accent-orange)',
-              background: 'rgba(244,128,15,0.1)',
-            }}
-          >
-            グルメ
-          </span>
-          <span className="flex items-center gap-1 text-[12px] font-semibold text-[var(--text-secondary)] tabular-nums">
-            <StarIcon size={12} style={{ color: 'var(--accent-gold)' }} />
-            {ratings[rank - 1] ?? '4.5'}
-          </span>
-        </div>
-        <div className="text-[15px] font-bold tracking-[-0.01em] truncate">
+        <div className="text-[15px] font-bold tracking-[-0.01em] truncate mb-0.5">
           @{user.nickname}
         </div>
-        <div className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
-          フォロー · {user.totalStocks} stocks
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
+          <span className="font-semibold tabular-nums" style={{ color: 'var(--accent-orange)' }}>{user.totalStocks}</span>
+          <span>件のお店を投稿</span>
         </div>
       </div>
     </button>
@@ -1472,47 +1482,52 @@ function AppDownloadBanner() {
   const { t } = useTranslation();
   // TODO: 実際の App Store / Play Store URL に差し替え
   const APP_STORE_URL = '#';
-  const PLAY_STORE_URL: string | null = null; // Android 未リリースなら null
+  const PLAY_STORE_URL: string | null = null;
 
   return (
     <section className="py-10">
       <div
-        className="relative rounded-[var(--radius-2xl)] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-md)]"
+        className="relative rounded-[var(--radius-2xl)] overflow-hidden shadow-[var(--shadow-lg)]"
         style={{
-          background:
-            'linear-gradient(135deg, rgba(255,232,194,0.95) 0%, rgba(255,206,150,0.85) 50%, rgba(254,184,114,0.85) 100%)',
+          background: 'linear-gradient(135deg, var(--accent-orange-grad-1) 0%, var(--accent-orange-grad-2) 100%)',
         }}
       >
-        {/* 装飾の光ボケ */}
+        {/* 装飾の光ボケ（白） */}
         <div
-          className="absolute -top-16 -right-10 w-64 h-64 rounded-full opacity-50 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #fff7e0 0%, transparent 70%)' }}
+          className="absolute -top-20 -right-10 w-80 h-80 rounded-full opacity-25 blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)' }}
         />
         <div
-          className="absolute -bottom-20 -left-10 w-72 h-72 rounded-full opacity-40 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #ffd28a 0%, transparent 70%)' }}
+          className="absolute -bottom-24 -left-16 w-96 h-96 rounded-full opacity-15 blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }}
         />
 
-        <div className="relative grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-6 md:gap-10 items-center px-6 sm:px-8 md:px-10 py-8 md:py-10">
-          {/* 左：テキスト */}
-          <div className="text-[var(--text-primary)]">
-            <h3 className="text-[22px] sm:text-[26px] md:text-[28px] font-extrabold tracking-[-0.02em] leading-tight mb-3">
-              {t('home.appBannerTitle')}
-            </h3>
-            <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-[var(--text-secondary)] max-w-[440px]">
-              {t('home.appBannerSubtitle')}
-            </p>
+        <div className="relative grid grid-cols-1 md:grid-cols-[1.4fr_auto] gap-6 md:gap-10 items-center px-6 sm:px-10 md:px-12 py-10 md:py-12">
+          {/* 左：アイコン + テキスト */}
+          <div className="text-white flex items-start gap-5">
+            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-[20px] bg-white/15 backdrop-blur-md grid place-items-center shadow-lg flex-shrink-0">
+              <img src="/app-icon.png" alt="" className="w-full h-full rounded-[20px] object-cover" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] opacity-80 mb-1.5">app</p>
+              <h3 className="text-[22px] sm:text-[26px] md:text-[30px] font-extrabold tracking-[-0.02em] leading-tight mb-2">
+                {t('home.appBannerTitle')}
+              </h3>
+              <p className="text-[13px] sm:text-[14px] leading-relaxed text-white/85 max-w-[420px]">
+                {t('home.appBannerSubtitle')}
+              </p>
+            </div>
           </div>
 
           {/* 右：バッジ群 */}
           <div className="flex flex-col items-start md:items-end gap-3">
-            <p className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-primary)]">
-              {t('home.appBannerCTA')}
-            </p>
             <div className="flex flex-wrap gap-2.5">
               <AppStoreBadge href={APP_STORE_URL} t={t} />
               <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
             </div>
+            <p className="text-[11.5px] text-white/70 font-medium">
+              {t('home.appBannerCTA')}
+            </p>
           </div>
         </div>
       </div>
@@ -1789,7 +1804,7 @@ function ThemeDetailModal({
               このテーマに合うお店がまだありません
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {matched.map((r) => (
                 <RestaurantCard
                   key={r.id}
