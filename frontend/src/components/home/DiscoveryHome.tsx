@@ -421,10 +421,10 @@ export function DiscoveryHome({
 
         {/* ─── Categories (sticky) ─── */}
         <section
-          className="sticky top-[60px] z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 backdrop-blur-xl"
-          style={{ background: 'color-mix(in srgb, var(--bg) 90%, transparent)', borderBottom: '1px solid var(--border)' }}
+          className="sticky top-[60px] z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3.5 backdrop-blur-xl"
+          style={{ background: 'color-mix(in srgb, var(--bg) 92%, transparent)' }}
         >
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 py-0.5">
             <span className="flex-shrink-0 text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.05em] hidden sm:inline">{t('home.categoriesTitle')}</span>
             {CATEGORIES.map((c) => {
               const active = activeCategory === c.id;
@@ -865,7 +865,7 @@ function DiscoveryTopBar({
         {/* Search */}
         <form
           onSubmit={(e) => { e.preventDefault(); onSubmitSearch?.(); }}
-          className="flex-1 flex items-center gap-2.5 px-4 py-2 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--border-strong)] transition-all"
+          className="flex-1 flex items-center gap-2 pl-4 pr-1.5 py-1 rounded-full bg-[var(--bg-soft)] border border-transparent focus-within:bg-[var(--card-bg)] focus-within:border-[var(--accent-orange)] transition-all"
         >
           <svg
             width="16"
@@ -874,7 +874,7 @@ function DiscoveryTopBar({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className="text-[var(--text-tertiary)]"
+            className="text-[var(--text-tertiary)] flex-shrink-0"
           >
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
@@ -883,8 +883,28 @@ function DiscoveryTopBar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('home.searchPlaceholder')}
-            className="flex-1 bg-transparent border-0 outline-none text-[14px] placeholder:text-[var(--text-tertiary)]"
+            className="flex-1 bg-transparent border-0 outline-none text-[14px] placeholder:text-[var(--text-tertiary)] py-1.5 min-w-0"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              aria-label="クリア"
+              className="w-6 h-6 rounded-full grid place-items-center text-[var(--text-tertiary)] hover:bg-[var(--border)] flex-shrink-0"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!searchQuery.trim()}
+            className="px-3.5 sm:px-4 py-1.5 rounded-full text-[12.5px] font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+            }}
+          >
+            検索
+          </button>
         </form>
         {/* Right side */}
         <div className="hidden md:flex items-center gap-5">
