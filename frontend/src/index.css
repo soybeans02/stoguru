@@ -1,6 +1,94 @@
 @import "tailwindcss";
 
+/* Noto Sans JP — Claude Design 由来。Hiragino Sans のフォールバックとして
+   ロード（iOS/Mac 上では実際の SF Pro + Hiragino Sans が優先される） */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════════════════════
+   Claude Design tokens (stoguru 共通) — iOS SwiftUI 由来のスケール
+   既存の `--accent-orange` / `--card-bg` 系とは別ネームスペースで併存。
+   新コンポーネント実装時はこちらを優先で使う。
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  /* Orange brand scale */
+  --stg-orange-50:  #FFF4E8;
+  --stg-orange-100: #FEE3C4;
+  --stg-orange-200: #FDC78A;
+  --stg-orange-300: #FDA655;
+  --stg-orange-400: #FE9B3A;
+  --stg-orange-500: #FE8D28;   /* primary */
+  --stg-orange-600: #E87618;
+  --stg-orange-700: #B85A0E;
+
+  /* Cream — warm complement to orange */
+  --stg-cream-50:  #FEFBF7;
+  --stg-cream-100: #FEF7F1;
+  --stg-cream-200: #F9E7D5;
+  --stg-cream-300: #F3D4B6;
+
+  /* iOS semantic */
+  --stg-red:    #FD383C;
+  --stg-blue:   #007AFF;
+  --stg-green:  #34C759;
+  --stg-yellow: #FFCC00;
+  --stg-purple: #AF52DE;
+
+  /* Neutrals (iOS systemGray scale) */
+  --stg-gray-50:  #FAFAFA;
+  --stg-gray-100: #F2F2F7;
+  --stg-gray-200: #E5E5EA;
+  --stg-gray-300: #D1D1D6;
+  --stg-gray-400: #C7C7CC;
+  --stg-gray-500: #AEAEB2;
+  --stg-gray-600: #8E8E93;
+  --stg-gray-700: #636366;
+  --stg-gray-800: #3A3A3C;
+  --stg-gray-900: #1C1C1E;
+
+  /* Type families */
+  --stg-font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+  --stg-font-jp:     "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --stg-font-app:    var(--stg-font-system), var(--stg-font-jp);
+  --stg-font-mono:   ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Spacing — 4pt grid */
+  --stg-space-1: 4px;
+  --stg-space-2: 8px;
+  --stg-space-3: 12px;
+  --stg-space-4: 16px;
+  --stg-space-5: 20px;
+  --stg-space-6: 24px;
+  --stg-space-8: 32px;
+  --stg-space-10: 40px;
+  --stg-space-12: 48px;
+  --stg-space-16: 64px;
+
+  /* Radii */
+  --stg-radius-xs:   6px;
+  --stg-radius-sm:   10px;
+  --stg-radius-md:   12px;
+  --stg-radius-lg:   16px;
+  --stg-radius-xl:   20px;
+  --stg-radius-2xl:  28px;
+  --stg-radius-pill: 9999px;
+
+  /* Shadows */
+  --stg-shadow-sm:   0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04);
+  --stg-shadow-md:   0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --stg-shadow-lg:   0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  --stg-shadow-btn:  0 2px 8px rgba(254,141,40,0.28);
+  --stg-shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.04);
+
+  /* Motion */
+  --stg-ease:        cubic-bezier(0.4, 0.0, 0.2, 1);
+  --stg-ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
+  --stg-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --stg-dur-fast:    120ms;
+  --stg-dur-base:    220ms;
+  --stg-dur-slow:    360ms;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    Design Tokens — CSS variables (theme-aware)
@@ -226,6 +314,18 @@ textarea:focus,
 [contenteditable]:focus {
   outline: none;
 }
+
+/* Hero のスワイプデッキで使う soft float（Claude Design 由来） */
+@keyframes stg-float-soft {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-6px) rotate(-6deg); }
+}
+@keyframes stg-float-soft-2 {
+  0%, 100% { transform: translateY(0) rotate(4deg); }
+  50% { transform: translateY(-8px) rotate(4deg); }
+}
+.stg-float-1 { animation: stg-float-soft 4s var(--stg-ease) infinite; }
+.stg-float-2 { animation: stg-float-soft-2 4.6s var(--stg-ease) infinite; }
 
 /* iOS Safari の自動ズーム防止：mobile では入力系を 16px 以上に強制。
    iOS は font-size < 16px の input/select/textarea にフォーカスすると

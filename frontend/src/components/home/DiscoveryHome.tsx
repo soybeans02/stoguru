@@ -14,7 +14,7 @@ import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import {
-  CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, MapIcon, CrownIcon, MedalIcon,
+  CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, MapIcon,
   UsersIcon, HelpIcon,
   PlateIcon, BurgerIcon, NoodleIcon, CafeIcon,
 } from '../ui/icons';
@@ -322,198 +322,163 @@ export function DiscoveryHome({
         userNickname={user?.nickname}
       />
 
-      <div className="max-w-[1280px] xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ─── Hero ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-12 items-center py-8 sm:py-10 lg:py-12">
-          <div>
-            <h1 className="text-[clamp(28px,4.5vw,44px)] font-extrabold leading-[1.15] tracking-[-0.025em] mb-4">
-              {t('home.heroTitleA')}
-              <br />
-              <span style={{ color: 'var(--accent-orange)' }}>{t('home.heroTitleAccent')}</span>
-              {t('home.heroTitleB')}
-            </h1>
-            <p className="text-[14px] sm:text-[16px] text-[var(--text-secondary)] leading-relaxed max-w-[460px] mb-5">
-              {t('home.heroDescription')}
-            </p>
-            {/* ヒーロー検索は sticky topbar の方に集約したのでここには置かない（重複回避） */}
-            <div className="flex flex-wrap gap-3 mt-2">
-              <button
-                onClick={handleHeroCTA}
-                className="px-5 py-2.5 rounded-full text-[13px] font-semibold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
-                style={{
-                  background:
-                    'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
-                }}
-              >
-                {isAnonymous ? t('home.ctaSignUp') : t('home.ctaStartSwipe')}
-              </button>
-              <button
-                onClick={() => setShowHowTo(true)}
-                className="px-[22px] py-[11px] rounded-full text-[14px] font-semibold border border-[var(--border-strong)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 transition-transform"
-              >
-                {t('home.ctaHowItWorks')}
-              </button>
-            </div>
-            {/* Stats */}
-            <div className="flex gap-6 sm:gap-8 mt-8 pt-6 border-t border-[var(--border)]">
-              {[
-                { num: '12,400+', label: t('home.statRestaurants') },
-                { num: '4,200+', label: t('home.statUsers') },
-                { num: '68,000+', label: t('home.statSaves') },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div className="text-[24px] sm:text-[28px] font-extrabold tabular-nums">
-                    {s.num}
-                  </div>
-                  <div className="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.05em] mt-0.5">
-                    {s.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ─── Hero（Claude Design 風スタックデッキ） ─── */}
+        <HeroDeck
+          isAnonymous={isAnonymous}
+          handleHeroCTA={handleHeroCTA}
+          onShowHowTo={() => setShowHowTo(true)}
+          deckCards={feed.slice(0, 3)}
+          tHeroTitleA={t('home.heroTitleA')}
+          tHeroTitleAccent={t('home.heroTitleAccent')}
+          tHeroTitleB={t('home.heroTitleB')}
+          tDescription={t('home.heroDescription')}
+          tCtaPrimary={isAnonymous ? t('home.ctaSignUp') : t('home.ctaStartSwipe')}
+          tCtaSecondary={t('home.ctaHowItWorks')}
+          tStatRestaurants={t('home.statRestaurants')}
+          tStatUsers={t('home.statUsers')}
+          tStatSaves={t('home.statSaves')}
+        />
 
-          {/* Collage */}
-          <div className="relative aspect-[1.05] hidden sm:block">
-            <div
-              className="absolute rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-lg)]"
-              style={{ width: '58%', height: '70%', top: 0, right: '4%' }}
-            >
-              <img src={HERO_IMAGES[0]} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div
-              className="absolute rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-lg)]"
-              style={{
-                width: '50%',
-                height: '50%',
-                bottom: '4%',
-                left: 0,
-                transform: 'rotate(-3deg)',
-              }}
-            >
-              <img src={HERO_IMAGES[1]} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div
-              className="absolute rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-lg)]"
-              style={{
-                width: '38%',
-                height: '38%',
-                bottom: '12%',
-                right: '12%',
-                transform: 'rotate(4deg)',
-              }}
-            >
-              <img src={HERO_IMAGES[2]} alt="" className="w-full h-full object-cover" />
-            </div>
-
-            {/* Floating badges */}
-            <div
-              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-1.5 shadow-[var(--shadow-md)] text-[13px] font-semibold"
-              style={{ top: '10%', left: '4%' }}
-            >
-              <CheckCircleIcon size={16} style={{ color: 'var(--visited-green)' }} />
-              {t('home.badgeVisited')}
-            </div>
-            <div
-              className="absolute bg-[var(--card-bg)] rounded-full px-3.5 py-2 flex items-center gap-1.5 shadow-[var(--shadow-md)] text-[13px] font-semibold"
-              style={{ bottom: '24%', right: 0 }}
-            >
-              <StarIcon size={14} style={{ color: 'var(--accent-gold)' }} />
-              4.8 · 大阪
-            </div>
-          </div>
-        </section>
-
-        {/* ─── テーマで探す（静的・最優先） ─── */}
-        <section className="py-10">
+        {/* ─── テーマで探す — Claude Design 風 4:5 アスペクトのオーバーレイカード ─── */}
+        <section className="py-12 sm:py-16">
           <SectionHead
             title="テーマで探す"
             subtitle="気分に合わせてサクッと探す"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-3.5 mt-2">
             {THEMES.map((th) => (
               <button
                 key={th.id}
                 onClick={() => navigate(`/themes/${th.id}`)}
-                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
+                className="relative overflow-hidden cursor-pointer group transition-transform hover:-translate-y-1"
+                style={{ aspectRatio: '4 / 5', borderRadius: 16 }}
               >
-                <img loading="lazy" src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <img loading="lazy" src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]" />
                 <div
                   className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
+                  style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.78) 100%)' }}
                 />
-                <span
-                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[17px] font-extrabold tracking-[-0.01em] text-center px-2"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+                <div
+                  className="absolute left-3.5 right-3.5 bottom-3.5 text-white flex items-end justify-between gap-2"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
                 >
-                  {th.label}
-                </span>
+                  <span className="text-[15px] sm:text-[16px] font-bold tracking-[-0.01em] leading-[1.2]">{th.label}</span>
+                </div>
               </button>
             ))}
           </div>
         </section>
 
-        {/* ─── ジャンルから探す（画像タイル） ─── */}
+        {/* ─── ジャンルから探す — Claude Design 風の円形タイル ─── */}
         <section className="py-10">
           <SectionHead
             title={t('home.categoriesTitle')}
             subtitle="食べたいジャンルから一気に絞り込む"
           />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mt-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 mt-2">
             {GENRES_AS_THEMES.map((g) => (
-              <button
+              <a
                 key={g.id}
-                onClick={() => navigate(`/themes/${g.id}`)}
-                className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
+                href={`/themes/${g.id}`}
+                onClick={(e) => { e.preventDefault(); navigate(`/themes/${g.id}`); }}
+                className="flex flex-col items-center gap-2 no-underline group cursor-pointer"
               >
-                <img loading="lazy" src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
                 <div
-                  className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
-                />
+                  className="relative w-full overflow-hidden transition-all duration-300"
+                  style={{
+                    aspectRatio: '1 / 1',
+                    borderRadius: '50%',
+                    boxShadow: '0 8px 16px -8px rgba(0,0,0,0.20), 0 0 0 1px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <img
+                    loading="lazy"
+                    src={g.image}
+                    alt={g.label}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.1]"
+                  />
+                  {/* hover 時の orange リング（Tailwind variant が CSS 変数効かないので疑似要素 + CSS) */}
+                  <span
+                    className="absolute inset-0 rounded-full pointer-events-none transition-all"
+                    style={{
+                      boxShadow: '0 0 0 0 var(--stg-orange-500)',
+                    }}
+                  />
+                </div>
                 <span
-                  className="absolute inset-0 grid place-items-center text-white text-[14px] sm:text-[15px] font-extrabold tracking-[-0.01em] text-center px-2"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+                  className="font-semibold"
+                  style={{ fontSize: 13, color: 'var(--stg-gray-900)' }}
                 >
                   {g.label}
                 </span>
-              </button>
+              </a>
             ))}
           </div>
         </section>
 
-        {/* ─── 特集（CMS 駆動の編集記事） ─── */}
+        {/* ─── 特集 — Claude Design 風雑誌レイアウト（1.4fr 1fr 1fr × 2 行、先頭が縦長） ─── */}
         {themeConfigs.length > 0 && (
-          <section className="py-10">
+          <section className="py-12 sm:py-16">
             <SectionHead
               title="特集"
               subtitle="編集部が書いてる、読み物寄りのお店紹介"
               link={themeConfigs.length > 3 ? 'すべて見る →' : undefined}
               onLinkClick={() => setShowThemes(true)}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-              {themeConfigs.slice(0, 3).map((th) => (
-                <Story
-                  key={th.id}
-                  image={th.image}
-                  tag={th.tag}
-                  title={th.title}
-                  desc={th.desc}
-                  onClick={() => handleThemeClick(th)}
-                />
-              ))}
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: 'repeat(1, minmax(0, 1fr))',
+              }}
+            >
+              <div
+                className="grid gap-4 lg:gap-[18px] hidden lg:grid"
+                style={{
+                  gridTemplateColumns: '1.4fr 1fr 1fr',
+                  gridTemplateRows: '280px 280px',
+                }}
+              >
+                {themeConfigs.slice(0, 5).map((th, idx) => (
+                  <Story
+                    key={th.id}
+                    image={th.image}
+                    tag={th.tag}
+                    title={th.title}
+                    desc={th.desc}
+                    big={idx === 0}
+                    tagVariant={idx === 0 ? 'orange' : idx % 3 === 1 ? 'purple' : 'dark'}
+                    onClick={() => handleThemeClick(th)}
+                  />
+                ))}
+              </div>
+              {/* 〜lg: 通常のグリッド */}
+              <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {themeConfigs.slice(0, 4).map((th, idx) => (
+                  <Story
+                    key={th.id}
+                    image={th.image}
+                    tag={th.tag}
+                    title={th.title}
+                    desc={th.desc}
+                    big={false}
+                    tagVariant={idx === 0 ? 'orange' : idx % 3 === 1 ? 'purple' : 'dark'}
+                    onClick={() => handleThemeClick(th)}
+                  />
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* ─── Spot ranking (保存数の多いお店) ─── */}
+        {/* ─── Spot ranking — Claude Design 風 4 列 ─── */}
         {spotRanking.length > 0 && (
-          <section className="py-10">
+          <section className="py-12 sm:py-16">
             <SectionHead
               title={t('home.rankingTitle')}
               subtitle={t('home.rankingSubtitle')}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-[18px]">
               {spotRanking.map((s, idx) => (
                 <SpotRankCard
                   key={s.restaurantId}
@@ -530,14 +495,14 @@ export function DiscoveryHome({
           </section>
         )}
 
-        {/* ─── Poster ranking (投稿者) ─── */}
+        {/* ─── Poster ranking — Claude Design 風 5 列 creator-card ─── */}
         {ranking.length > 0 && (
           <section className="py-10">
             <SectionHead
               title={t('home.posterRankingTitle')}
               subtitle={t('home.posterRankingSubtitle')}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {ranking.map((u, idx) => (
                 <RankCard
                   key={u.userId}
@@ -819,6 +784,270 @@ const GENRE_OPTIONS = [
 ];
 const SELECT_BG_DATAURI = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")';
 const NO_OUTLINE: React.CSSProperties = { outline: 'none', boxShadow: 'none' };
+
+/* ─────────────────────────────────────
+   Hero — Claude Design: スタックデッキ + 浮遊バッジ + アクションリング
+   ───────────────────────────────────── */
+type HeroDeckProps = {
+  isAnonymous: boolean;
+  handleHeroCTA: () => void;
+  onShowHowTo: () => void;
+  deckCards: FeedRestaurant[];
+  tHeroTitleA: string;
+  tHeroTitleAccent: string;
+  tHeroTitleB: string;
+  tDescription: string;
+  tCtaPrimary: string;
+  tCtaSecondary: string;
+  tStatRestaurants: string;
+  tStatUsers: string;
+  tStatSaves: string;
+};
+
+function HeroDeck({
+  handleHeroCTA, onShowHowTo, deckCards,
+  tHeroTitleA, tHeroTitleAccent, tHeroTitleB, tDescription,
+  tCtaPrimary, tCtaSecondary,
+  tStatRestaurants, tStatUsers, tStatSaves,
+}: HeroDeckProps) {
+  // 3 枚に満たない場合は MOCK_RESTAURANTS から穴埋め
+  const cards = (deckCards.length >= 3 ? deckCards : [...deckCards, ...MOCK_RESTAURANTS])
+    .slice(0, 3) as FeedRestaurant[];
+
+  // Hero の左右レイアウト：lg+ で 2 カラム、それ未満で 1 カラム + デッキ縮小
+  return (
+    <section className="relative py-12 sm:py-16 lg:py-20 overflow-hidden">
+      {/* 背景グラデ（Claude Design 風の暖色グロー） */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(60% 60% at 12% 0%, rgba(254,141,40,0.12), transparent 60%), radial-gradient(50% 50% at 100% 60%, rgba(254,204,0,0.10), transparent 65%)',
+        }}
+      />
+
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center">
+        <div>
+          {/* eyebrow */}
+          <div
+            className="inline-flex items-center gap-2 text-[12px] font-semibold tracking-[0.02em] px-3 py-1.5 rounded-full mb-5"
+            style={{ color: 'var(--stg-orange-700)', background: 'var(--stg-orange-50)' }}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ background: 'var(--stg-orange-500)', boxShadow: '0 0 0 4px rgba(254,141,40,0.15)' }}
+            />
+            ストック × グルメ
+          </div>
+
+          {/* h1 — design では 40-64px clamp */}
+          <h1
+            className="font-extrabold leading-[1.05] tracking-[-0.035em] mb-5"
+            style={{ fontSize: 'clamp(36px,5vw,60px)', color: 'var(--stg-gray-900)' }}
+          >
+            {tHeroTitleA}
+            <br />
+            <span
+              className="not-italic"
+              style={{
+                background: 'linear-gradient(180deg, #FE9B3A, #E87618)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              {tHeroTitleAccent}{tHeroTitleB}
+            </span>
+          </h1>
+
+          <p
+            className="text-[15px] sm:text-[17px] leading-[1.7] mb-7 max-w-[480px]"
+            style={{ color: 'var(--stg-gray-600)' }}
+          >
+            {tDescription}
+          </p>
+
+          <div className="flex flex-wrap gap-3 mb-10">
+            <button
+              onClick={handleHeroCTA}
+              className="inline-flex items-center gap-1.5 px-5 sm:px-[22px] py-3 sm:py-3.5 rounded-[14px] text-[14px] sm:text-[15px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              style={{
+                background: 'var(--stg-orange-500)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 4px 12px rgba(254,141,40,0.32)',
+              }}
+            >
+              {tCtaPrimary}
+            </button>
+            <button
+              onClick={onShowHowTo}
+              className="inline-flex items-center gap-2 px-5 py-3 sm:py-3.5 rounded-[14px] text-[14px] sm:text-[15px] font-semibold transition-colors hover:bg-[var(--stg-gray-50)]"
+              style={{
+                color: 'var(--stg-gray-900)',
+                background: 'white',
+                border: '1px solid var(--stg-gray-200)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>
+              {tCtaSecondary}
+            </button>
+          </div>
+
+          <div
+            className="flex gap-9 pt-7 max-w-[480px]"
+            style={{ borderTop: '1px solid var(--stg-gray-200)' }}
+          >
+            {[
+              { num: '12,400', label: tStatRestaurants },
+              { num: '4,200', label: tStatUsers },
+              { num: '68,000', label: tStatSaves },
+            ].map((s, i) => (
+              <div key={i}>
+                <div
+                  className="font-extrabold tabular-nums leading-none"
+                  style={{ fontSize: 28, letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
+                >
+                  {s.num}
+                  <span style={{ color: 'var(--stg-orange-500)' }}>+</span>
+                </div>
+                <div
+                  className="mt-1.5"
+                  style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}
+                >
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── Deck（3 枚スタック）─── */}
+        <div className="relative h-[480px] lg:h-[560px] hidden sm:flex items-center justify-center mt-8 lg:mt-0">
+          {/* visited badge — 浮遊 */}
+          <div
+            className="stg-float-1 absolute z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-semibold"
+            style={{ top: 32, left: -10, background: 'white', color: 'var(--stg-gray-900)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
+          >
+            <span
+              className="grid place-items-center w-[18px] h-[18px] rounded-full text-white"
+              style={{ background: 'var(--stg-green)' }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+            </span>
+            行った
+          </div>
+
+          {/* 3-card stack: --3 (back), --2 (mid), --1 (top) */}
+          {cards.map((c, idx) => {
+            // top=0 (front)、idx=1 (mid)、idx=2 (back)
+            const transform =
+              idx === 0 ? 'translate(0, 0) rotate(-2deg)' :
+              idx === 1 ? 'translate(60px, -40px) rotate(6deg)' :
+                          'translate(-110px, 30px) rotate(-8deg)';
+            const z = idx === 0 ? 3 : idx === 1 ? 2 : 1;
+            const photo = c.photoUrls?.[0] || (c as { image?: string }).image || HERO_IMAGES[idx % HERO_IMAGES.length];
+            const handle = c.influencerHandle ? `@${c.influencerHandle.replace(/^@/, '')}` : '@stoguru';
+            const meta = [
+              c.priceRange || '',
+            ].filter(Boolean).join(' · ');
+
+            return (
+              <div
+                key={c.id || idx}
+                className="absolute w-[280px] h-[400px] lg:w-[320px] lg:h-[460px] overflow-hidden"
+                style={{
+                  borderRadius: 26,
+                  transform, zIndex: z,
+                  boxShadow: '0 30px 60px -20px rgba(60,30,0,0.35), 0 12px 24px -8px rgba(60,30,0,0.20)',
+                  background: 'var(--stg-gray-100)',
+                  transition: 'transform 600ms var(--stg-ease)',
+                }}
+              >
+                <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div
+                  className="absolute inset-0 flex flex-col justify-between p-4 text-white"
+                  style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.65) 100%)' }}
+                >
+                  <span
+                    className="self-start inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1.5 rounded-full backdrop-blur"
+                    style={{ background: 'rgba(0,0,0,0.42)' }}
+                  >
+                    {handle}
+                  </span>
+                  <div>
+                    <div
+                      className="font-bold text-[20px] lg:text-[22px] tracking-[-0.01em] leading-[1.15] mb-1"
+                      style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
+                    >
+                      {c.name}
+                    </div>
+                    {meta && (
+                      <div className="text-[12px] opacity-90" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                        {meta}
+                      </div>
+                    )}
+                    {c.scene && c.scene.length > 0 && (
+                      <div className="flex gap-1.5 mt-2.5">
+                        {c.scene.slice(0, 2).map((sc) => (
+                          <span
+                            key={sc}
+                            className="text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur"
+                            style={{ background: 'rgba(255,255,255,0.22)' }}
+                          >
+                            {sc}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* rating badge — 浮遊 */}
+          <div
+            className="stg-float-2 absolute z-10 inline-flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-semibold"
+            style={{ bottom: 32, right: -8, background: 'white', color: 'var(--stg-gray-900)', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.14)' }}
+          >
+            <span style={{ color: 'var(--stg-yellow)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
+            </span>
+            4.8
+            <span className="text-[11px] font-medium" style={{ color: 'var(--stg-gray-600)' }}>大阪・北区</span>
+          </div>
+
+          {/* action ring（装飾。クリックでスワイプ画面） */}
+          <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 flex gap-3.5 z-[9]">
+            {[
+              { kind: 'undo' as const, color: 'var(--stg-gray-800)', bg: 'white' },
+              { kind: 'pass' as const, color: 'var(--stg-red)', bg: 'white' },
+              { kind: 'save' as const, color: 'white', bg: 'var(--stg-orange-500)' },
+              { kind: 'map' as const, color: 'var(--stg-blue)', bg: 'white' },
+            ].map((b) => (
+              <button
+                key={b.kind}
+                onClick={handleHeroCTA}
+                aria-label={b.kind}
+                className="w-12 h-12 lg:w-13 lg:h-13 grid place-items-center rounded-full transition-transform hover:scale-105 active:scale-95"
+                style={{
+                  width: 52, height: 52,
+                  background: b.bg, color: b.color,
+                  boxShadow: b.kind === 'save' ? '0 8px 18px rgba(254,141,40,0.45)' : '0 8px 18px rgba(0,0,0,0.12)',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                {b.kind === 'undo' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>)}
+                {b.kind === 'pass' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>)}
+                {b.kind === 'save' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>)}
+                {b.kind === 'map' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function MultiFieldSearchBar({
   fields,
@@ -1240,7 +1469,7 @@ function SectionHead({
   );
 }
 
-/* お店ランキング用カード（保存数の多いお店） */
+/* お店ランキング用カード（保存数の多いお店）— Claude Design 風 */
 function SpotRankCard({
   rank,
   spot,
@@ -1258,15 +1487,27 @@ function SpotRankCard({
   onBookmark: () => void;
   visitedLabel: string;
 }) {
-  const colors = ['var(--accent-gold)', '#999', '#c47b3a'];
+  // メダル背景：1=金、2=シルバー、3=オレンジ、4位以降=ダークグレー
+  const medalBg =
+    rank === 1 ? 'var(--stg-yellow)' :
+    rank === 2 ? 'var(--stg-gray-400)' :
+    rank === 3 ? 'var(--stg-orange-500)' :
+    'var(--stg-gray-700)';
+  const medalColor = rank === 1 ? '#5a3e00' : 'white';
   const photo = (spot.photoUrls && spot.photoUrls[0]) || fallbackPhoto(spot.restaurantId);
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[var(--card-bg)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)]"
+      className="group text-left overflow-hidden cursor-pointer transition-all hover:-translate-y-1"
+      style={{
+        background: 'white',
+        borderRadius: 18,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.04)',
+      }}
     >
-      <div className="aspect-[16/10] relative overflow-hidden bg-[var(--bg-soft)]">
+      <div className="relative overflow-hidden" style={{ aspectRatio: '4 / 3', background: 'var(--stg-gray-100)' }}>
         <img
+          loading="lazy"
           src={photo}
           alt={spot.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -1274,49 +1515,79 @@ function SpotRankCard({
             (e.currentTarget as HTMLImageElement).src = fallbackPhoto(spot.restaurantId);
           }}
         />
+        {/* メダル + 順位ピル */}
         <div
-          className="absolute top-3 left-3 bg-[var(--card-bg)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
-          style={{ color: colors[rank - 1] ?? colors[2] }}
+          className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-extrabold"
+          style={{
+            background: 'white',
+            color: 'var(--stg-gray-900)',
+            borderRadius: 999,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
         >
-          {rank === 1 ? <CrownIcon size={14} /> : <MedalIcon size={14} />} {rank}位
+          <span
+            className="grid place-items-center w-[18px] h-[18px] rounded-full text-[10px] font-bold"
+            style={{ background: medalBg, color: medalColor }}
+          >
+            {rank}
+          </span>
+          位
         </div>
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          {spot.stockCount} saved
+        {/* saved count バッジ */}
+        <div
+          className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-white"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(12px)', borderRadius: 999 }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--stg-orange-300)' }}><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg>
+          {spot.stockCount}
         </div>
+        {/* bookmark トグル（既存挙動を維持） */}
         <span
           onClick={(e) => { e.stopPropagation(); onBookmark(); }}
           role="button"
           aria-label="bookmark"
-          className={`absolute bottom-3 right-3 w-8 h-8 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 cursor-pointer ${
-            bookmarked ? '' : 'bg-white/92'
-          }`}
-          style={
-            bookmarked
-              ? { background: 'var(--accent-orange)' }
-              : { background: 'rgba(255,255,255,0.92)' }
-          }
+          className="absolute bottom-3 right-3 w-8 h-8 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 cursor-pointer"
+          style={bookmarked ? { background: 'var(--accent-orange)' } : { background: 'rgba(255,255,255,0.92)' }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill={bookmarked ? 'white' : 'none'}
-            stroke={bookmarked ? 'white' : '#1a1a1a'}
-            strokeWidth="2"
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? 'white' : 'none'} stroke={bookmarked ? 'white' : '#1a1a1a'} strokeWidth="2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
         </span>
       </div>
-      <div className="px-4 py-3.5">
-        <div className="text-[15px] font-bold tracking-[-0.01em] truncate" title={spot.name}>
+      <div className="px-4 pt-3.5 pb-4">
+        <div
+          className="font-bold tracking-[-0.01em] truncate"
+          style={{ fontSize: 15, color: 'var(--stg-gray-900)' }}
+          title={spot.name}
+        >
           {spot.name}
         </div>
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mt-1 flex-wrap">
+        <div
+          className="flex items-center gap-2 mt-1 flex-wrap"
+          style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}
+        >
           {spot.genres?.[0] && <span>{spot.genres[0]}</span>}
           {spot.genres?.[0] && spot.priceRange && <span className="opacity-50">·</span>}
           {spot.priceRange && <span>{spot.priceRange}</span>}
         </div>
+        {/* ジャンルチップ（クリームベース） */}
+        {spot.genres && spot.genres.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {spot.genres.slice(1, 4).map((g) => (
+              <span
+                key={g}
+                className="px-2 py-0.5 text-[11px] font-medium"
+                style={{
+                  background: 'var(--stg-cream-100)',
+                  color: 'var(--stg-orange-700)',
+                  borderRadius: 999,
+                }}
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+        )}
         {visited && (
           <span
             className="inline-flex items-center gap-1 mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -1350,6 +1621,7 @@ function spotToFeedRestaurant(s: api.RankedSpot): FeedRestaurant {
   };
 }
 
+/** 投稿者カード — Claude Design 風 creator-card（avatar 行 + stats + フォロー風 CTA） */
 function RankCard({
   rank,
   user,
@@ -1359,40 +1631,53 @@ function RankCard({
   user: api.RankedUser;
   onClick: () => void;
 }) {
-  const colors = ['var(--accent-gold)', '#999', '#c47b3a'];
-  const photo = user.profilePhotoUrl || fallbackPhoto(user.userId);
+  const photo = user.profilePhotoUrl;
+  // 順位ごとに avatar アクセント色を変える（1=金、2=シルバー、3=オレンジ、それ以降=パープル/ブルー）
+  const accentBg =
+    rank === 1 ? 'var(--stg-yellow)' :
+    rank === 2 ? 'var(--stg-gray-400)' :
+    rank === 3 ? 'var(--stg-orange-500)' :
+    'var(--stg-purple)';
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[var(--card-bg)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] border border-[var(--border)]"
+      className="text-left flex flex-col gap-3 transition-all hover:-translate-y-0.5 cursor-pointer"
+      style={{
+        background: 'white',
+        border: '1px solid var(--stg-gray-200)',
+        borderRadius: 16,
+        padding: 18,
+      }}
     >
-      <div className="aspect-[16/10] relative overflow-hidden bg-[var(--bg-soft)]">
-        <img
-          src={photo}
-          alt={user.nickname}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(user.userId);
-          }}
-        />
+      <div className="flex items-center gap-3">
         <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }}
-        />
-        <div
-          className="absolute top-3 left-3 bg-[var(--card-bg)] text-[14px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[var(--shadow)]"
-          style={{ color: colors[rank - 1] ?? colors[2] }}
+          className="w-11 h-11 rounded-full overflow-hidden grid place-items-center font-extrabold text-white flex-shrink-0"
+          style={{ background: accentBg }}
         >
-          {rank === 1 ? <CrownIcon size={14} /> : <MedalIcon size={14} />} {rank}位
+          {photo ? (
+            <img src={photo} alt={user.nickname} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          ) : (
+            <span style={{ fontSize: 16 }}>{user.nickname.charAt(0).toUpperCase()}</span>
+          )}
         </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-bold truncate" style={{ fontSize: 14, color: 'var(--stg-gray-900)' }}>
+            {user.nickname}
+          </div>
+          <div className="truncate" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+            @{user.nickname}
+          </div>
+        </div>
+        <span
+          className="inline-flex items-center justify-center text-[11px] font-bold px-2.5 py-1 rounded-full"
+          style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-900)' }}
+        >
+          {rank}位
+        </span>
       </div>
-      <div className="px-4 py-3.5">
-        <div className="text-[15px] font-bold tracking-[-0.01em] truncate mb-0.5">
-          @{user.nickname}
-        </div>
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
-          <span className="font-semibold tabular-nums" style={{ color: 'var(--accent-orange)' }}>{user.totalStocks}</span>
-          <span>回 保存された</span>
+      <div className="flex gap-3.5" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+        <div>
+          <b style={{ color: 'var(--stg-gray-900)', fontSize: 14, fontWeight: 700 }}>{user.totalStocks}</b> 回保存
         </div>
       </div>
     </button>
@@ -1405,35 +1690,59 @@ function Story({
   title,
   desc,
   onClick,
+  big = false,
+  tagVariant = 'orange',
 }: {
   image: string;
   tag: string;
   title: string;
   desc: string;
   onClick?: () => void;
+  /** lg+ で 1 つ目を縦長スパンするかどうか（雑誌レイアウト用） */
+  big?: boolean;
+  /** タグピルの色バリアント */
+  tagVariant?: 'orange' | 'purple' | 'dark';
 }) {
+  const tagBg =
+    tagVariant === 'purple' ? 'var(--stg-purple)' :
+    tagVariant === 'dark' ? 'rgba(0,0,0,0.6)' :
+    'var(--stg-orange-500)';
+  const tagBlur = tagVariant === 'dark' ? 'blur(10px)' : undefined;
   return (
     <button
       onClick={onClick}
-      className="relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
+      className={`relative overflow-hidden cursor-pointer block w-full text-left transition-transform duration-300 hover:-translate-y-1 ${big ? 'lg:row-span-2' : ''}`}
+      style={{
+        borderRadius: 18,
+        background: 'var(--stg-gray-100)',
+      }}
     >
-      <img loading="lazy" src={image} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+      <img loading="lazy" src={image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-[1.05]" />
       <div
-        className="absolute inset-0 flex flex-col justify-end p-5 text-white"
-        style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }}
-      >
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%)' }}
+      />
+      <div className="absolute inset-0 p-5 sm:p-[22px] flex flex-col justify-end text-white">
         <span
-          className="self-start text-[10px] font-bold px-2.5 py-1 rounded-full mb-2.5 uppercase tracking-[0.05em] backdrop-blur-md"
-          style={{ background: 'rgba(255,255,255,0.2)' }}
+          className="self-start text-[11px] font-bold px-2.5 py-[5px] rounded-full mb-auto uppercase tracking-[0.06em]"
+          style={{ background: tagBg, backdropFilter: tagBlur }}
         >
           {tag}
         </span>
-        <div
-          className="font-bold leading-[1.35] tracking-[-0.01em] mb-1.5 whitespace-pre-line text-[16px] sm:text-[18px]"
-        >
-          {title}
+        <div>
+          <div
+            className={`font-extrabold leading-[1.25] tracking-[-0.02em] whitespace-pre-line ${big ? 'text-[28px]' : 'text-[20px] sm:text-[22px]'}`}
+            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.3)', marginBottom: 8 }}
+          >
+            {title}
+          </div>
+          <div
+            className="leading-[1.55] opacity-90"
+            style={{ fontSize: 13, textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
+          >
+            {desc}
+          </div>
         </div>
-        <div className="text-[12px] opacity-85 leading-relaxed">{desc}</div>
       </div>
     </button>
   );
@@ -1759,57 +2068,50 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ─────────────────────────────────────
-   App download banner (Retty スタイル)
+   App download banner — Claude Design 風（ダーク + オレンジアクセント + バッジ）
    ───────────────────────────────────── */
 function AppDownloadBanner() {
   const { t } = useTranslation();
-  // TODO: 実際の App Store / Play Store URL に差し替え
   const APP_STORE_URL = '#';
   const PLAY_STORE_URL: string | null = null;
 
   return (
-    <section className="py-10">
+    <section
+      className="relative overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 mt-10"
+      style={{ background: 'var(--stg-gray-900)', color: 'white' }}
+    >
+      {/* グロー */}
       <div
-        className="relative rounded-[var(--radius-2xl)] overflow-hidden shadow-[var(--shadow-lg)]"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, var(--accent-orange-grad-1) 0%, var(--accent-orange-grad-2) 100%)',
+          background:
+            'radial-gradient(50% 50% at 80% 20%, rgba(254,141,40,0.18), transparent 60%), radial-gradient(40% 40% at 10% 80%, rgba(254,204,0,0.12), transparent 60%)',
         }}
-      >
-        {/* 装飾の光ボケ（白） */}
-        <div
-          className="absolute -top-20 -right-10 w-80 h-80 rounded-full opacity-25 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute -bottom-24 -left-16 w-96 h-96 rounded-full opacity-15 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }}
-        />
-
-        <div className="relative grid grid-cols-1 md:grid-cols-[1.4fr_auto] gap-6 md:gap-10 items-center px-6 sm:px-10 md:px-12 py-10 md:py-12">
-          {/* 左：アイコン + テキスト */}
-          <div className="text-white flex items-start gap-5">
-            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-[20px] bg-white/15 backdrop-blur-md grid place-items-center shadow-lg flex-shrink-0">
-              <img src="/app-icon.png" alt="" className="w-full h-full rounded-[20px] object-cover" />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] opacity-80 mb-1.5">app</p>
-              <h3 className="text-[22px] sm:text-[26px] md:text-[30px] font-extrabold tracking-[-0.02em] leading-tight mb-2">
-                {t('home.appBannerTitle')}
-              </h3>
-              <p className="text-[13px] sm:text-[14px] leading-relaxed text-white/85 max-w-[420px]">
-                {t('home.appBannerSubtitle')}
-              </p>
-            </div>
+      />
+      <div className="relative max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10 items-center">
+        <div>
+          <h2 className="font-extrabold leading-[1.1] tracking-[-0.03em] mb-3.5" style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}>
+            {t('home.appBannerTitle')}
+            <br />
+            <span style={{ color: 'var(--stg-orange-400)' }}>{t('home.appBannerCTA')}</span>
+          </h2>
+          <p className="leading-[1.6] mb-6 max-w-[460px]" style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)' }}>
+            {t('home.appBannerSubtitle')}
+          </p>
+          <div className="flex gap-3 flex-wrap">
+            <AppStoreBadge href={APP_STORE_URL} t={t} />
+            <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
           </div>
-
-          {/* 右：バッジ群 */}
-          <div className="flex flex-col items-start md:items-end gap-3">
-            <div className="flex flex-wrap gap-2.5">
-              <AppStoreBadge href={APP_STORE_URL} t={t} />
-              <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
-            </div>
-            <p className="text-[11.5px] text-white/70 font-medium">
-              {t('home.appBannerCTA')}
+        </div>
+        {/* 右側：app-icon を装飾的に大きく表示 */}
+        <div className="hidden lg:flex items-center justify-center">
+          <div
+            className="w-[200px] rounded-[18px] p-4"
+            style={{ background: 'white', color: 'var(--stg-gray-900)' }}
+          >
+            <img src="/app-icon.png" alt="" className="w-full aspect-square rounded-[14px] object-cover" />
+            <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--stg-gray-600)' }}>
+              {t('home.appBadgeComingSoon')}
             </p>
           </div>
         </div>
