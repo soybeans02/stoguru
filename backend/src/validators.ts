@@ -1,5 +1,20 @@
 import { z } from 'zod';
 
+/**
+ * URL は必ず http(s) のみ許可。`javascript:` / `data:` 等のスキームを
+ * 蹴って `<a href={url}>` 経由の click-XSS を防ぐ。
+ */
+const httpUrl = (max = 500, msg = '無効な URL です') =>
+  z.string().max(max).refine((s) => {
+    if (!s) return true;
+    try {
+      const u = new URL(s);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, { message: msg });
+
 // ─── 認証 ───
 
 export const signupSchema = z.object({
@@ -122,11 +137,11 @@ export const influencerProfileSchema = z.object({
   displayName: z.string().max(50).trim().optional(),
   bio: z.string().max(500).optional(),
   instagramHandle: z.string().max(100).optional(),
-  instagramUrl: z.string().max(500).optional(),
+  instagramUrl: httpUrl().optional(),
   tiktokHandle: z.string().max(100).optional(),
-  tiktokUrl: z.string().max(500).optional(),
+  tiktokUrl: httpUrl().optional(),
   youtubeHandle: z.string().max(100).optional(),
-  youtubeUrl: z.string().max(500).optional(),
+  youtubeUrl: httpUrl().optional(),
   platform: z.enum(['instagram', 'tiktok', 'youtube']).optional(),
   genres: z.array(z.string().max(50)).max(10).default([]),
 });
@@ -140,12 +155,13 @@ export const influencerRestaurantSchema = z.object({
   genres: z.array(z.string().max(50)).max(5, 'ジャンルは5個まで').default([]),
   scene: z.array(z.string().max(50)).max(10).optional(),
   priceRange: z.string().max(50).optional(),
-  photoUrls: z.array(z.string().url().max(500)).max(10, '写真は10枚まで').default([]),
-  videoUrl: z.string().max(500).optional(),
-  instagramUrl: z.string().max(500).optional(),
-  tiktokUrl: z.string().max(500).optional(),
-  youtubeUrl: z.string().max(500).optional(),
-  urls: z.array(z.string().max(500)).max(20).optional(),
+  // photoUrls / urls は href / src に流れるため必ず http(s) スキームを強制
+  photoUrls: z.array(httpUrl()).max(10, '写真は10枚まで').default([]),
+  videoUrl: httpUrl().optional(),
+  instagramUrl: httpUrl().optional(),
+  tiktokUrl: httpUrl().optional(),
+  youtubeUrl: httpUrl().optional(),
+  urls: z.array(httpUrl()).max(20).optional(),
   description: z.string().max(1000).optional(),
   visibility: z.enum(['public', 'mutual', 'hidden']).default('public'),
 });

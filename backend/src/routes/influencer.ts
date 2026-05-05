@@ -108,8 +108,14 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
     });
   }
 
-  // 既存レストランがあれば更新、なければ新規
+  // 既存レストランがあれば更新、なければ新規。
+  // 他人の restaurantId を当ててきた場合は乗っ取り攻撃なので 403 で拒否する
+  // （以前は postedBy だけ保持して他フィールドは丸ごと書き換わる脆弱性があった）。
   const existing = await getRestaurantV2(restaurantId);
+  if (existing && existing.postedBy && existing.postedBy !== userId) {
+    res.status(403).json({ error: 'このお店を編集する権限がありません' });
+    return;
+  }
 
   await putRestaurantV2({
     restaurantId,

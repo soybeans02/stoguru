@@ -382,7 +382,32 @@ function createLogoPinImage(size: number = 48): { width: number; height: number;
 
 const LABEL_LAYERS = ['place-label', 'transit-label', 'poi-label', 'building-label'];
 
-function buildPopupHTML(p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string }, userPos: GPSPosition | null): string {
+/** 安全な http(s) URL のみ返す。`javascript:` 等のスキームは null。 */
+function safeHttpUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * mapbox popup のコンテンツを **DOM ノードで構築**する。以前は文字列の
+ * テンプレートリテラルから setHTML していたが、p.name / p.videoUrl /
+ * p.photoUrls / p.ownerNickname 等は他ユーザーがレストラン投稿時に
+ * 入力する値で、影響範囲は閲覧者全員。`<a href={p.videoUrl}>` や
+ * `<img src={p.photoUrls}>` 等に javascript: や `"><script>` を仕込めば
+ * stored XSS（→ localStorage トークン奪取 → アカウント乗っ取り）が成立した。
+ * ここでは textContent / setAttribute のみを使い、URL は safeHttpUrl で
+ * scheme チェックする。
+ */
+function buildPopupNode(
+  p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string },
+  userPos: GPSPosition | null,
+): HTMLElement {
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
   const h = new Date().getHours() + new Date().getMinutes() / 60;
   const dark = h < sunTimes.sunrise || h >= sunTimes.sunset;
@@ -395,25 +420,88 @@ function buildPopupHTML(p: { name: string; genre: string; distance: string; vide
   const btnVidBg = dark ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
   const btnVidColor = dark ? '#ddd' : '#555';
   const emojiBg = dark ? 'rgba(255,255,255,0.08)' : '#f9fafb';
-  const sceneTags = (p.scene || []).slice(0, 2)
-    .map((s: string) => `<span style="background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px">${s}</span>`).join('');
-  return `
-    <div style="font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
-      <div style="display:flex;align-items:center;gap:8px">
-        ${p.photoUrls ? `<img src="${p.photoUrls}" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0" />` : `<div style="width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${p.photoEmoji || '🍽️'}</div>`}
-        <div style="min-width:0;flex:1">
-          <div style="font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-          ${p.ownerNickname ? `<div style="font-size:9px;color:#a855f7;margin-top:1px;font-weight:600">@${p.ownerNickname}</div>` : ''}
-          <div style="font-size:10px;color:${metaColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}</div>
-        </div>
-      </div>
-      ${sceneTags ? `<div style="display:flex;gap:4px;margin-top:8px">${sceneTags}</div>` : ''}
-      <div style="display:flex;gap:6px;margin-top:10px">
-        ${p.videoUrl ? `<a href="${p.videoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block">▶ 動画</a>` : ''}
-        <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener" style="flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block">ナビ</a>
-      </div>
-    </div>
-  `;
+
+  const root = document.createElement('div');
+  root.style.cssText = `font-family:system-ui,sans-serif;background:${bg};border-radius:14px;padding:12px 14px;border:${border};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)`;
+
+  // ─── header (photo + texts) ───
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;gap:8px';
+  root.appendChild(header);
+
+  const photoUrl = safeHttpUrl(p.photoUrls);
+  if (photoUrl) {
+    const img = document.createElement('img');
+    img.src = photoUrl;
+    img.style.cssText = 'width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0';
+    header.appendChild(img);
+  } else {
+    const emoji = document.createElement('div');
+    emoji.style.cssText = `width:36px;height:36px;border-radius:10px;background:${emojiBg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0`;
+    emoji.textContent = p.photoEmoji || '🍽️';
+    header.appendChild(emoji);
+  }
+
+  const textCol = document.createElement('div');
+  textCol.style.cssText = 'min-width:0;flex:1';
+  header.appendChild(textCol);
+
+  const nameEl = document.createElement('div');
+  nameEl.style.cssText = `font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+  nameEl.textContent = p.name;
+  textCol.appendChild(nameEl);
+
+  if (p.ownerNickname) {
+    const nick = document.createElement('div');
+    nick.style.cssText = 'font-size:9px;color:#a855f7;margin-top:1px;font-weight:600';
+    nick.textContent = '@' + p.ownerNickname;
+    textCol.appendChild(nick);
+  }
+
+  const metaEl = document.createElement('div');
+  metaEl.style.cssText = `font-size:10px;color:${metaColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+  metaEl.textContent = `${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}`;
+  textCol.appendChild(metaEl);
+
+  // ─── scene tags ───
+  const scenes = (p.scene || []).slice(0, 2);
+  if (scenes.length > 0) {
+    const tagWrap = document.createElement('div');
+    tagWrap.style.cssText = 'display:flex;gap:4px;margin-top:8px';
+    for (const s of scenes) {
+      const tag = document.createElement('span');
+      tag.style.cssText = `background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px`;
+      tag.textContent = s;
+      tagWrap.appendChild(tag);
+    }
+    root.appendChild(tagWrap);
+  }
+
+  // ─── action buttons ───
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:6px;margin-top:10px';
+  root.appendChild(btnRow);
+
+  const safeVideoUrl = safeHttpUrl(p.videoUrl);
+  if (safeVideoUrl) {
+    const a = document.createElement('a');
+    a.href = safeVideoUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.cssText = `flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block`;
+    a.textContent = '▶ 動画';
+    btnRow.appendChild(a);
+  }
+
+  const navA = document.createElement('a');
+  navA.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.lat + ',' + p.lng)}`;
+  navA.target = '_blank';
+  navA.rel = 'noopener noreferrer';
+  navA.style.cssText = 'flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block';
+  navA.textContent = 'ナビ';
+  btnRow.appendChild(navA);
+
+  return root;
 }
 
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
@@ -604,7 +692,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         popupRef.current?.remove();
         popupRef.current = new mapboxgl.Popup({ offset, closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
           .setLngLat(coords)
-          .setHTML(buildPopupHTML({
+          .setDOMContent(buildPopupNode({
             name: p.name, genre: p.genre || '', distance: p.distance || '',
             videoUrl: p.videoUrl || '', photoEmoji: p.photoEmoji || '',
             photoUrls: p.photoUrls || '',
@@ -756,7 +844,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           popupRef.current?.remove();
           popupRef.current = new mapboxgl.Popup({ offset: [0, -70], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
             .setLngLat([r.lng, r.lat])
-            .setHTML(buildPopupHTML({
+            .setDOMContent(buildPopupNode({
               name: r.name, genre: r.genre || '', distance: r.distance || '',
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
               photoUrls: (r as any).photoUrls?.[0] || '',

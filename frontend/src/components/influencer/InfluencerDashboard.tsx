@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as api from '../../utils/api';
 import { InfluencerRestaurantForm } from './InfluencerRestaurantForm';
 import { useTranslation } from '../../context/LanguageContext';
+import { safeHttpUrl } from '../../utils/safeUrl';
 
 interface InfluencerProfile {
   influencerId: string;
@@ -262,8 +263,8 @@ export function InfluencerDashboard({ onBack }: Props) {
           {/* Handles */}
           <div className="flex flex-wrap gap-2 mb-3">
             {profile.instagramHandle && (
-              profile.instagramUrl ? (
-                <a href={profile.instagramUrl} target="_blank" rel="noopener noreferrer"
+              (() => { const u = safeHttpUrl(profile.instagramUrl); return u ? (
+                <a href={u} target="_blank" rel="noopener noreferrer"
                   className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100 hover:bg-pink-50 transition-colors">
                   ID: @{profile.instagramHandle}
                 </a>
@@ -271,11 +272,11 @@ export function InfluencerDashboard({ onBack }: Props) {
                 <span className="text-xs bg-white px-2.5 py-1 rounded-full text-pink-500 border border-pink-100">
                   ID: @{profile.instagramHandle}
                 </span>
-              )
+              ); })()
             )}
             {profile.tiktokHandle && (
-              profile.tiktokUrl ? (
-                <a href={profile.tiktokUrl} target="_blank" rel="noopener noreferrer"
+              (() => { const u = safeHttpUrl(profile.tiktokUrl); return u ? (
+                <a href={u} target="_blank" rel="noopener noreferrer"
                   className="text-xs bg-white px-2.5 py-1 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
                   TikTok: @{profile.tiktokHandle}
                 </a>
@@ -283,11 +284,11 @@ export function InfluencerDashboard({ onBack }: Props) {
                 <span className="text-xs bg-white px-2.5 py-1 rounded-full text-gray-700 border border-gray-200">
                   TikTok: @{profile.tiktokHandle}
                 </span>
-              )
+              ); })()
             )}
             {profile.youtubeHandle && (
-              profile.youtubeUrl ? (
-                <a href={profile.youtubeUrl} target="_blank" rel="noopener noreferrer"
+              (() => { const u = safeHttpUrl(profile.youtubeUrl); return u ? (
+                <a href={u} target="_blank" rel="noopener noreferrer"
                   className="text-xs bg-white px-2.5 py-1 rounded-full text-red-500 border border-red-100 hover:bg-red-50 transition-colors">
                   YT: @{profile.youtubeHandle}
                 </a>
@@ -295,7 +296,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                 <span className="text-xs bg-white px-2.5 py-1 rounded-full text-red-500 border border-red-100">
                   YT: @{profile.youtubeHandle}
                 </span>
-              )
+              ); })()
             )}
           </div>
 
@@ -537,33 +538,47 @@ export function InfluencerDashboard({ onBack }: Props) {
             <div className="w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex flex-col">
               {/* Photo area */}
               <div className="w-full h-[68%] bg-gray-100 relative overflow-hidden flex-shrink-0">
-                {previewRestaurant.photoUrls && previewRestaurant.photoUrls.length > 0 ? (
-                  <img src={previewRestaurant.photoUrls[0]} alt={previewRestaurant.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-7xl opacity-30">🍽️</span>
-                  </div>
-                )}
-                {profile && (
-                  <a
-                    href={profile.instagramUrl || profile.tiktokUrl || profile.youtubeUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm"
-                  >
-                    @{profile.instagramHandle || profile.displayName}
-                  </a>
-                )}
-                {(previewRestaurant.videoUrl || previewRestaurant.instagramUrl) && (
-                  <a
-                    href={previewRestaurant.videoUrl || previewRestaurant.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                  </a>
-                )}
+                {(() => {
+                  const photo = safeHttpUrl(previewRestaurant.photoUrls?.[0]);
+                  return photo ? (
+                    <img src={photo} alt={previewRestaurant.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-7xl opacity-30">🍽️</span>
+                    </div>
+                  );
+                })()}
+                {profile && (() => {
+                  const profileUrl = safeHttpUrl(profile.instagramUrl) || safeHttpUrl(profile.tiktokUrl) || safeHttpUrl(profile.youtubeUrl);
+                  const label = `@${profile.instagramHandle || profile.displayName}`;
+                  return profileUrl ? (
+                    <a
+                      href={profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm"
+                    >
+                      {label}
+                    </a>
+                  ) : (
+                    <span className="absolute bottom-2 left-2 bg-black/60 text-white px-2.5 py-1 rounded-full text-[11px] backdrop-blur-sm">
+                      {label}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  const videoUrl = safeHttpUrl(previewRestaurant.videoUrl) || safeHttpUrl(previewRestaurant.instagramUrl);
+                  return videoUrl ? (
+                    <a
+                      href={videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-2 right-2 bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                    </a>
+                  ) : null;
+                })()}
                 {/* Close button */}
                 <button
                   onClick={() => setPreviewRestaurant(null)}
@@ -584,12 +599,15 @@ export function InfluencerDashboard({ onBack }: Props) {
                   ))}
                 </div>
                 {previewRestaurant.description && <p className="text-xs text-gray-500 mb-2 line-clamp-2">{previewRestaurant.description}</p>}
-                {previewRestaurant.instagramUrl && (
-                  <a href={previewRestaurant.instagramUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-pink-500 hover:text-pink-600 font-medium">
-                    Instagramで見る →
-                  </a>
-                )}
+                {(() => {
+                  const ig = safeHttpUrl(previewRestaurant.instagramUrl);
+                  return ig ? (
+                    <a href={ig} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-pink-500 hover:text-pink-600 font-medium">
+                      Instagramで見る →
+                    </a>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>

@@ -270,20 +270,21 @@ export function DiscoveryHome({
     // 既保存はフィードから外して、まだ知らないお店を提案する
     const stockedSet = new Set(stockedIds);
     const candidates = feed.filter((r) => !stockedSet.has(r.id));
-    // 各レストランにスコアを付ける
-    // refreshKey から決定的な擬似乱数を生成して同点内シャッフル
+    // 嗜好シグナルが無い時は人気とシャッフルだけで並べる（嗜好スコアは
+    // 全部 0 になるので、stockBoost と noise しか効かなくなる）
     const scored = candidates.map((r) => {
+      const noise = pseudoRandom(`${r.id}:${refreshKey ?? 0}`);
+      const stockBoost = Math.log1p(r.stockCount ?? 0) * 0.5;
+      if (noPrefs) {
+        return { r, score: stockBoost + noise };
+      }
       const gs = [r.genre, ...(r.genres ?? [])].filter(Boolean) as string[];
       const genreScore = gs.reduce((acc, g) => acc + (genreWeight.get(g) ?? 0), 0);
       const sceneScore = (r.scene ?? []).reduce((acc, sc) => acc + (sceneWeight.get(sc) ?? 0), 0);
-      const stockBoost = Math.log1p(r.stockCount ?? 0) * 0.5; // 人気店は弱めにブースト
-      const noise = pseudoRandom(`${r.id}:${refreshKey ?? 0}`);
       return { r, score: genreScore * 2 + sceneScore + stockBoost + noise };
     });
     scored.sort((a, b) => b.score - a.score);
-    const ranked = scored.map((s) => s.r);
-    // 嗜好シグナルが何も無い時は素直にシャッフルだけ
-    return noPrefs ? ranked : ranked;
+    return scored.map((s) => s.r);
   }, [feed, stocks, stockedIds, refreshKey]);
 
   /* Handle bookmark click */

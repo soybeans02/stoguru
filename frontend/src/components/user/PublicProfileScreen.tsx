@@ -5,6 +5,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { AuthModal } from '../auth/AuthModal';
 import { navigate, goBack } from '../../utils/navigate';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
+import { safeHttpUrl } from '../../utils/safeUrl';
 
 interface PublicProfile {
   influencerId: string;
@@ -267,9 +268,12 @@ export function PublicProfileScreen({ userId }: Props) {
 }
 
 function SocialLink({ url, label, handle }: { url: string; label: string; handle?: string }) {
+  // url が javascript: 等の悪意あるスキームならリンク化せず無効化
+  const safe = safeHttpUrl(url);
+  if (!safe) return null;
   return (
     <a
-      href={url}
+      href={safe}
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-[var(--bg-soft)] hover:bg-[var(--card-bg-soft)] border border-[var(--border)] transition-colors"

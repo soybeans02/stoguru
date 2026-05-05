@@ -13,6 +13,7 @@ import feedbackRouter from './routes/feedback';
 import publicRouter from './routes/public';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 import { stats, userActivity } from './state';
+import { peekVerifiedUserId } from './middleware/auth';
 // rate limiter uses `any` for keyGenerator to avoid Express type conflicts
 
 dotenv.config({ override: true });
@@ -22,9 +23,14 @@ const PORT = process.env.PORT ?? 3001;
 
 // ─── レート制限 ───
 
-// ユーザー単位のキー生成（認証済みならuserId、未認証ならIP）
+// ユーザー単位のキー生成（認証済みならuserId、未認証ならIP）。
+// rate-limit ミドルウェアは requireAuth より前に走るため req.user はまだ
+// 未設定。代わりに peekVerifiedUserId() で「検証済みでキャッシュにある」
+// userId のみ信頼し、初回や匿名は IP fallback にする（攻撃者が任意 userId
+// を Bearer ヘッダーに詰めて per-user limit をバイパスできないように）。
 const userKeyGenerator = (req: any): string => {
-  if (req.user?.userId) return req.user.userId;
+  const verified = peekVerifiedUserId(req);
+  if (verified) return verified;
   // IPv6プレフィックスを正規化（/64単位でグルーピング）
   const ip = req.ip ?? 'unknown';
   if (ip.includes(':')) {
