@@ -187,67 +187,93 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     return <InfluencerDashboard onBack={() => { setShowInfluencerDashboard(false); onRestaurantEdited?.(); }} />;
   }
 
-  // 設定タイル定義（再利用）
+  // 設定タイル定義（再利用）。Claude Design 風 ic-bg-* パレット:
+  //   orange = cream 背景 + orange-500 line
+  //   blue   = blue 12% + system blue
+  //   purple = purple 12% + system purple
+  //   amber  = orange 14% + amber
+  //   green  = green 12% + system green
+  //   pink   = pink 12% + magenta
+  //   gray   = gray-100 + gray-700
+  //   red    = red 12% + system red
   const themeLabel = t(`account.theme${theme === 'white' ? 'White' : theme === 'black' ? 'Black' : theme === 'wood' ? 'Wood' : 'Auto'}`);
   const settingTiles: SettingTileDef[] = [
     {
       label: t('account.theme'),
       value: themeLabel,
+      sub: '外観のスタイルを変更',
       onClick: () => setPanel('theme'),
-      iconBg: '#f97316',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>),
+      iconBg: 'var(--stg-cream-100)',
+      iconColor: 'var(--stg-orange-500)',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>),
     },
     {
       label: t('account.language'),
       value: language === 'ja' ? '日本語' : 'English',
+      sub: 'アプリの表示言語',
       onClick: () => setPanel('language'),
-      iconBg: '#3b82f6',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>),
+      iconBg: 'rgba(0,122,255,0.12)',
+      iconColor: 'var(--stg-blue)',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>),
     },
     {
       label: t('account.changePassword'),
+      sub: 'アカウントのパスワードを更新',
       onClick: () => setPanel('password'),
-      iconBg: '#f59e0b',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>),
+      iconBg: 'rgba(255,159,10,0.14)',
+      iconColor: '#FF9F0A',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12 21 1.8M16 5l3 3M14 7l3 3"/></svg>),
     },
     {
       label: t('account.changeEmail'),
+      sub: user?.email,
       onClick: () => setPanel('email'),
-      iconBg: '#10b981',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
+      iconBg: 'rgba(52,199,89,0.12)',
+      iconColor: 'var(--stg-green)',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>),
     },
   ];
 
   const supportTiles: SettingTileDef[] = [
     {
       label: t('account.howToUse'),
+      sub: 'stoguru をもっと活用',
       onClick: () => setPanel('howto'),
-      iconBg: '#a855f7',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>),
+      iconBg: 'rgba(175,82,222,0.12)',
+      iconColor: '#AF52DE',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>),
     },
     {
       label: t('account.feedback'),
+      sub: '機能リクエスト・不具合報告',
       onClick: () => setPanel('feedback'),
-      iconBg: '#ec4899',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>),
+      iconBg: 'rgba(255,55,95,0.12)',
+      iconColor: '#FF375F',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>),
     },
     {
       label: t('account.contactUs'),
+      sub: '通常 24 時間以内に返信',
       onClick: () => setPanel('support'),
-      iconBg: '#f97316',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
+      iconBg: 'rgba(255,159,10,0.14)',
+      iconColor: '#FF9F0A',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>),
     },
     {
       label: t('account.privacyPolicy'),
+      sub: 'データ取り扱いについて',
       onClick: () => setPanel('privacy'),
-      iconBg: '#6b7280',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>),
+      iconBg: 'var(--stg-gray-100)',
+      iconColor: 'var(--stg-gray-700)',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22S2 18 2 10V4l10-2 10 2v6c0 8-10 12-10 12Z"/></svg>),
     },
     {
       label: t('account.termsOfService'),
+      sub: '利用規約',
       onClick: () => setPanel('terms'),
-      iconBg: '#64748b',
-      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>),
+      iconBg: 'var(--stg-gray-100)',
+      iconColor: 'var(--stg-gray-700)',
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>),
     },
   ];
 
@@ -430,20 +456,31 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               )}
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-6 pt-5 border-t border-[var(--border)]">
-              {stats.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={s.onClick}
-                  className="flex flex-col items-center justify-center py-1 rounded-[var(--radius-md)] hover:bg-[var(--bg-soft)] transition-colors"
-                  aria-label={s.label}
+          </div>
+          {/* Stats row — Claude Design: 4 セル、間に縦罫、hover で薄いクリーム */}
+          <div
+            className="grid grid-cols-4"
+            style={{ borderTop: '1px solid var(--stg-gray-200)' }}
+          >
+            {stats.map((s, i) => (
+              <button
+                key={i}
+                onClick={s.onClick}
+                className="flex flex-col items-center justify-center py-4 transition-colors hover:bg-[var(--stg-cream-50)]"
+                style={i < stats.length - 1 ? { borderRight: '1px solid var(--stg-gray-200)' } : undefined}
+                aria-label={s.label}
+              >
+                <span
+                  className="font-extrabold tabular-nums leading-none"
+                  style={{ fontSize: 26, letterSpacing: '-0.025em', color: 'var(--stg-gray-900)' }}
                 >
-                  <span className="text-[20px] sm:text-[22px] lg:text-[26px] font-extrabold tabular-nums">{s.count}</span>
-                  <span className="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-0.5">{s.label}</span>
-                </button>
-              ))}
-            </div>
+                  {s.count}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--stg-gray-600)', marginTop: 6 }}>
+                  {s.label}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -503,66 +540,165 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           )}
         </div>
 
-        {/* ─── Privacy toggle (special row) ─── */}
-        <SectionLabel>{t('account.settings')}</SectionLabel>
-        <div className="rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] shadow-[var(--shadow-sm)] px-4 sm:px-5 py-3.5 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: '#6b7280' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        {/* ─── ストリークバナー（活動状況。動的に保存日数 / 訪問数を表示） ─── */}
+        {safeStocks.length > 0 && (
+          <div
+            className="relative overflow-hidden mb-7 flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5"
+            style={{
+              background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
+              color: 'white',
+              borderRadius: 16,
+            }}
+          >
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(circle at 90% 50%, rgba(254,141,40,0.20) 0%, transparent 50%)' }}
+            />
+            <div
+              className="grid place-items-center flex-shrink-0 relative"
+              style={{
+                width: 56, height: 56, borderRadius: 14,
+                background: 'linear-gradient(135deg, var(--stg-orange-400), var(--stg-orange-600))',
+                boxShadow: '0 8px 20px rgba(254,141,40,0.40)',
+              }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4c0 5-3 5-3 9a3 3 0 0 0 6 0c0-1.5-.5-2.5-1.5-3.5C16.5 11 18 12.5 18 15a6 6 0 0 1-12 0c0-3 2-5 3-7 .5-1 1-2 1-3 .5 0 4 1 4-1Z"/></svg>
             </div>
-            <div className="min-w-0">
-              <div className="text-[14px] font-semibold truncate">{t('account.privateAccount')}</div>
-              <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5 truncate">{t('account.privateAccountHint')}</div>
+            <div className="relative flex-1 min-w-0">
+              <div className="text-[17px] font-bold mb-1">あなたのコレクション、{safeStocks.length} 件</div>
+              <div className="text-[13px] leading-[1.5]" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                {visitedCount > 0 ? `そのうち ${visitedCount} 件は実際に訪問済み。残りも順番に消化していこう。` : '気になるお店をスワイプで貯めて、行きたい時に思い出そう。'}
+              </div>
             </div>
           </div>
-          <Toggle
-            checked={isPrivate}
-            ariaLabel={t('account.privateAccount')}
-            onChange={async (next) => {
-              setIsPrivate(next);
-              localStorage.setItem('cache:isPrivate', next ? '1' : '0');
-              try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
-            }}
-          />
+        )}
+
+        {/* ─── 連携アカウント（プレースホルダ：将来の OAuth 連携機能向け） ─── */}
+        <SectionLabel>連携アカウント</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
+          {[
+            { name: 'TikTok', sub: '未接続', bg: 'linear-gradient(135deg, #FF0050, #00F2EA)', svg: <path fill="currentColor" stroke="none" d="M19.6 6.3a4.9 4.9 0 0 1-3-1.7 4.9 4.9 0 0 1-1-2.6h-3.3v13.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.5a6 6 0 1 0 5.1 5.9V8.7a8 8 0 0 0 4 1.3V6.7c-.1 0-.6 0-1-.4Z"/> },
+            { name: 'Instagram', sub: '未接続', bg: 'linear-gradient(135deg, #FEDA77, #F58529, #DD2A7B, #8134AF)', svg: <><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></> },
+            { name: 'YouTube', sub: '未接続', bg: '#FF0000', svg: <><rect x="2" y="6" width="20" height="12" rx="3"/><path fill="currentColor" stroke="none" d="m10 9 5 3-5 3z"/></> },
+          ].map((c) => (
+            <div
+              key={c.name}
+              className="flex items-center gap-3 px-4 py-3.5"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+            >
+              <div
+                className="w-[38px] h-[38px] grid place-items-center flex-shrink-0 text-white"
+                style={{ background: c.bg, borderRadius: 10 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{c.svg}</svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{c.name}</div>
+                <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--stg-gray-600)' }}>
+                  <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-gray-400)' }} />
+                  {c.sub}
+                </div>
+              </div>
+              <button
+                disabled
+                className="text-[12px] font-semibold px-3 py-1 cursor-not-allowed opacity-60"
+                style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 8, border: 'none' }}
+                title="OAuth 連携は近日対応予定"
+              >
+                準備中
+              </button>
+            </div>
+          ))}
         </div>
 
-        {/* ─── Settings tile grid ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 mb-8">
+        {/* ─── 設定 ─── */}
+        <SectionLabel>{t('account.settings')}</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* 非公開アカウント — full-width toggle row */}
+          <div
+            className="flex items-center gap-3.5 px-4 py-3.5 sm:col-span-2"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+          >
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{t('account.privateAccount')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>{t('account.privateAccountHint')}</div>
+            </div>
+            <Toggle
+              checked={isPrivate}
+              ariaLabel={t('account.privateAccount')}
+              onChange={async (next) => {
+                setIsPrivate(next);
+                localStorage.setItem('cache:isPrivate', next ? '1' : '0');
+                try { await api.setPrivateAccount(next); } catch { setIsPrivate(!next); }
+              }}
+            />
+          </div>
           {settingTiles.map((tile, i) => <SettingTile key={i} {...tile} />)}
         </div>
 
-        {/* ─── Support grid ─── */}
+        {/* ─── サポート ─── */}
         <SectionLabel>{t('account.support')}</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {supportTiles.map((tile, i) => <SettingTile key={i} {...tile} />)}
         </div>
 
-        {/* ─── Danger zone ─── */}
+        {/* ─── その他（ログアウト / アカウント削除） ─── */}
         <SectionLabel>{t('account.other')}</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => setPanel('deleteAccount')}
-            className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-red-300 dark:hover:border-red-900 hover:shadow-[var(--shadow-md)] transition-all text-left"
-          >
-            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: '#ef4444' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            </div>
-            <span className="flex-1 text-[14px] font-semibold text-red-500">{t('account.deleteAccount')}</span>
-            <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity">›</span>
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button
             onClick={logout}
-            className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] transition-all text-left"
+            className="group flex items-center gap-3.5 px-4 py-3.5 transition-all hover:-translate-y-px text-left"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
           >
-            <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: 'var(--text-primary)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--card-bg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
             </div>
-            <span className="flex-1 text-[14px] font-semibold">{t('auth.logOut')}</span>
-            <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity">›</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{t('auth.logOut')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>このデバイスからサインアウト</div>
+            </div>
+            <span className="text-[var(--text-tertiary)] flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </button>
+          <button
+            onClick={() => setPanel('deleteAccount')}
+            className="group flex items-center gap-3.5 px-4 py-3.5 transition-all hover:-translate-y-px text-left"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+          >
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'rgba(255,69,58,0.12)', color: 'var(--stg-red)', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-red)' }}>{t('account.deleteAccount')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>すべてのデータが永久に削除されます</div>
+            </div>
+            <span className="text-[var(--text-tertiary)] flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
           </button>
         </div>
 
-        <p className="text-center text-[11px] text-[var(--text-tertiary)] mt-8">stoguru v1.0</p>
+        {/* ─── Footer ─── */}
+        <div className="text-center mt-10" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+          <div className="flex justify-center gap-4 mb-2 flex-wrap">
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>プライバシー</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>利用規約</a>
+          </div>
+          <div>stoguru v1.0 · © 2026 stoguru</div>
+        </div>
       </div>
 
       {/* Panels */}
@@ -707,35 +843,61 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
 
 type SettingTileDef = {
   label: string;
+  /** 右端に出すサマリ値（Claude Design 風だと "自動" / "日本語" 等） */
   value?: string;
+  /** 説明文（タイトル下に薄文字で出す） */
+  sub?: string;
   onClick: () => void;
+  /** アイコンタイル背景 */
   iconBg: string;
+  /** アイコンの線 / 塗り色（白以外を使いたい時。例: ic-bg-orange は cream 背景 + orange line） */
+  iconColor?: string;
   icon: React.ReactNode;
 };
 
-function SettingTile({ label, value, onClick, iconBg, icon }: SettingTileDef) {
+function SettingTile({ label, value, sub, onClick, iconBg, iconColor, icon }: SettingTileDef & { sub?: string; iconColor?: string }) {
+  // Claude Design 風 setting-card: 38x38 アイコンタイル + title + sub (= description) + chev
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-xl)] bg-[var(--card-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all text-left"
+      className="group flex items-center gap-3.5 px-4 py-3.5 transition-all text-left hover:-translate-y-px"
+      style={{
+        background: 'var(--card-bg)',
+        border: '1px solid var(--stg-gray-200)',
+        borderRadius: 14,
+      }}
     >
-      <div className="w-10 h-10 rounded-[var(--radius-md)] grid place-items-center flex-shrink-0" style={{ background: iconBg }}>
+      <div
+        className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+        style={{ background: iconBg, color: iconColor ?? '#fff', borderRadius: 10 }}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold truncate">{label}</div>
-        {value && <div className="text-[12px] text-[var(--text-tertiary)] mt-0.5 truncate">{value}</div>}
+        <div className="text-[14px] font-semibold truncate" style={{ color: 'var(--stg-gray-900)' }}>{label}</div>
+        {(sub || value) && (
+          <div className="text-[12px] truncate" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>{sub ?? value}</div>
+        )}
       </div>
-      <span className="text-[var(--text-tertiary)] opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0">›</span>
+      {value && sub && (
+        <span className="text-[13px] flex-shrink-0" style={{ color: 'var(--stg-gray-600)', marginRight: 4 }}>{value}</span>
+      )}
+      <span className="text-[var(--text-tertiary)] flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </span>
     </button>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  // Claude Design 風 .section-h（uppercase, 13px, gray-600, letter-spacing 0.04em）
   return (
-    <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em] mb-2.5 pl-1">
+    <h2
+      className="font-bold mb-3"
+      style={{ fontSize: 13, color: 'var(--stg-gray-600)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 28 }}
+    >
       {children}
-    </p>
+    </h2>
   );
 }
 
