@@ -6,6 +6,7 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContextDef';
 import { GENRE_TAGS } from '../../constants/genre';
 import './map-page.css';
 
@@ -156,10 +157,16 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
     name: 'Stoguru Zenly',
     sources: {
       'mapbox-streets': { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' },
+      // 衛星画像（デフォルトは非表示。レイヤー切替で visibility を toggle）
+      'mapbox-satellite': { type: 'raster', url: 'mapbox://mapbox.satellite', tileSize: 256 },
     },
     glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': t.background } },
+      // 衛星画像レイヤー（デフォルト非表示。レイヤー切替で 衛星 にすると表示）
+      { id: 'satellite', type: 'raster', source: 'mapbox-satellite',
+        layout: { visibility: 'none' },
+        paint: { 'raster-fade-duration': 0 } },
       { id: 'water', type: 'fill', source: 'mapbox-streets', 'source-layer': 'water',
         paint: { 'fill-color': t.water, 'fill-opacity': 1 } },
       { id: 'park', type: 'fill', source: 'mapbox-streets', 'source-layer': 'landuse',
@@ -507,17 +514,18 @@ function buildPopupNode(
 
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
   const { t } = useTranslation();
+  const { resolvedTheme, setTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const [mapMode, setMapMode] = useState<'standard' | '3d'>('3d');
+  const [mapMode, setMapMode] = useState<'standard' | '3d' | 'satellite'>('3d');
   const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
   // Claude Design: 左の list panel + 上の cat フィルタ + 検索
   const [listOpen, setListOpen] = useState(true);
   const [listSearch, setListSearch] = useState('');
   const [topSearch, setTopSearch] = useState('');
-  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist'>('all');
+  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist' | 'noted'>('all');
   const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
   const [showFollowingPicker, setShowFollowingPicker] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
@@ -1000,17 +1008,31 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     });
   }, []);
 
-  // Switch map mode (2D / 3D)
-  const handleSwitchMode = useCallback((mode: 'standard' | '3d') => {
+  // Switch map mode (2D / 3D / 衛星)
+  const handleSwitchMode = useCallback((mode: 'standard' | '3d' | 'satellite') => {
     const map = mapRef.current;
     if (!map) return;
+
+    // ベースの style レイヤー（衛星モードの時だけ非表示にしたい一覧）
+    const styleLayers = ['water', 'park', 'building-flat', 'building-outline', 'road-casing', 'road', 'rail'];
 
     if (mode === '3d') {
       map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'visible'); } catch {}
-    } else {
+      try { map.setLayoutProperty('satellite', 'visibility', 'none'); } catch {}
+      styleLayers.forEach(id => { try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {} });
+    } else if (mode === 'satellite') {
       map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
       try { map.setLayoutProperty('building-3d', 'visibility', 'none'); } catch {}
+      try { map.setLayoutProperty('satellite', 'visibility', 'visible'); } catch {}
+      // ベクター style レイヤーは衛星画像と被るので非表示にする（ラベルは残す）
+      styleLayers.forEach(id => { try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {} });
+    } else {
+      // standard (2D)
+      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+      try { map.setLayoutProperty('building-3d', 'visibility', 'none'); } catch {}
+      try { map.setLayoutProperty('satellite', 'visibility', 'none'); } catch {}
+      styleLayers.forEach(id => { try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {} });
     }
 
     setMapMode(mode);
@@ -1132,13 +1154,20 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </div>
         {([
           { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
-          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited).length },
+          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited && !s.pinned).length },
           { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
+          // 「気になる」は pinned フラグを流用（後で専用 status を持つ場合は差し替え）
+          { key: 'noted' as const, label: '気になる', color: 'var(--stg-blue)', count: stocks.filter(s => s.pinned && !s.visited).length },
         ]).map((c) => (
           <button
             key={c.key}
             className={`map-pill ${catFilter === c.key ? 'is-active' : ''}`}
-            onClick={() => { setCatFilter(c.key); if (c.key === 'visited') setFilterVisited('visited'); else if (c.key === 'wishlist') setFilterVisited('wishlist'); else setFilterVisited('all'); }}
+            onClick={() => {
+              setCatFilter(c.key);
+              if (c.key === 'visited') setFilterVisited('visited');
+              else if (c.key === 'wishlist') setFilterVisited('wishlist');
+              else setFilterVisited('all');
+            }}
           >
             {c.color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color }} />}
             {c.label}
@@ -1154,9 +1183,37 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </button>
       </div>
 
-      {/* ─── 右側 control stack（フォロー絞り込みのみ。zoom / 現在地 / 地図スタイル
-            は Mapbox 標準操作（ピンチ + GPS）で十分なので削除）─── */}
+      {/* ─── 右側 control stack（zoom + 現在地 + 経路 + フォロー）
+            Claude Design map.html 準拠 ─── */}
       <div className="map-right">
+        <div className="map-ctrl-stack">
+          <button title="ズームイン" onClick={() => mapRef.current?.zoomIn()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button title="ズームアウト" onClick={() => mapRef.current?.zoomOut()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
+          </button>
+        </div>
+        <button
+          className="map-ctrl"
+          title="現在地"
+          onClick={() => { if (userPosition) mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16 }); }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+        </button>
+        <button
+          className="map-ctrl"
+          title="経路（Google Maps）"
+          onClick={() => {
+            // 選択中の店があればそこへ、なければマップ中心へ経路を引く
+            const map = mapRef.current; if (!map) return;
+            const sel = stocks.find(x => x.id === selectedStockId);
+            const c = sel ? { lat: sel.lat, lng: sel.lng } : (() => { const cc = map.getCenter(); return { lat: cc.lat, lng: cc.lng }; })();
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat + ',' + c.lng)}`, '_blank', 'noopener');
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>
+        </button>
         <button
           className={`map-ctrl ${selectedFollowUser ? 'is-active' : ''}`}
           title={t('account.following')}
@@ -1199,7 +1256,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             const items = stocks
               .filter((s) => {
                 if (catFilter === 'visited') return s.visited;
-                if (catFilter === 'wishlist') return !s.visited;
+                if (catFilter === 'wishlist') return !s.visited && !s.pinned;
+                if (catFilter === 'noted') return s.pinned && !s.visited;
                 return true;
               })
               .filter((s) => {
@@ -1315,9 +1373,54 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         );
       })()}
 
-      {/* Legend / Layer switcher は UI を簡潔に保つため非表示。
-          凡例：まだ=オレンジ / 行った=緑（ピン色で十分）。
-          レイヤー切替：iOS の Mapbox 標準ピンチ操作で 2D/3D を切り替え可能。 */}
+      {/* ─── Legend (左下) — Claude Design map.html と同一の 5 項目 ─── */}
+      <div className="map-legend">
+        <div className="map-legend__item"><span className="map-legend__dot cat-todo" />保存</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-visited" />行った</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-noted" />気になる</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-special" />特別</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-here" />現在地</div>
+      </div>
+
+      {/* ─── Layer switcher (右下) — 3D / 2D / 衛星 ─── */}
+      <div className="map-layers">
+        <button className={mapMode === '3d' ? 'is-active' : ''} onClick={() => handleSwitchMode('3d')}>3D</button>
+        <button className={mapMode === 'standard' ? 'is-active' : ''} onClick={() => handleSwitchMode('standard')}>2D</button>
+        <button className={mapMode === 'satellite' ? 'is-active' : ''} onClick={() => handleSwitchMode('satellite')}>衛星</button>
+      </div>
+
+      {/* ─── ダークモードトグル (右下角、layer switcher のさらに右) ─── */}
+      <button
+        className="map-darktoggle"
+        title={resolvedTheme === 'black' ? 'ライトモードへ切替' : 'ダークモードへ切替'}
+        onClick={() => setTheme(resolvedTheme === 'black' ? 'white' : 'black')}
+        style={{
+          position: 'absolute',
+          bottom: 18, right: 18,
+          width: 44, height: 44,
+          background: 'rgba(255,255,255,0.96)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.4)',
+          borderRadius: 12,
+          cursor: 'pointer',
+          display: 'grid', placeItems: 'center',
+          color: 'var(--stg-gray-900)',
+          boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
+          // map-layers (右下) と被らないよう、衛星ボタンの右隣に並べる
+          // → 既存 .map-layers は right:18px;bottom:18px なので、こちらは
+          //   right:18px;bottom:74px に持ち上げて積み上げる。
+          transform: 'translateY(-56px)',
+          zIndex: 19,
+        }}
+      >
+        {resolvedTheme === 'black' ? (
+          // sun
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        ) : (
+          // moon
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+        )}
+      </button>
 
       {/* Filter panel */}
       {filterOpen && (

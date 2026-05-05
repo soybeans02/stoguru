@@ -244,6 +244,23 @@ export function DiscoveryHome({
   // 親 render ごとに新しい配列が生まれて HeroDeck に再 render させないよう memo
   const heroDeckCards = useMemo(() => feed.slice(0, 3), [feed]);
 
+  /* ジャンルカードに「そのジャンルの投稿件数」を出すための集計。
+     feed 上の各レストランを GENRES_AS_THEMES.keywords にマッチさせて数える。
+     1 つのレストランが複数ジャンル keyword に該当する場合はそれぞれにカウント。 */
+  const genreCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    GENRES_AS_THEMES.forEach((g) => { counts[g.id] = 0; });
+    feed.forEach((r) => {
+      const gtxt = String(r.genre ?? '').toLowerCase();
+      if (!gtxt) return;
+      GENRES_AS_THEMES.forEach((g) => {
+        const matched = (g.keywords ?? []).some((kw) => gtxt.includes(kw.toLowerCase()));
+        if (matched) counts[g.id] += 1;
+      });
+    });
+    return counts;
+  }, [feed]);
+
   /* Fetch rankings (Top 3 each) */
   useEffect(() => {
     api
@@ -380,43 +397,68 @@ export function DiscoveryHome({
             subtitle="食べたいジャンルから一気に絞り込む"
           />
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 mt-2">
-            {GENRES_AS_THEMES.map((g) => (
-              <a
-                key={g.id}
-                href={`/themes/${g.id}`}
-                onClick={(e) => { e.preventDefault(); navigate(`/themes/${g.id}`); }}
-                className="flex flex-col items-center gap-2 no-underline group cursor-pointer"
-              >
-                <div
-                  className="relative w-full overflow-hidden transition-all duration-300"
-                  style={{
-                    aspectRatio: '1 / 1',
-                    borderRadius: '50%',
-                    boxShadow: '0 8px 16px -8px rgba(0,0,0,0.20), 0 0 0 1px rgba(0,0,0,0.04)',
-                  }}
+            {GENRES_AS_THEMES.map((g) => {
+              const count = genreCounts[g.id] ?? 0;
+              return (
+                <a
+                  key={g.id}
+                  href={`/themes/${g.id}`}
+                  onClick={(e) => { e.preventDefault(); navigate(`/themes/${g.id}`); }}
+                  className="flex flex-col items-center gap-2 no-underline group cursor-pointer"
                 >
-                  <img
-                    loading="lazy"
-                    src={g.image}
-                    alt={g.label}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.1]"
-                  />
-                  {/* hover 時の orange リング（Tailwind variant が CSS 変数効かないので疑似要素 + CSS) */}
-                  <span
-                    className="absolute inset-0 rounded-full pointer-events-none transition-all"
+                  <div
+                    className="relative w-full overflow-hidden transition-all duration-300"
                     style={{
-                      boxShadow: '0 0 0 0 var(--stg-orange-500)',
+                      aspectRatio: '1 / 1',
+                      borderRadius: '50%',
+                      boxShadow: '0 8px 16px -8px rgba(0,0,0,0.20), 0 0 0 1px rgba(0,0,0,0.04)',
                     }}
-                  />
-                </div>
-                <span
-                  className="font-semibold"
-                  style={{ fontSize: 13, color: 'var(--stg-gray-900)' }}
-                >
-                  {g.label}
-                </span>
-              </a>
-            ))}
+                  >
+                    <img
+                      loading="lazy"
+                      src={g.image}
+                      alt={g.label}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.1]"
+                    />
+                    {/* hover 時の orange リング（Tailwind variant が CSS 変数効かないので疑似要素 + CSS) */}
+                    <span
+                      className="absolute inset-0 rounded-full pointer-events-none transition-all"
+                      style={{
+                        boxShadow: '0 0 0 0 var(--stg-orange-500)',
+                      }}
+                    />
+                    {/* 投稿件数バッジ（右下、白丸 + オレンジ数字）。0 件のときは出さない。 */}
+                    {count > 0 && (
+                      <span
+                        className="absolute bottom-1 right-1 inline-flex items-center justify-center font-bold"
+                        style={{
+                          minWidth: 28,
+                          height: 22,
+                          padding: '0 7px',
+                          borderRadius: 999,
+                          background: 'white',
+                          color: 'var(--stg-orange-700)',
+                          fontSize: 11,
+                          letterSpacing: '-0.01em',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className="font-semibold flex flex-col items-center gap-0.5"
+                    style={{ fontSize: 13, color: 'var(--stg-gray-900)' }}
+                  >
+                    <span>{g.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--stg-gray-600)' }}>
+                      {count}件
+                    </span>
+                  </span>
+                </a>
+              );
+            })}
           </div>
         </section>
 
