@@ -9,9 +9,14 @@
 }
 
 /* ─── Sidebar ─── */
+/* App.tsx は flex layout のため、grid に頼らず幅を明示。
+   bg / border はテーマに追従させ、TopBar の border-b と色を一致させて
+   左サイドバーと main コンテンツの境界が「切れて」見えないようにする。 */
 .stg-sidebar {
-  background: white;
-  border-right: 1px solid var(--stg-gray-200);
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
   padding: 24px 16px;
   position: sticky;
   top: 0;
@@ -91,7 +96,7 @@
 .sidebar__user {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 8px;
-  border-top: 1px solid var(--stg-gray-200);
+  border-top: 1px solid var(--border);
   margin-top: 16px;
 }
 .sidebar__user-avatar {

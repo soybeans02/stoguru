@@ -13,6 +13,7 @@ import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
+import { LogoMark } from '../ui/LogoMark';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, MapIcon,
   UsersIcon, HelpIcon,
@@ -322,7 +323,6 @@ export function DiscoveryHome({
         onOpenMap={onOpenMap}
         onLogoClick={onReload}
         isAnonymous={isAnonymous}
-        userNickname={user?.nickname}
       />
 
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -1328,7 +1328,6 @@ function DiscoveryTopBar({
   onOpenMap,
   onLogoClick,
   isAnonymous,
-  userNickname,
 }: {
   searchFields: SearchFields;
   onSearchFieldsChange: (f: SearchFields) => void;
@@ -1339,7 +1338,6 @@ function DiscoveryTopBar({
   /** ロゴ（タブレットの "stoguru"）タップでフィードを再生成（パーソナライズ更新） */
   onLogoClick?: () => void;
   isAnonymous: boolean;
-  userNickname?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -1410,7 +1408,10 @@ function DiscoveryTopBar({
           >
             {t('home.navMap')}
           </button>
-          {isAnonymous ? (
+          {/* 匿名のみ Sign up / Log in を出す。
+              ログイン済ユーザーの @nickname 表示は左サイドバー（PC）と
+              アカウント画面に集約したので topbar 右上からは削除。 */}
+          {isAnonymous && (
             <>
               <button
                 onClick={onLogIn}
@@ -1429,10 +1430,6 @@ function DiscoveryTopBar({
                 {t('home.ctaSignUp')}
               </button>
             </>
-          ) : (
-            <span className="text-[13px] font-medium text-[var(--text-secondary)] truncate max-w-[140px]">
-              @{userNickname}
-            </span>
           )}
         </div>
       </div>
@@ -2106,14 +2103,14 @@ function AppDownloadBanner() {
             <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
           </div>
         </div>
-        {/* 右側：app-icon を装飾的に大きく表示 */}
+        {/* 右側：新しい LogoMark を装飾的に大きく表示（旧 /app-icon.png から差し替え） */}
         <div className="hidden lg:flex items-center justify-center">
           <div
-            className="w-[200px] rounded-[18px] p-4"
+            className="w-[200px] rounded-[18px] p-4 flex flex-col items-center"
             style={{ background: 'white', color: 'var(--stg-gray-900)' }}
           >
-            <img src="/app-icon.png" alt="" className="w-full aspect-square rounded-[14px] object-cover" />
-            <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--stg-gray-600)' }}>
+            <LogoMark size={168} radius={36} />
+            <p className="text-[11px] mt-3 text-center" style={{ color: 'var(--stg-gray-600)' }}>
               {t('home.appBadgeComingSoon')}
             </p>
           </div>

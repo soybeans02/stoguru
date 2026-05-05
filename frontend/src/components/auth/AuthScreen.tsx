@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { LogoMark } from '../ui/LogoMark';
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -84,7 +85,7 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
           </svg>
         </div>
         <div className="relative z-10 text-center text-white px-12">
-          <img src="/app-icon.png" alt="stoguru" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg" />
+          <span className="block mb-6"><LogoMark size={80} radius={20} /></span>
           <h2 className="text-4xl font-extrabold mb-3 tracking-[-0.02em]">stoguru</h2>
           <p className="text-lg text-white/80">SNSで見つけたお店を、ストックして、行こう。</p>
         </div>
@@ -95,7 +96,7 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
         <div className="w-full max-w-sm">
           {/* Mobile: ロゴ */}
           <h1 className="text-2xl font-bold text-center mb-1 flex flex-col items-center gap-2 md:hidden">
-            <img src="/app-icon.png" alt="stoguru" className="w-14 h-14 rounded-xl" />
+            <LogoMark size={56} radius={14} />
             <span
               className="font-extrabold tracking-[-0.02em]"
               style={{
@@ -228,9 +229,7 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
   );
 }
 
-// Logo re-export for shared use
+// Logo re-export for shared use（旧 /app-icon.png から LogoMark に統一）
 export function StogulLogo({ size = 32 }: { size?: number }) {
-  return (
-    <img src="/app-icon.png" alt="stoguru" width={size} height={size} className="rounded-lg" />
-  );
+  return <LogoMark size={size} radius={Math.round(size * 0.3)} shadow={false} />;
 }
