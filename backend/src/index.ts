@@ -111,12 +111,37 @@ app.use('/api', (req, res, next) => {
 
 // stats と userActivity は ./state.ts から import
 
+// stats.byEndpoint / byHour / userActivity の memory 制限。req.path は :id を
+// 展開した値が来るので（/follow/abc-123-... 等）、放置すると unique パスごとに
+// キーが増えて memory leak になる。
+const STATS_ENDPOINT_MAX = 500;
+const STATS_HOUR_MAX = 24 * 7; // 1 週間分
+const USER_ACTIVITY_MAX = 5000;
+
+function normalizeStatsPath(method: string, path: string): string {
+  // 動的セグメント（UUID / 数字）を `:id` にまとめてキーの爆発を防ぐ
+  const cleaned = path
+    .replace(/\/[a-f0-9]{8}-[a-f0-9-]+/gi, '/:id')
+    .replace(/\/\d+/g, '/:n');
+  return `${method} ${cleaned}`;
+}
+
+function trimMap<T extends Record<string, unknown>>(map: T, max: number): void {
+  const keys = Object.keys(map);
+  if (keys.length <= max) return;
+  // 古いキーから 10% 削る
+  const drop = Math.ceil(max * 0.1);
+  for (let i = 0; i < drop; i++) delete map[keys[i]];
+}
+
 app.use('/api', (req, _res, next) => {
   stats.total++;
-  const key = `${req.method} ${req.path}`;
+  const key = normalizeStatsPath(req.method, req.path);
   stats.byEndpoint[key] = (stats.byEndpoint[key] ?? 0) + 1;
+  if (Object.keys(stats.byEndpoint).length > STATS_ENDPOINT_MAX) trimMap(stats.byEndpoint, STATS_ENDPOINT_MAX);
   const hour = new Date().toISOString().slice(0, 13);
   stats.byHour[hour] = (stats.byHour[hour] ?? 0) + 1;
+  if (Object.keys(stats.byHour).length > STATS_HOUR_MAX) trimMap(stats.byHour, STATS_HOUR_MAX);
   // ユーザーアクティビティ追跡（Authorizationヘッダーからユーザー特定）
   const authHeader = req.headers.authorization;
   if (authHeader) {
@@ -125,6 +150,7 @@ app.use('/api', (req, _res, next) => {
       const u = (req as any).user;
       if (u?.userId) {
         userActivity[u.userId] = { lastSeen: Date.now(), nickname: u.nickname ?? userActivity[u.userId]?.nickname };
+        if (Object.keys(userActivity).length > USER_ACTIVITY_MAX) trimMap(userActivity, USER_ACTIVITY_MAX);
       }
     });
   }

@@ -166,6 +166,38 @@ export const influencerRestaurantSchema = z.object({
   visibility: z.enum(['public', 'mutual', 'hidden']).default('public'),
 });
 
+// ─── 一括同期（localStorage 移行用）───
+// /restaurants/sync で送られてくる 1 件あたりの schema。各フィールドに上限を
+// 設けて、500 件 × 巨大文字列の DoS / DynamoDB アイテムサイズ超過を防ぐ。
+
+export const syncItemSchema = z.object({
+  id: z.string().min(1).max(200),
+  name: z.string().max(200).optional(),
+  address: z.string().max(300).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  genre: z.string().max(50).optional(),
+  genreTags: z.array(z.string().max(50)).max(10).optional(),
+  priceRange: z.string().max(50).optional(),
+  videoUrl: httpUrl(2000).optional(),
+  pinned: z.boolean().optional(),
+  notes: z.string().max(2000).optional(),
+  landmarkMemo: z.string().max(500).optional(),
+  review: z.object({
+    text: z.string().max(2000).optional(),
+    rating: z.number().min(0).max(5).optional(),
+    reviewedAt: z.string().max(50).optional(),
+  }).nullable().optional(),
+  status: z.enum(['visited', 'wishlist']).optional(),
+  visitedAt: z.string().max(50).optional(),
+  photoEmoji: z.string().max(10).optional(),
+  createdAt: z.string().max(50).optional(),
+}).passthrough(); // 将来追加されるフィールドは無害に通過
+
+export const syncBatchSchema = z.object({
+  restaurants: z.array(syncItemSchema).max(500),
+});
+
 // ─── フィードバック ───
 
 export const feedbackSchema = z.object({

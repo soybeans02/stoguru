@@ -2,18 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
+import { distanceMetres } from '../../utils/distance';
 
 type SubView = 'main' | 'notifications' | 'following' | 'requests';
 
-/** 2 点間の球面距離（km）。Haversine */
+/** 2 点間の距離（km）。共通ヘルパー distanceMetres ベースで重複実装を排除。 */
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
+  return distanceMetres(lat1, lng1, lat2, lng2) / 1000;
 }
 
 interface Props {

@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import {
   // V2
@@ -21,7 +22,7 @@ import {
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { RestaurantV2 } from '../types';
-import { validate, restaurantSchema, settingsSchema, shareSchema, nearbySchema } from '../validators';
+import { validate, restaurantSchema, settingsSchema, shareSchema, nearbySchema, syncBatchSchema } from '../validators';
 import { haversineDistance } from '../utils/geo';
 import { encode as geohashEncode, neighbors as geohashNeighbors } from '../utils/geohash';
 
@@ -322,11 +323,11 @@ router.delete('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Res
 // ─── 一括同期（localStorage移行用） ───
 
 router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { restaurants } = req.body as { restaurants: (Record<string, unknown> & { id: string })[] };
-  if (!Array.isArray(restaurants) || restaurants.length > 500) {
-    res.status(400).json({ error: 'restaurants 配列が必要です（上限500件）' });
-    return;
-  }
+  // 各 item を Zod で検証（旧: 全フィールドを raw cast していて巨大文字列 / 不正
+  // 数値が DynamoDB に到達していた）
+  const v = validate(syncBatchSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const restaurants = v.data.restaurants;
 
   const userId = req.user!.userId;
   let synced = 0;
@@ -339,14 +340,14 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
       if (!existing) {
         await putRestaurantV2({
           restaurantId,
-          name: String(r.name || ''),
-          address: r.address as string | undefined,
-          lat: r.lat as number | undefined,
-          lng: r.lng as number | undefined,
-          genres: (r.genreTags as string[]) || (r.genre ? [String(r.genre)] : []),
-          priceRange: r.priceRange as string | undefined,
+          name: r.name ?? '',
+          address: r.address,
+          lat: r.lat,
+          lng: r.lng,
+          genres: r.genreTags ?? (r.genre ? [r.genre] : []),
+          priceRange: r.priceRange,
           photoUrls: [],
-          urls: r.videoUrl ? [String(r.videoUrl)] : [],
+          urls: r.videoUrl ? [r.videoUrl] : [],
           description: '',
           postedBy: userId,
           visibility: 'public',
@@ -359,14 +360,14 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
       const existingStock = await getUserStock(userId, restaurantId);
       await putUserStock(userId, {
         restaurantId,
-        pinned: r.pinned as boolean | undefined,
-        notes: r.notes as string | undefined,
-        landmarkMemo: r.landmarkMemo as string | undefined,
-        review: r.review as UserStock['review'],
-        status: ((r.status as string) === 'visited' ? 'visited' : 'wishlist'),
-        visitedAt: r.visitedAt as string | undefined,
-        photoEmoji: r.photoEmoji as string | undefined,
-        createdAt: (r.createdAt as string) || new Date().toISOString(),
+        pinned: r.pinned,
+        notes: r.notes,
+        landmarkMemo: r.landmarkMemo,
+        review: (r.review ?? undefined) as UserStock['review'],
+        status: r.status === 'visited' ? 'visited' : 'wishlist',
+        visitedAt: r.visitedAt,
+        photoEmoji: r.photoEmoji,
+        createdAt: r.createdAt || new Date().toISOString(),
       });
 
       if (!existingStock) await incrementStockCount(restaurantId, 1);
@@ -392,9 +393,23 @@ router.put('/settings', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 router.put('/settings/profile-photo', requireAuth, async (req: AuthRequest, res: Response) => {
-  const url = req.body.profilePhotoUrl ?? null;
+  const raw = req.body.profilePhotoUrl;
+  // 削除（null / 空）は許可。それ以外は http(s) スキームの URL のみ許可。
+  // javascript: 等のスキームが <img src> や <a href> 経由で XSS の入り口に
+  // ならないようバックでも検証する。
+  let safeUrl: string | undefined = undefined;
+  if (raw && typeof raw === 'string' && raw.length <= 1000) {
+    try {
+      const u = new URL(raw);
+      if (u.protocol === 'http:' || u.protocol === 'https:') safeUrl = u.toString();
+    } catch { /* 無効 URL は無視 */ }
+    if (!safeUrl) {
+      res.status(400).json({ error: '画像 URL は http(s):// で始まる必要があります' });
+      return;
+    }
+  }
   const existing = await getUserSettings(req.user!.userId);
-  await putUserSettings(req.user!.userId, { ...existing, profilePhotoUrl: url || undefined });
+  await putUserSettings(req.user!.userId, { ...existing, profilePhotoUrl: safeUrl });
   res.json({ ok: true });
 });
 
@@ -404,6 +419,10 @@ router.post('/follow/:targetId', requireAuth, async (req: AuthRequest, res: Resp
   const targetId = req.params.targetId as string;
   const followerId = req.user!.userId;
   if (followerId === targetId) { res.status(400).json({ error: '自分をフォローできません' }); return; }
+
+  // targetId が Cognito に実在するか確認（旧: 任意 UUID で notification spam 可）
+  const targetUser = await getUserById(targetId).catch(() => null);
+  if (!targetUser) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
 
   const targetSettings = await getUserSettings(targetId);
   if (targetSettings.isPrivate) {
@@ -711,6 +730,10 @@ router.delete('/shares/:createdAt', requireAuth, async (req: AuthRequest, res: R
 router.get('/restaurants/by-url', requireAuth, async (req: AuthRequest, res: Response) => {
   const url = ((req.query.url as string) ?? '').trim();
   if (!url) { res.status(400).json({ error: 'URLが必要です' }); return; }
+  // 入力 URL のサイズ・スキームを縛って DoS / 不正リクエストを弾く
+  if (url.length > 1000 || !/^https?:\/\//i.test(url)) {
+    res.status(400).json({ error: '不正な URL です' }); return;
+  }
 
   const restaurantId = await lookupRestaurantByUrl(url);
   if (!restaurantId) { res.json({ found: false }); return; }
@@ -741,6 +764,9 @@ router.get('/restaurants/by-url', requireAuth, async (req: AuthRequest, res: Res
 router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, res: Response) => {
   const url = String(req.body.url ?? '').trim();
   if (!url) { res.status(400).json({ error: 'URLが必要です' }); return; }
+  if (url.length > 1000 || !/^https?:\/\//i.test(url)) {
+    res.status(400).json({ error: '不正な URL です' }); return;
+  }
 
   const restaurantId = await lookupRestaurantByUrl(url);
   if (!restaurantId) {
@@ -774,17 +800,31 @@ router.post('/restaurants/stock-by-url', requireAuth, async (req: AuthRequest, r
 
 router.post('/restaurants/stock-from-place', requireAuth, async (req: AuthRequest, res: Response) => {
   const { name, address, lat, lng } = req.body;
-  if (!name || typeof name !== 'string') {
-    res.status(400).json({ error: 'お店の名前が必要です' });
+  // 入力検証：name 必須 200 文字以内、address 300 文字以内、lat/lng は妥当な範囲
+  if (!name || typeof name !== 'string' || name.length > 200) {
+    res.status(400).json({ error: 'お店の名前が必要です（200文字以内）' });
+    return;
+  }
+  if (address != null && (typeof address !== 'string' || address.length > 300)) {
+    res.status(400).json({ error: '住所は300文字以内にしてください' });
+    return;
+  }
+  if (lat != null && (typeof lat !== 'number' || lat < -90 || lat > 90)) {
+    res.status(400).json({ error: 'lat が無効です' });
+    return;
+  }
+  if (lng != null && (typeof lng !== 'number' || lng < -180 || lng > 180)) {
+    res.status(400).json({ error: 'lng が無効です' });
     return;
   }
   const userId = req.user!.userId;
-  const restaurantId = `place_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // crypto.randomUUID で衝突安全な ID を生成（旧: Math.random）
+  const restaurantId = `place_${randomUUID()}`;
 
   await putRestaurantV2({
     restaurantId,
-    name: String(name).trim(),
-    address: address ? String(address).trim() : undefined,
+    name: name.trim(),
+    address: address ? address.trim() : undefined,
     lat: typeof lat === 'number' ? lat : undefined,
     lng: typeof lng === 'number' ? lng : undefined,
     genres: [],
