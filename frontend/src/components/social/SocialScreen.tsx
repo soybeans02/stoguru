@@ -448,7 +448,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
               <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden shrink-0">
                 {searchResults.urlMatch.photoUrls?.[0] ? (
-                  <img src={searchResults.urlMatch.photoUrls[0]} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" src={searchResults.urlMatch.photoUrls[0]} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-xl">🍽️</span>
                 )}
@@ -484,7 +484,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                   {/* Photo */}
                   <div className="w-full h-40 bg-gray-100 dark:bg-gray-700 relative">
                     {r.photoUrls?.[0] ? (
-                      <img src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
+                      <img loading="lazy" src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-5xl">🍽️</span>

@@ -312,7 +312,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
             <div className="grid grid-cols-4 gap-1 h-[58px]">
               {thumbs.map((p, i) => (
                 <div key={i} className="rounded-[var(--radius-sm)] overflow-hidden">
-                  <img src={p} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" src={p} alt="" className="w-full h-full object-cover" />
                 </div>
               ))}
               {Array.from({ length: Math.max(0, 4 - thumbs.length) }).map((_, i) => (

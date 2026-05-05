@@ -9,6 +9,7 @@ import { GENRES } from '../../data/mockRestaurants';
 import { AuthModal } from '../auth/AuthModal';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { goBack, navigate } from '../../utils/navigate';
+import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -54,34 +55,24 @@ export function ThemeListScreen({ themeId }: Props) {
   const [sortBy, setSortBy] = useState<'distance' | 'price-asc' | 'price-desc'>('distance');
   const [timeSlot, setTimeSlot] = useState<'morning' | 'lunch' | 'dinner' | null>(null);
 
-  // Google Places
+  // Google Places — エリア欄が初めて focus された時にだけ SDK をロード（API 課金抑制）
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const placesDiv = useRef<HTMLDivElement | null>(null);
-  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const areaSearchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Load Google Maps Places
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
-    if (window.google?.maps?.places) { setMapsLoaded(true); return; }
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) { existing.addEventListener('load', () => setMapsLoaded(true)); return; }
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
-    script.async = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (mapsLoaded && window.google?.maps?.places) {
-      autocompleteService.current = new google.maps.places.AutocompleteService();
-      if (!placesDiv.current) placesDiv.current = document.createElement('div');
-      placesService.current = new google.maps.places.PlacesService(placesDiv.current);
-    }
-  }, [mapsLoaded]);
+  async function ensureMapsLoaded() {
+    if (autocompleteService.current) return;
+    const g = await loadGoogleMapsPlaces();
+    if (!g?.maps?.places) return;
+    autocompleteService.current = new g.maps.places.AutocompleteService();
+    if (!placesDiv.current) placesDiv.current = document.createElement('div');
+    placesService.current = new g.maps.places.PlacesService(placesDiv.current);
+  }
+  function startNewPlacesSession() {
+    sessionTokenRef.current = createPlacesSessionToken();
+  }
 
   // GPS は watchPosition で高頻度に微小更新が来るので、~1km 粒度に丸めて
   // 「意味のある移動」だけ deps として扱う（サブメートルのジッターで毎秒
@@ -95,7 +86,9 @@ export function ThemeListScreen({ themeId }: Props) {
     setLoading(true);
     const lat = position?.lat ?? 34.7025;
     const lng = position?.lng ?? 135.4959;
-    api.fetchRestaurantFeed(lat, lng, 20000, 100)
+    // 半径 5km × 50 件で取得（旧 20km × 100 件 → 9 geohash セル × 1000 件
+    // Query になっていた。バックの geohash4 セル換算で大幅にコスト削減）
+    api.fetchRestaurantFeed(lat, lng, 5000, 50)
       .then((data: unknown) => {
         if (cancelled) return;
         setFeed(Array.isArray(data) ? (data as Restaurant[]) : []);
@@ -117,12 +110,14 @@ export function ThemeListScreen({ themeId }: Props) {
     }
     areaSearchTimer.current = setTimeout(() => {
       if (!autocompleteService.current) return;
+      if (!sessionTokenRef.current) startNewPlacesSession();
       autocompleteService.current.getPlacePredictions(
         {
           input: v,
           types: ['(regions)'],
           componentRestrictions: { country: 'jp' },
           language: 'ja',
+          sessionToken: sessionTokenRef.current ?? undefined,
         },
         (predictions, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
@@ -144,9 +139,12 @@ export function ThemeListScreen({ themeId }: Props) {
       setShowAreaSuggestions(false);
       return;
     }
+    const token = sessionTokenRef.current;
     placesService.current?.getDetails(
-      { placeId, fields: ['geometry', 'name'] },
+      { placeId, fields: ['geometry', 'name'], sessionToken: token ?? undefined },
       (place, status) => {
+        // session 終了 — 次のエリア検索開始時にトークンを再生成
+        sessionTokenRef.current = null;
         if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
           setSelectedAreas((prev) => [...prev, {
             label,
@@ -284,7 +282,7 @@ export function ThemeListScreen({ themeId }: Props) {
 
       {/* Hero */}
       <header className="relative h-[160px] sm:h-[180px] lg:h-[200px] overflow-hidden">
-        <img src={theme.image} alt="" className="w-full h-full object-cover" />
+        <img loading="lazy" src={theme.image} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)' }} />
         <div className="absolute inset-0 max-w-[1280px] xl:max-w-[1440px] mx-auto px-5 sm:px-6 lg:px-8 flex items-center text-white">
           <div className="max-w-[640px]">
@@ -349,7 +347,12 @@ export function ThemeListScreen({ themeId }: Props) {
                   type="text"
                   value={areaInput}
                   onChange={(e) => handleAreaInputChange(e.target.value)}
-                  onFocus={() => areaSuggestions.length > 0 && setShowAreaSuggestions(true)}
+                  onFocus={async () => {
+                    // フォーカス時に Maps SDK 遅延ロード + セッショントークン発行
+                    await ensureMapsLoaded();
+                    if (!sessionTokenRef.current) startNewPlacesSession();
+                    if (areaSuggestions.length > 0) setShowAreaSuggestions(true);
+                  }}
                   onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
                   placeholder="例: 梅田、心斎橋駅"
                   className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-soft)] pl-8 pr-2 py-2 text-[13px] outline-none focus:border-[var(--accent-orange)] focus:bg-white"
@@ -814,7 +817,7 @@ function RestaurantDetailModal({
       >
         {/* 写真エリア */}
         <div className="relative aspect-[4/3] bg-[var(--bg-soft)] flex-shrink-0 overflow-hidden">
-          <img src={photos[photoIdx]} alt={restaurant.name} className="w-full h-full object-cover" />
+          <img loading="lazy" src={photos[photoIdx]} alt={restaurant.name} className="w-full h-full object-cover" />
           {photos.length > 1 && (
             <div className="absolute top-3 left-4 right-4 flex gap-1 z-[5]">
               {photos.map((_, i) => (

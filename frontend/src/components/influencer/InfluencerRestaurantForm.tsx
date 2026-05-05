@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import * as api from '../../utils/api';
 import { PhotoUpload } from '../ui/PhotoUpload';
+import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 
 interface InfluencerRestaurant {
   influencerId: string;
@@ -84,57 +85,43 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Google Places Autocomplete
+  // Google Places Autocomplete — フォーム上部の店名 input が初めて focus された
+  // 時にだけ SDK をロード（モーダル開いただけで Maps JS をダウンロードしないように）。
+  // sessionToken を渡して per-keystroke 課金 → per-session 課金に。
   const [query, setQuery] = useState(editing?.name ?? '');
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const placesDiv = useRef<HTMLDivElement>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [mapsLoaded, setMapsLoaded] = useState(false);
 
-  // Load Google Maps JS API
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
-
-    if (window.google?.maps?.places) {
-      setMapsLoaded(true);
-      return;
-    }
-
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) {
-      existing.addEventListener('load', () => setMapsLoaded(true));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
-    script.async = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!mapsLoaded || !window.google?.maps?.places) return;
-    autocompleteService.current = new google.maps.places.AutocompleteService();
+  async function ensureMapsLoaded() {
+    if (autocompleteService.current) return;
+    const g = await loadGoogleMapsPlaces();
+    if (!g?.maps?.places) return;
+    autocompleteService.current = new g.maps.places.AutocompleteService();
     if (placesDiv.current) {
-      placesService.current = new google.maps.places.PlacesService(placesDiv.current);
+      placesService.current = new g.maps.places.PlacesService(placesDiv.current);
     }
-  }, [mapsLoaded]);
+  }
+  function startNewPlacesSession() {
+    sessionTokenRef.current = createPlacesSessionToken();
+  }
 
   const searchPlaces = useCallback((input: string) => {
     if (!autocompleteService.current || input.length < 2) {
       setPredictions([]);
       return;
     }
+    if (!sessionTokenRef.current) sessionTokenRef.current = createPlacesSessionToken();
     autocompleteService.current.getPlacePredictions(
       {
         input,
         types: ['establishment'],
         componentRestrictions: { country: 'jp' },
+        sessionToken: sessionTokenRef.current ?? undefined,
       },
       (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
@@ -162,9 +149,16 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
     setPlaceId(prediction.place_id);
 
     if (!placesService.current) return;
+    const token = sessionTokenRef.current;
     placesService.current.getDetails(
-      { placeId: prediction.place_id, fields: ['geometry', 'formatted_address', 'name'] },
+      {
+        placeId: prediction.place_id,
+        fields: ['geometry', 'formatted_address', 'name'],
+        sessionToken: token ?? undefined,
+      },
       (place, status) => {
+        // session 終了 — 次の検索開始時に再生成
+        sessionTokenRef.current = null;
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
           if (place.name) {
             setName(place.name);
@@ -250,7 +244,12 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
             <input
               value={query}
               onChange={e => handleQueryChange(e.target.value)}
-              onFocus={() => predictions.length > 0 && setShowPredictions(true)}
+              onFocus={async () => {
+                // 店名 input フォーカス時に Maps SDK を遅延ロード + セッション開始
+                await ensureMapsLoaded();
+                if (!sessionTokenRef.current) startNewPlacesSession();
+                if (predictions.length > 0) setShowPredictions(true);
+              }}
               onBlur={() => setTimeout(() => setShowPredictions(false), 200)}
               maxLength={100}
               placeholder="店名を検索..."

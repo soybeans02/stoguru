@@ -446,7 +446,7 @@ export function InfluencerDashboard({ onBack }: Props) {
               {/* Photo area */}
               <div className="w-full aspect-square bg-gray-100 relative overflow-hidden">
                 {r.photoUrls && r.photoUrls.length > 0 ? (
-                  <img src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
+                  <img loading="lazy" src={r.photoUrls[0]} alt={r.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-4xl opacity-30">🍽️</span>
@@ -541,7 +541,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                 {(() => {
                   const photo = safeHttpUrl(previewRestaurant.photoUrls?.[0]);
                   return photo ? (
-                    <img src={photo} alt={previewRestaurant.name} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={photo} alt={previewRestaurant.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-7xl opacity-30">🍽️</span>

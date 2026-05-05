@@ -1382,7 +1382,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                   >
                     <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden">
                       {photoUrl ? (
-                        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                        <img loading="lazy" src={photoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-lg">🍽️</div>
                       )}
@@ -1464,7 +1464,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                         : 'ring-1 ring-white/20'
                     }`}
                   >
-                    <img src={m.thumb} alt={m.label} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={m.thumb} alt={m.label} className="w-full h-full object-cover" />
                   </div>
                   <span className={`text-[11px] font-medium ${mapMode === m.id ? 'text-blue-400' : 'text-gray-400'}`}>
                     {m.label}

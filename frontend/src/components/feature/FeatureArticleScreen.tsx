@@ -256,7 +256,7 @@ function EntryBlock({ entry, isFirst, onSave }: { entry: FeatureEntry; isFirst: 
       </div>
 
       <div className="aspect-[16/9] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-md)] mb-5">
-        <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+        <img loading="lazy" src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
       </div>
 
       {entry.comment.map((para, i) => (

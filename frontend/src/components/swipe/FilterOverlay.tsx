@@ -98,7 +98,7 @@ export function FilterOverlay({
                     : 'hover:scale-[1.02]'
                 }`}
               >
-                <img src={s.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img loading="lazy" src={s.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <div
                   className="absolute inset-0"
                   style={{
@@ -147,7 +147,7 @@ export function FilterOverlay({
                 }`}
               >
                 {photo ? (
-                  <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <img loading="lazy" src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" />
                 )}

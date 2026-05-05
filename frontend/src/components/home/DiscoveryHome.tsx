@@ -12,6 +12,7 @@ import { SwipeCard } from '../swipe/SwipeCard';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
+import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, MapIcon, CrownIcon, MedalIcon,
   UsersIcon, HelpIcon,
@@ -436,7 +437,7 @@ export function DiscoveryHome({
                 onClick={() => navigate(`/themes/${th.id}`)}
                 className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
               >
-                <img src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <img loading="lazy" src={th.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
                 <div
                   className="absolute inset-0"
                   style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
@@ -465,7 +466,7 @@ export function DiscoveryHome({
                 onClick={() => navigate(`/themes/${g.id}`)}
                 className="relative aspect-square rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] text-left"
               >
-                <img src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                <img loading="lazy" src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
                 <div
                   className="absolute inset-0"
                   style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.1))' }}
@@ -842,35 +843,27 @@ function MultiFieldSearchBar({
   // ─── Google Places autocomplete（エリア用）───
   // ロードはエリア欄が初めて focus された時のみ。Home を開いただけでは Maps API
   // を呼ばない（API 課金抑制）。
+  // sessionToken を 1 検索セッション内で getPlacePredictions / getDetails に
+  // 渡すと per-request 課金 → per-session 課金にまとまる。
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const placesDiv = useRef<HTMLDivElement | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const [areaSuggestions, setAreaSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const areaTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  function ensureMapsLoaded() {
+  async function ensureMapsLoaded() {
     if (autocompleteService.current) return;
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return;
-    const init = () => {
-      if (window.google?.maps?.places && !autocompleteService.current) {
-        autocompleteService.current = new google.maps.places.AutocompleteService();
-        if (!placesDiv.current) placesDiv.current = document.createElement('div');
-        placesService.current = new google.maps.places.PlacesService(placesDiv.current);
-      }
-    };
-    if (window.google?.maps?.places) { init(); return; }
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]') as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener('load', init);
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja`;
-    s.async = true;
-    s.onload = init;
-    document.head.appendChild(s);
+    const g = await loadGoogleMapsPlaces();
+    if (!g?.maps?.places) return;
+    autocompleteService.current = new g.maps.places.AutocompleteService();
+    if (!placesDiv.current) placesDiv.current = document.createElement('div');
+    placesService.current = new g.maps.places.PlacesService(placesDiv.current);
+  }
+
+  function startNewSession() {
+    sessionTokenRef.current = createPlacesSessionToken();
   }
 
   function handleAreaChange(v: string) {
@@ -880,9 +873,15 @@ function MultiFieldSearchBar({
     if (!v.trim()) { setAreaSuggestions([]); setShowAreaSuggestions(false); return; }
     areaTimer.current = setTimeout(() => {
       if (!autocompleteService.current) return;
+      if (!sessionTokenRef.current) startNewSession();
       // (regions) に絞ると駅が出ないので type 制限は外す。日本国内のみ。
       autocompleteService.current.getPlacePredictions(
-        { input: v, componentRestrictions: { country: 'jp' }, language: 'ja' },
+        {
+          input: v,
+          componentRestrictions: { country: 'jp' },
+          language: 'ja',
+          sessionToken: sessionTokenRef.current ?? undefined,
+        },
         (predictions, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
             setAreaSuggestions(predictions.slice(0, 6));
@@ -917,9 +916,16 @@ function MultiFieldSearchBar({
       onChange({ ...fields, area: short, areaGeo: undefined });
       return;
     }
+    const token = sessionTokenRef.current;
     placesService.current.getDetails(
-      { placeId: prediction.place_id, fields: ['geometry', 'types'] },
+      {
+        placeId: prediction.place_id,
+        fields: ['geometry', 'types'],
+        sessionToken: token ?? undefined,
+      },
       (place, status) => {
+        // session 終了 — getDetails 後はトークンを破棄して次回新規セッションへ
+        sessionTokenRef.current = null;
         if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
           onChange({ ...fields, area: short, areaGeo: undefined });
           return;
@@ -952,8 +958,12 @@ function MultiFieldSearchBar({
             <input
               value={fields.area}
               onChange={(e) => handleAreaChange(e.target.value)}
-              onFocus={() => {
-                ensureMapsLoaded();
+              onFocus={async () => {
+                await ensureMapsLoaded();
+                // フォーカス時にセッショントークンを発行（getPlacePredictions と
+                // 後続の getDetails が同じトークンを使うことで billing が
+                // session 単位にまとまる）
+                if (!sessionTokenRef.current) startNewSession();
                 if (fields.area && areaSuggestions.length > 0) setShowAreaSuggestions(true);
               }}
               onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
@@ -1407,7 +1417,7 @@ function Story({
       onClick={onClick}
       className="relative rounded-[var(--radius-xl)] overflow-hidden cursor-pointer shadow-[var(--shadow)] aspect-[4/3] block w-full text-left transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
     >
-      <img src={image} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+      <img loading="lazy" src={image} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
       <div
         className="absolute inset-0 flex flex-col justify-end p-5 text-white"
         style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }}
@@ -2042,7 +2052,7 @@ function ThemeDetailModal({
       <div onClick={(e) => e.stopPropagation()}>
         {/* Hero */}
         <div className="relative h-[220px] sm:h-[260px] lg:h-[300px] overflow-hidden">
-          <img src={theme.image} alt="" className="w-full h-full object-cover" />
+          <img loading="lazy" src={theme.image} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.85) 100%)' }} />
           <button
             onClick={onClose}
