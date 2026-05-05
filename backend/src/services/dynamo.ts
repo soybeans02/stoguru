@@ -216,20 +216,6 @@ export async function getUserStock(userId: string, restaurantId: string): Promis
   return (result.Item as UserStock) ?? null;
 }
 
-/**
- * あるレストランを保存しているユーザー数（GSI-RestaurantStocks）
- */
-export async function getStockUserCount(restaurantId: string): Promise<number> {
-  const result = await db.send(new QueryCommand({
-    TableName: TABLE.userStocks,
-    IndexName: 'GSI-RestaurantStocks',
-    KeyConditionExpression: 'restaurantId = :rid',
-    ExpressionAttributeValues: { ':rid': restaurantId },
-    Select: 'COUNT',
-  }));
-  return result.Count ?? 0;
-}
-
 // =============================================
 // URL逆引きインデックス
 // =============================================
@@ -648,15 +634,11 @@ export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string;
 }
 
 // =============================================
-// 旧テーブル（マイグレーション用に残す）
+// 旧テーブル（マイグレーション完了済み・内部参照だけ残置）
 // =============================================
-
-export async function putRestaurant(userId: string, restaurant: Partial<Restaurant> & { id: string }) {
-  await db.send(new PutCommand({
-    TableName: TABLE.restaurants,
-    Item: { userId, restaurantId: restaurant.id, ...restaurant, updatedAt: Date.now() },
-  }));
-}
+// putRestaurant / deleteRestaurant / scanAllInfluencerRestaurants は
+// V2 移行で外部 export 不要になったので削除。getRestaurants は
+// deleteAllUserData (line ~958) からの内部参照があるため残置。
 
 export async function getRestaurants(userId: string): Promise<Restaurant[]> {
   const result = await db.send(new QueryCommand({
@@ -666,27 +648,6 @@ export async function getRestaurants(userId: string): Promise<Restaurant[]> {
     Limit: 500,
   }));
   return (result.Items ?? []) as Restaurant[];
-}
-
-export async function deleteRestaurant(userId: string, restaurantId: string) {
-  await db.send(new DeleteCommand({
-    TableName: TABLE.restaurants,
-    Key: { userId, restaurantId },
-  }));
-}
-
-export async function scanAllInfluencerRestaurants(): Promise<InfluencerRestaurant[]> {
-  const items: InfluencerRestaurant[] = [];
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.influencerRestaurants,
-      ExclusiveStartKey: lastKey,
-    }));
-    items.push(...((result.Items ?? []) as InfluencerRestaurant[]));
-    lastKey = result.LastEvaluatedKey;
-  } while (lastKey);
-  return items;
 }
 
 // =============================================

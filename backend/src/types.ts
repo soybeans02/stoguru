@@ -84,8 +84,8 @@ export interface UserSettings {
   influencers: string[];
   categories: string[];
   isPrivate?: boolean;
-  role?: 'user' | 'influencer';
-  /// 投稿許可ステータス（管理者が承認した時のみ public 投稿可能）
+  /// 投稿許可ステータス（管理者が承認した時のみ public 投稿可能）。
+  /// 旧 `role: 'user' | 'influencer'` は uploadStatus に置き換え済み。
   /// 'none' = 申請未提出 / 'pending' = 申請中 / 'approved' = 承認済 / 'rejected' = 却下
   uploadStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   uploadAppliedAt?: number;
