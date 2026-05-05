@@ -64,8 +64,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     }
     return Math.min(7, days.size);
   })();
-  // 投稿審査が approved なら verified 扱い（青チェック）
-  const isVerified = uploadStatus === 'approved';
+  // 認証バッジは design 準拠で常時表示（後で本実装に差し替え予定）。
+  // uploadStatus を見るのは内部の運営フロー用に残しておく。
+  void uploadStatus;
+  const isVerified = true;
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
@@ -216,7 +218,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   //   pink   = pink 12% + magenta
   //   gray   = gray-100 + gray-700
   //   red    = red 12% + system red
-  const themeLabel = t(`account.theme${theme === 'white' ? 'White' : theme === 'black' ? 'Black' : theme === 'wood' ? 'Wood' : 'Auto'}`);
+  // web 版は 白 / 黒 の 2 択のみ。legacy localStorage に wood/auto が残ってても
+  // 黒系（wood/auto resolved-dark）→ 黒、それ以外 → 白 とラベリング。
+  const themeLabel = t(`account.theme${theme === 'black' ? 'Black' : 'White'}`);
   const settingTiles: SettingTileDef[] = [
     {
       label: t('account.theme'),
@@ -460,45 +464,52 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                         {(user as { bio?: string } | null | undefined)?.bio
                           ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
                       </p>
-                      <div className="flex gap-2 mt-3 flex-wrap">
-                        {visitedCount > 0 && (
-                          <span
-                            className="inline-flex items-center gap-1 font-semibold"
-                            style={{
-                              fontSize: 12,
-                              padding: '6px 14px',
-                              borderRadius: 999,
-                              background: 'var(--stg-cream-200)',
-                              color: 'var(--stg-orange-700)',
-                              border: '1px solid rgba(254,141,40,0.20)',
-                            }}
-                          >🍴 {visitedCount} 軒訪問済み</span>
-                        )}
-                        <span
-                          className="inline-flex items-center gap-1 font-semibold"
-                          style={{
-                            fontSize: 12,
-                            padding: '6px 14px',
-                            borderRadius: 999,
-                            background: 'var(--stg-cream-200)',
-                            color: 'var(--stg-orange-700)',
-                            border: '1px solid rgba(254,141,40,0.20)',
-                          }}
-                        >📌 {safeStocks.length} 件保存中</span>
-                        {streakDays >= 2 && (
-                          <span
-                            className="inline-flex items-center gap-1 font-semibold"
-                            style={{
-                              fontSize: 12,
-                              padding: '6px 14px',
-                              borderRadius: 999,
-                              background: 'var(--stg-cream-200)',
-                              color: 'var(--stg-orange-700)',
-                              border: '1px solid rgba(254,141,40,0.20)',
-                            }}
-                          >🔥 {streakDays} 日連続</span>
-                        )}
-                      </div>
+                      {/* design 準拠の 3 chip：好きなジャンル / 住んでる地域 / 利用開始月。
+                          バックエンドにまだ favoriteGenre / region フィールドが無いので、
+                          localStorage キャッシュ → 無ければデフォルト値、で乗り切る。 */}
+                      {(() => {
+                        const favGenre = (typeof localStorage !== 'undefined'
+                          ? localStorage.getItem('cache:favoriteGenre')
+                          : null) || 'グルメ';
+                        const region = (typeof localStorage !== 'undefined'
+                          ? localStorage.getItem('cache:region')
+                          : null) || '日本';
+                        // 利用開始月：もっとも古い stockedAt（無ければ今月）
+                        let joinedLabel = '';
+                        try {
+                          const dates = safeStocks
+                            .map((s) => (s as { stockedAt?: string; createdAt?: string }).stockedAt
+                              ?? (s as { stockedAt?: string; createdAt?: string }).createdAt
+                              ?? '')
+                            .filter(Boolean)
+                            .map((d) => new Date(d).getTime())
+                            .filter((n) => Number.isFinite(n));
+                          const earliest = dates.length ? Math.min(...dates) : Date.now();
+                          const dt = new Date(earliest);
+                          joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
+                        } catch { joinedLabel = '利用中'; }
+                        const chipStyle: React.CSSProperties = {
+                          fontSize: 12,
+                          padding: '6px 14px',
+                          borderRadius: 999,
+                          background: 'var(--stg-cream-200)',
+                          color: 'var(--stg-orange-700)',
+                          border: '1px solid rgba(254,141,40,0.20)',
+                        };
+                        return (
+                          <div className="flex gap-2 mt-3 flex-wrap">
+                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                              🍜 {favGenre}好き
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                              📍 {region}
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                              🕐 {joinedLabel}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </>
                   )}
                 </div>
@@ -1156,11 +1167,11 @@ function ThemeSheet({ onClose, theme, setTheme, t }: {
   setTheme: (t: Theme) => void;
   t: (key: string, fallback?: string) => string;
 }) {
+  // web 版は 白 / 黒 の 2 択のみ。wood / auto は iOS native 版で復活させる前提なので
+  // ThemeContextDef の type からは消さず、UI からだけ除外する。
   const options: { value: Theme; preview: string; gradient: string; }[] = [
     { value: 'white', preview: t('account.themeWhite'), gradient: 'bg-gradient-to-br from-gray-100 to-white border-gray-200' },
     { value: 'black', preview: t('account.themeBlack'), gradient: 'bg-gradient-to-br from-gray-900 to-black border-gray-700' },
-    { value: 'wood', preview: t('account.themeWood'), gradient: 'bg-gradient-to-br from-amber-200 to-amber-700 border-amber-300' },
-    { value: 'auto', preview: t('account.themeAuto'), gradient: 'bg-gradient-to-br from-gray-100 via-gray-500 to-black border-gray-300' },
   ];
   return (
     <Sheet isOpen onClose={onClose} title={t('account.theme')}>

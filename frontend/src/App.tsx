@@ -206,6 +206,12 @@ function MainApp() {
       const restored: StockedRestaurant[] = data.map((r) => {
         const id = String(r.restaurantId ?? r.id);
         const mock = mockMap.get(id);
+        // photoUrls はバックエンド GET /restaurants が返す string[]。
+        // 以前は mapping から漏れていたため StockScreen で写真が出なかった。
+        const rawPhotos = Array.isArray(r.photoUrls) ? (r.photoUrls as unknown[]) : [];
+        const photoUrls = rawPhotos
+          .map((p) => (typeof p === 'string' ? p : ''))
+          .filter((p) => !!p);
         return {
           id,
           name: String(r.name ?? mock?.name ?? ''),
@@ -219,6 +225,7 @@ function MainApp() {
           influencer: (r.influencer as SwipeRestaurant['influencer']) ?? mock?.influencer ?? { name: '', handle: '', platform: 'tiktok' as const },
           videoUrl: String(r.videoUrl || mock?.videoUrl || ''),
           photoEmoji: String(r.photoEmoji || mock?.photoEmoji || '🍽️'),
+          photoUrls: photoUrls.length > 0 ? photoUrls : (mock?.photoUrls ?? []),
           visited: r.status === 'visited',
           pinned: !!r.pinned,
           stockedAt: String(r.createdAt ?? new Date().toISOString()),

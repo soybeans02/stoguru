@@ -14,14 +14,22 @@ export interface ThemeContextValue {
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function readStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'auto';
+  // web 版は 'white' / 'black' のみ UI で選択可能。
+  // 旧 'wood' / 'auto' を保存していたユーザーは black 寄りに丸める
+  // （'auto' は OS 設定に従って解決、'wood' は暗色寄りなので black）。
+  if (typeof window === 'undefined') return 'white';
   const v = localStorage.getItem(STORAGE_KEY);
-  if (v === 'white' || v === 'black' || v === 'wood' || v === 'auto') return v;
+  if (v === 'white' || v === 'black') return v;
+  if (v === 'wood') return 'black';
+  if (v === 'auto') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'black' : 'white';
+  }
   // legacy: darkMode bool → black/white
   const legacy = localStorage.getItem('darkMode');
   if (legacy === 'true') return 'black';
   if (legacy === 'false') return 'white';
-  return 'auto';
+  // 初期値は OS 設定で自動判別（一度だけ。以降は localStorage に固定値が入る）
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'black' : 'white';
 }
 
 export function resolveTheme(theme: Theme): Exclude<Theme, 'auto'> {

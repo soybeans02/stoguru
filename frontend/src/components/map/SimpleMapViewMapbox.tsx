@@ -1389,27 +1389,27 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <button className={mapMode === 'satellite' ? 'is-active' : ''} onClick={() => handleSwitchMode('satellite')}>衛星</button>
       </div>
 
-      {/* ─── ダークモードトグル (右下角、layer switcher のさらに右) ─── */}
+      {/* ─── ダークモードトグル (右下、layer switcher の上に積む) ─── */}
       <button
         className="map-darktoggle"
         title={resolvedTheme === 'black' ? 'ライトモードへ切替' : 'ダークモードへ切替'}
         onClick={() => setTheme(resolvedTheme === 'black' ? 'white' : 'black')}
         style={{
           position: 'absolute',
-          bottom: 18, right: 18,
+          // .map-layers (bottom:18px, height ~36px) と被らないように
+          // 18 + 36 + 8 = 62px の位置から持ち上げ。少し余裕を見て 70px に。
+          bottom: 70,
+          right: 18,
           width: 44, height: 44,
           background: 'rgba(255,255,255,0.96)',
           backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.4)',
           borderRadius: 12,
           cursor: 'pointer',
           display: 'grid', placeItems: 'center',
           color: 'var(--stg-gray-900)',
           boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
-          // map-layers (右下) と被らないよう、衛星ボタンの右隣に並べる
-          // → 既存 .map-layers は right:18px;bottom:18px なので、こちらは
-          //   right:18px;bottom:74px に持ち上げて積み上げる。
-          transform: 'translateY(-56px)',
           zIndex: 19,
         }}
       >

@@ -85,13 +85,8 @@ interface Props {
 }
 
 /* ─────────────────────────────────────
-   Fallback hero photos (Unsplash demo, matches mockup)
+   HERO_IMAGES は HERO_SAMPLE_CARDS（固定見本）に統合済みなので削除。
    ───────────────────────────────────── */
-const HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400',
-  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300',
-];
 
 /* Demo photo pool (fallback when API restaurant has no photo) */
 const PHOTO_POOL = [
@@ -241,8 +236,8 @@ export function DiscoveryHome({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bucketLat, bucketLng, refreshKey]);
 
-  // 親 render ごとに新しい配列が生まれて HeroDeck に再 render させないよう memo
-  const heroDeckCards = useMemo(() => feed.slice(0, 3), [feed]);
+  // HeroDeck は固定の見本カード 3 枚を出すので、feed から作るデータは
+  // 「ジャンル件数の集計」のみで OK（heroDeckCards は不要になった）。
 
   /* ジャンルカードに「そのジャンルの投稿件数」を出すための集計。
      feed 上の各レストランを GENRES_AS_THEMES.keywords にマッチさせて数える。
@@ -342,13 +337,19 @@ export function DiscoveryHome({
         isAnonymous={isAnonymous}
       />
 
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+      {/*
+        max-w + mx-auto を外して main エリアいっぱいに広げる。
+        以前は wide screen (>1540px) で sidebar 右側に白の隙間ができて、
+        サイドバーとコンテンツの境目が「切れて」見える問題があった。
+        各セクションは内部 grid で自前にレスポンシブするので、外側で
+        中央寄せする必要は無い。左右 padding は維持して読みやすさ確保。
+      */}
+      <div className="px-4 sm:px-6 lg:px-8">
         {/* ─── Hero（Claude Design 風スタックデッキ） ─── */}
         <HeroDeck
           isAnonymous={isAnonymous}
           handleHeroCTA={handleHeroCTA}
           onShowHowTo={() => setShowHowTo(true)}
-          deckCards={heroDeckCards}
           tHeroTitleA={t('home.heroTitleA')}
           tHeroTitleAccent={t('home.heroTitleAccent')}
           tHeroTitleB={t('home.heroTitleB')}
@@ -837,7 +838,6 @@ type HeroDeckProps = {
   isAnonymous: boolean;
   handleHeroCTA: () => void;
   onShowHowTo: () => void;
-  deckCards: FeedRestaurant[];
   tHeroTitleA: string;
   tHeroTitleAccent: string;
   tHeroTitleB: string;
@@ -849,15 +849,55 @@ type HeroDeckProps = {
   tStatSaves: string;
 };
 
+/* Hero に出す「見本」カードは固定。ユーザーの feed や mock とは切り離して、
+   常に同じ 3 枚を出す（見本としての視覚アンカー）。 */
+type HeroSample = {
+  id: string;
+  name: string;
+  priceRange: string;
+  area: string;
+  scene: string[];
+  handle: string;
+  image: string;
+};
+const HERO_SAMPLE_CARDS: HeroSample[] = [
+  {
+    id: 'sample-1',
+    name: 'タコス・エルパソ',
+    priceRange: '¥1,500〜¥3,000',
+    area: '大阪・北区',
+    scene: ['友達', 'デート'],
+    handle: '@stoguru',
+    image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&q=70',
+  },
+  {
+    id: 'sample-2',
+    name: 'Ocha no Ki',
+    priceRange: '¥1,000〜¥1,500',
+    area: '京都・東山',
+    scene: ['一人', 'カフェ'],
+    handle: '@stoguru',
+    image: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=800&q=70',
+  },
+  {
+    id: 'sample-3',
+    name: '焼鳥 たけ',
+    priceRange: '¥2,000〜¥4,000',
+    area: '東京・恵比寿',
+    scene: ['同僚', '飲み'],
+    handle: '@stoguru',
+    image: 'https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?w=800&q=70',
+  },
+];
+
 function HeroDeck({
-  handleHeroCTA, onShowHowTo, deckCards,
+  handleHeroCTA, onShowHowTo,
   tHeroTitleA, tHeroTitleAccent, tHeroTitleB, tDescription,
   tCtaPrimary, tCtaSecondary,
   tStatRestaurants, tStatUsers, tStatSaves,
 }: HeroDeckProps) {
-  // 3 枚に満たない場合は MOCK_RESTAURANTS から穴埋め
-  const cards = (deckCards.length >= 3 ? deckCards : [...deckCards, ...MOCK_RESTAURANTS])
-    .slice(0, 3) as FeedRestaurant[];
+  // ユーザーデータと無関係の「見本」カードを使う。
+  const cards = HERO_SAMPLE_CARDS;
 
   // Hero の左右レイアウト：lg+ で 2 カラム、それ未満で 1 カラム + デッキ縮小
   return (
@@ -989,15 +1029,9 @@ function HeroDeck({
               idx === 1 ? 'translate(60px, -40px) rotate(6deg)' :
                           'translate(-110px, 30px) rotate(-8deg)';
             const z = idx === 0 ? 3 : idx === 1 ? 2 : 1;
-            const photo = c.photoUrls?.[0] || (c as { image?: string }).image || HERO_IMAGES[idx % HERO_IMAGES.length];
-            const handle = c.influencerHandle ? `@${c.influencerHandle.replace(/^@/, '')}` : '@stoguru';
-            const meta = [
-              c.priceRange || '',
-            ].filter(Boolean).join(' · ');
-
             return (
               <div
-                key={c.id || idx}
+                key={c.id}
                 className="absolute w-[280px] h-[400px] lg:w-[320px] lg:h-[460px] overflow-hidden"
                 style={{
                   borderRadius: 26,
@@ -1007,7 +1041,7 @@ function HeroDeck({
                   transition: 'transform 600ms var(--stg-ease)',
                 }}
               >
-                <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={c.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <div
                   className="absolute inset-0 flex flex-col justify-between p-4 text-white"
                   style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.65) 100%)' }}
@@ -1016,7 +1050,7 @@ function HeroDeck({
                     className="self-start inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1.5 rounded-full backdrop-blur"
                     style={{ background: 'rgba(0,0,0,0.42)' }}
                   >
-                    {handle}
+                    {c.handle}
                   </span>
                   <div>
                     <div
@@ -1025,12 +1059,10 @@ function HeroDeck({
                     >
                       {c.name}
                     </div>
-                    {meta && (
-                      <div className="text-[12px] opacity-90" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-                        {meta}
-                      </div>
-                    )}
-                    {c.scene && c.scene.length > 0 && (
+                    <div className="text-[12px] opacity-90" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                      {c.priceRange}
+                    </div>
+                    {c.scene.length > 0 && (
                       <div className="flex gap-1.5 mt-2.5">
                         {c.scene.slice(0, 2).map((sc) => (
                           <span
@@ -1061,31 +1093,34 @@ function HeroDeck({
             <span className="text-[11px] font-medium" style={{ color: 'var(--stg-gray-600)' }}>大阪・北区</span>
           </div>
 
-          {/* action ring（装飾。クリックでスワイプ画面） */}
-          <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 flex gap-3.5 z-[9]">
+          {/* action ring — 完全に装飾のみ。クリックしても何もしない（noop）。
+              type="button" + tabIndex={-1} + pointer-events なし にしてキーボード /
+              スクリーンリーダーからもアクションとして見えないようにする。 */}
+          <div
+            className="absolute -bottom-7 left-1/2 -translate-x-1/2 flex gap-3.5 z-[9]"
+            aria-hidden="true"
+            style={{ pointerEvents: 'none' }}
+          >
             {[
               { kind: 'undo' as const, color: 'var(--stg-gray-800)', bg: 'white' },
               { kind: 'pass' as const, color: 'var(--stg-red)', bg: 'white' },
               { kind: 'save' as const, color: 'white', bg: 'var(--stg-orange-500)' },
               { kind: 'map' as const, color: 'var(--stg-blue)', bg: 'white' },
             ].map((b) => (
-              <button
+              <span
                 key={b.kind}
-                onClick={handleHeroCTA}
-                aria-label={b.kind}
-                className="w-12 h-12 lg:w-13 lg:h-13 grid place-items-center rounded-full transition-transform hover:scale-105 active:scale-95"
+                className="grid place-items-center rounded-full"
                 style={{
                   width: 52, height: 52,
                   background: b.bg, color: b.color,
                   boxShadow: b.kind === 'save' ? '0 8px 18px rgba(254,141,40,0.45)' : '0 8px 18px rgba(0,0,0,0.12)',
-                  border: 'none', cursor: 'pointer',
                 }}
               >
                 {b.kind === 'undo' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>)}
                 {b.kind === 'pass' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>)}
                 {b.kind === 'save' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>)}
                 {b.kind === 'map' && (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>)}
-              </button>
+              </span>
             ))}
           </div>
         </div>
