@@ -933,9 +933,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function fallbackPhoto(id: string): string {
   const pool = [
-    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600',
-    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
-    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600',
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300',
   ];
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;

@@ -43,10 +43,10 @@ interface Props {
 }
 
 const FALLBACK_PHOTOS = [
-  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600',
-  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=600',
+  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300',
+  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300',
 ];
 
 function fallbackFor(id: string) {

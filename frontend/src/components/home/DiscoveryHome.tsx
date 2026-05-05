@@ -87,21 +87,21 @@ interface Props {
    Fallback hero photos (Unsplash demo, matches mockup)
    ───────────────────────────────────── */
 const HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
   'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400',
   'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300',
 ];
 
 /* Demo photo pool (fallback when API restaurant has no photo) */
 const PHOTO_POOL = [
-  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600',
-  'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600',
-  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=600',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
-  'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600',
-  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600',
+  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300',
+  'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300',
+  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300',
+  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+  'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=300',
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300',
 ];
 
 function fallbackPhoto(id: string): string {
@@ -173,7 +173,7 @@ export function DiscoveryHome({
       if (cancelled) return;
       setThemeConfigs(articles.map((a) => ({
         id: a.slug,
-        image: a.cardImage || a.heroImage || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
+        image: a.cardImage || a.heroImage || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400',
         tag: a.tag,
         title: a.title,
         desc: a.subtitle,
@@ -239,6 +239,9 @@ export function DiscoveryHome({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bucketLat, bucketLng, refreshKey]);
+
+  // 親 render ごとに新しい配列が生まれて HeroDeck に再 render させないよう memo
+  const heroDeckCards = useMemo(() => feed.slice(0, 3), [feed]);
 
   /* Fetch rankings (Top 3 each) */
   useEffect(() => {
@@ -328,7 +331,7 @@ export function DiscoveryHome({
           isAnonymous={isAnonymous}
           handleHeroCTA={handleHeroCTA}
           onShowHowTo={() => setShowHowTo(true)}
-          deckCards={feed.slice(0, 3)}
+          deckCards={heroDeckCards}
           tHeroTitleA={t('home.heroTitleA')}
           tHeroTitleAccent={t('home.heroTitleAccent')}
           tHeroTitleB={t('home.heroTitleB')}
@@ -1655,7 +1658,7 @@ function RankCard({
           style={{ background: accentBg }}
         >
           {photo ? (
-            <img src={photo} alt={user.nickname} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <img loading="lazy" src={photo} alt={user.nickname} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           ) : (
             <span style={{ fontSize: 16 }}>{user.nickname.charAt(0).toUpperCase()}</span>
           )}

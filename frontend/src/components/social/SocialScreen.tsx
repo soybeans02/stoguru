@@ -577,7 +577,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                       </span>
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
                         {r.profilePhotoUrl ? (
-                          <img src={r.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+                          <img loading="lazy" src={r.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
                           r.nickname.charAt(0)
                         )}

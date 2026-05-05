@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Noto Sans JP — Claude Design 由来。Hiragino Sans のフォールバックとして
-   ロード（iOS/Mac 上では実際の SF Pro + Hiragino Sans が優先される） */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+/* 日本語フォントは OS 同梱 (Hiragino Sans / Yu Gothic / Noto Sans CJK
+   システムインストール) にフォールバック。Google Fonts からの Noto Sans JP
+   読み込みは render-blocking + CJK 4 ウェイトで 2MB+ になり明らかに重い
+   ので削除。font-family 側で Hiragino → Yu Gothic → Noto Sans JP →
+   sans-serif の順に解決させる。 */
 
 @custom-variant dark (&:where(.dark, .dark *));
 

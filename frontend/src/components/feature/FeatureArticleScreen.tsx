@@ -196,7 +196,7 @@ export function FeatureArticleScreen({ slug }: Props) {
                   onClick={() => navigate(`/features/${r.slug}`)}
                   className="relative aspect-[4/3] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow)] hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] transition-all text-left"
                 >
-                  <img src={r.cardImage ?? r.heroImage} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                  <img loading="lazy" src={r.cardImage ?? r.heroImage} alt="" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
                   <div className="absolute inset-0 flex flex-col justify-end p-5 text-white" style={{ background: 'linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.85) 100%)' }}>
                     <span className="text-[10px] font-bold tracking-[0.05em] uppercase opacity-90">{r.tag}</span>
                     <h3 className="text-[16px] font-bold mt-1 leading-snug">{r.title}</h3>
