@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
-import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants, fetchRestaurantFeed } from '../../utils/api';
+import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
 import { GENRE_TAGS } from '../../constants/genre';
 import './map-page.css';
@@ -540,11 +540,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [filterVisited, setFilterVisited] = useState<'all' | 'wishlist' | 'visited'>('all');
   // Nearby banner dismissal (so user can hide it)
   const [nearbyDismissed, setNearbyDismissed] = useState(false);
-  // Explore-this-area button
-  const [showExploreButton, setShowExploreButton] = useState(false);
-  const [exploring, setExploring] = useState(false);
-  const [exploreResult, setExploreResult] = useState<{ count: number; items: Record<string, unknown>[] } | null>(null);
-  const initialCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Explore-this-area UI は削除済み（state も不要）。
   // Nearby (100m) detection
   const nearbyStock = useMemo(() => {
     if (!userPosition) return null;
@@ -878,8 +874,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     if (mapRef.current && userPosition && !initialCenterSet.current) {
       initialCenterSet.current = true;
       mapRef.current.jumpTo({ center: [userPosition.lng, userPosition.lat], zoom: 15 });
-      // ベース中心を記録（このエリアを探索ボタンの判定用）
-      initialCenterRef.current = { lat: userPosition.lat, lng: userPosition.lng };
     }
   }, [userPosition]);
 
@@ -981,57 +975,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     updateData(filteredStocks, userPosition);
   }, [filteredStocks, userPosition, updateData]);
 
-  // ユーザー操作で地図を動かしたら「このエリアを探索」ボタンを表示
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const checkMoved = () => {
-      if (!initialCenterRef.current) {
-        const c = map.getCenter();
-        initialCenterRef.current = { lat: c.lat, lng: c.lng };
-        return;
-      }
-      const c = map.getCenter();
-      const moved = distanceMetres(initialCenterRef.current.lat, initialCenterRef.current.lng, c.lat, c.lng);
-      // 200m以上動いたらボタン表示
-      if (moved > 200) setShowExploreButton(true);
-    };
-    const onMoveStart = () => {
-      if (!initialCenterRef.current) {
-        const c = map.getCenter();
-        initialCenterRef.current = { lat: c.lat, lng: c.lng };
-      }
-    };
-    const onMoveEnd = (e: { originalEvent?: unknown }) => {
-      // ユーザー操作のみ反応 (programmatic flyTo は originalEvent が undefined)
-      if (!e.originalEvent) return;
-      checkMoved();
-    };
-    map.on('movestart', onMoveStart);
-    map.on('moveend', onMoveEnd);
-    return () => {
-      map.off('movestart', onMoveStart);
-      map.off('moveend', onMoveEnd);
-    };
-  }, []);
-
-  const handleExploreThisArea = useCallback(async () => {
-    const map = mapRef.current;
-    if (!map) return;
-    setExploring(true);
-    try {
-      const c = map.getCenter();
-      const data: Record<string, unknown>[] = await fetchRestaurantFeed(c.lat, c.lng, 2000, 50, 0);
-      setExploreResult({ count: data?.length ?? 0, items: data ?? [] });
-      // ベース中心を更新（ボタンを再表示するため）
-      initialCenterRef.current = { lat: c.lat, lng: c.lng };
-      setShowExploreButton(false);
-    } catch {
-      setExploreResult({ count: 0, items: [] });
-    } finally {
-      setExploring(false);
-    }
-  }, []);
+  // 「このエリアを再探索」関連のロジックは削除。
+  // 地図移動の検知 useEffect / handleExploreThisArea / fetchRestaurantFeed import も使わない。
 
   const handleClearFilters = useCallback(() => {
     setFilterGenres([]);
@@ -1209,30 +1154,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </button>
       </div>
 
-      {/* ─── 右側 control stack（zoom + locate + 経路 + 地図タイプ + フォロー）─── */}
+      {/* ─── 右側 control stack（フォロー絞り込みのみ。zoom / 現在地 / 地図スタイル
+            は Mapbox 標準操作（ピンチ + GPS）で十分なので削除）─── */}
       <div className="map-right">
-        <div className="map-ctrl-stack">
-          <button title="ズームイン" onClick={() => mapRef.current?.zoomIn()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
-          <button title="ズームアウト" onClick={() => mapRef.current?.zoomOut()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
-          </button>
-        </div>
-        <button
-          className="map-ctrl"
-          title="現在地"
-          onClick={() => { if (userPosition) mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16 }); }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
-        </button>
-        <button
-          className="map-ctrl"
-          title="地図スタイル"
-          onClick={() => setModePickerOpen(!modePickerOpen)}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 10 6-10 6L2 8Z"/><path d="m2 16 10 6 10-6M2 12l10 6 10-6"/></svg>
-        </button>
         <button
           className={`map-ctrl ${selectedFollowUser ? 'is-active' : ''}`}
           title={t('account.following')}
@@ -1391,19 +1315,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         );
       })()}
 
-      {/* ─── Legend (左下) ─── */}
-      <div className="map-legend">
-        <div className="map-legend__item"><span className="map-legend__dot cat-todo" />まだ</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-visited" />行った</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-here" />現在地</div>
-      </div>
-
-      {/* ─── Layer switcher (右下) ─── */}
-      <div className="map-layers">
-        <button className={mapMode === '3d' ? 'is-active' : ''} onClick={() => handleSwitchMode('3d')}>3D</button>
-        <button className={mapMode === 'standard' && !simpleMode ? 'is-active' : ''} onClick={() => { handleSwitchMode('standard'); setSimpleMode(false); }}>標準</button>
-        <button className={simpleMode ? 'is-active' : ''} onClick={() => { handleSwitchMode('standard'); setSimpleMode(true); }}>シンプル</button>
-      </div>
+      {/* Legend / Layer switcher は UI を簡潔に保つため非表示。
+          凡例：まだ=オレンジ / 行った=緑（ピン色で十分）。
+          レイヤー切替：iOS の Mapbox 標準ピンチ操作で 2D/3D を切り替え可能。 */}
 
       {/* Filter panel */}
       {filterOpen && (
@@ -1522,79 +1436,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </div>
       )}
 
-      {/* Explore this area button */}
-      {showExploreButton && !exploring && (
-        <button
-          onClick={handleExploreThisArea}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 z-10 px-4 py-2.5 rounded-full bg-[var(--accent-orange)] text-white text-[13px] font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2"
-          style={{ marginTop: '-18px' }}
-          aria-label={t('map.exploreThisArea')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
-          {t('map.exploreThisArea')}
-        </button>
-      )}
-
-      {/* Exploring indicator */}
-      {exploring && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 z-10 px-4 py-2.5 rounded-full bg-white/95 dark:bg-gray-800/95 text-gray-700 dark:text-gray-200 text-[13px] font-medium shadow-lg flex items-center gap-2" style={{ marginTop: '-18px' }}>
-          <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[var(--accent-orange)] rounded-full animate-spin" />
-          {t('map.exploring')}
-        </div>
-      )}
-
-      {/* Explore result panel */}
-      {exploreResult && (
-        <div className="absolute bottom-32 left-4 right-4 z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-[40vh] flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
-            <span className="text-[13px] font-bold text-gray-900 dark:text-white">
-              {exploreResult.count > 0
-                ? t('map.foundSpots').replace('{count}', String(exploreResult.count))
-                : t('map.noFoundSpots')}
-            </span>
-            <button
-              onClick={() => setExploreResult(null)}
-              className="w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-500"
-              aria-label={t('common.close')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-          </div>
-          {exploreResult.items.length > 0 && (
-            <div className="overflow-y-auto">
-              {exploreResult.items.slice(0, 20).map((r, idx) => {
-                const lat = Number(r.lat);
-                const lng = Number(r.lng);
-                if (!lat || !lng) return null;
-                const name = String(r.name ?? '');
-                const genre = String(r.genre ?? '');
-                const photoUrl = Array.isArray(r.photoUrls) && (r.photoUrls as string[])[0] ? (r.photoUrls as string[])[0] : '';
-                return (
-                  <button
-                    key={`${r.id ?? idx}`}
-                    onClick={() => mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 600 })}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800/50 text-left"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden">
-                      {photoUrl ? (
-                        <img loading="lazy" src={photoUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">🍽️</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">{name}</p>
-                      {genre && <p className="text-[11px] text-gray-400 truncate">{genre}</p>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {/* 「このエリアを再探索」ボタン / インジケータ / 結果パネルは
+          見た目が邪魔だったので削除。Explore は左 list panel で代替。 */}
 
       {/* Following user picker */}
       {showFollowingPicker && (
