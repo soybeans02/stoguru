@@ -7,6 +7,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants, fetchRestaurantFeed } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
 import { GENRE_TAGS } from '../../constants/genre';
+import './map-page.css';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
@@ -512,6 +513,12 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [mapMode, setMapMode] = useState<'standard' | '3d'>('3d');
   const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  // Claude Design: 左の list panel + 上の cat フィルタ + 検索
+  const [listOpen, setListOpen] = useState(true);
+  const [listSearch, setListSearch] = useState('');
+  const [topSearch, setTopSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist'>('all');
+  const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
   const [showFollowingPicker, setShowFollowingPicker] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
   const [followingLoading, setFollowingLoading] = useState(false);
@@ -1167,46 +1174,236 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       `}</style>
       <div ref={containerRef} className="w-full h-full" />
 
-      {/* Map mode button */}
-      <button
-        onClick={() => setModePickerOpen(!modePickerOpen)}
-        className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center"
-        aria-label="Map style"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-      </button>
+      {/* ─── Claude Design overlay: Top floating search + cat pills ─── */}
+      <div className="map-top">
+        <div className="map-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            placeholder="エリア・お店の名前で検索"
+            value={topSearch}
+            onChange={(e) => setTopSearch(e.target.value)}
+          />
+          <span className="map-search__shortcut">⌘K</span>
+        </div>
+        {([
+          { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
+          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited).length },
+          { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
+        ]).map((c) => (
+          <button
+            key={c.key}
+            className={`map-pill ${catFilter === c.key ? 'is-active' : ''}`}
+            onClick={() => { setCatFilter(c.key); if (c.key === 'visited') setFilterVisited('visited'); else if (c.key === 'wishlist') setFilterVisited('wishlist'); else setFilterVisited('all'); }}
+          >
+            {c.color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color }} />}
+            {c.label}
+            <span className="map-pill__count">{c.count}</span>
+          </button>
+        ))}
+        <button
+          className={`map-pill ${activeFilterCount > 0 ? 'is-active' : ''}`}
+          onClick={() => setFilterOpen(v => !v)}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 12h12M15 18h6"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
+          絞り込み
+        </button>
+      </div>
 
-      {/* Following picker button */}
-      <button
-        onClick={handleOpenFollowingPicker}
-        className={`absolute top-16 right-4 z-10 w-10 h-10 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center transition-colors ${
-          selectedFollowUser ? 'bg-purple-500 text-white' : 'bg-white/90 text-gray-500'
-        }`}
-        aria-label={t('account.following')}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="-3 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      </button>
+      {/* ─── 右側 control stack（zoom + locate + 経路 + 地図タイプ + フォロー）─── */}
+      <div className="map-right">
+        <div className="map-ctrl-stack">
+          <button title="ズームイン" onClick={() => mapRef.current?.zoomIn()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button title="ズームアウト" onClick={() => mapRef.current?.zoomOut()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
+          </button>
+        </div>
+        <button
+          className="map-ctrl"
+          title="現在地"
+          onClick={() => { if (userPosition) mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16 }); }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+        </button>
+        <button
+          className="map-ctrl"
+          title="地図スタイル"
+          onClick={() => setModePickerOpen(!modePickerOpen)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 10 6-10 6L2 8Z"/><path d="m2 16 10 6 10-6M2 12l10 6 10-6"/></svg>
+        </button>
+        <button
+          className={`map-ctrl ${selectedFollowUser ? 'is-active' : ''}`}
+          title={t('account.following')}
+          onClick={handleOpenFollowingPicker}
+        >
+          <svg width="18" height="18" viewBox="-3 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </button>
+      </div>
 
-      {/* Filter button */}
-      <button
-        onClick={() => setFilterOpen(v => !v)}
-        className={`absolute top-28 right-4 z-10 w-10 h-10 backdrop-blur-sm rounded-xl shadow-md flex items-center justify-center transition-colors ${
-          activeFilterCount > 0 ? 'bg-[var(--accent-orange)] text-white' : 'bg-white/90 text-gray-500'
-        }`}
-        aria-label={t('map.filter')}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/>
-          <line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/>
-          <line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/>
-          <line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/>
-        </svg>
-        {activeFilterCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-            {activeFilterCount}
-          </span>
-        )}
-      </button>
+      {/* ─── 左 list panel ─── */}
+      {!listOpen && (
+        <button className="map-list-toggle" onClick={() => setListOpen(true)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+          リストを表示
+          <span className="map-pill__count">{stocks.length}</span>
+        </button>
+      )}
+      <div className={`map-list ${listOpen ? '' : 'is-collapsed'}`}>
+        <div className="map-list__head">
+          <div>
+            <div className="map-list__title">表示中のお店</div>
+            <div className="map-list__count">{stocks.length}件 · 地図上のピン</div>
+          </div>
+          <button className="map-list__close" onClick={() => setListOpen(false)} aria-label="閉じる">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+        </div>
+        <div className="map-list__search">
+          <div className="map-list__search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input
+              placeholder="このリストを絞り込む"
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="map-list__items">
+          {(() => {
+            const items = stocks
+              .filter((s) => {
+                if (catFilter === 'visited') return s.visited;
+                if (catFilter === 'wishlist') return !s.visited;
+                return true;
+              })
+              .filter((s) => {
+                const q = (listSearch || topSearch).toLowerCase();
+                if (!q) return true;
+                return s.name.toLowerCase().includes(q) || (s.genre ?? '').toLowerCase().includes(q);
+              });
+            if (items.length === 0) {
+              return (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--stg-gray-600)', fontSize: 13 }}>
+                  該当するお店がありません
+                </div>
+              );
+            }
+            return items.map((s, idx) => {
+              const photo = s.photoUrls?.[0] ?? '';
+              const dist = userPosition && s.lat && s.lng
+                ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng))
+                : '';
+              return (
+                <div
+                  key={s.id}
+                  className={`map-list__item ${selectedStockId === s.id ? 'is-selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStockId(s.id);
+                    if (s.lat && s.lng) mapRef.current?.flyTo({ center: [s.lng, s.lat], zoom: 16 });
+                  }}
+                >
+                  <div className="map-list__item-rank">{idx + 1}</div>
+                  <div className="map-list__item-photo">
+                    {photo ? <img loading="lazy" src={photo} alt="" /> : null}
+                  </div>
+                  <div className="map-list__item-body">
+                    <div className="map-list__item-title">{s.name}</div>
+                    <div className="map-list__item-meta">
+                      {s.address && <span>{s.address}</span>}
+                      {s.genre && <><span className="map-list__item-meta-dot" /><span>{s.genre}</span></>}
+                      {s.priceRange && <><span className="map-list__item-meta-dot" /><span>{s.priceRange}</span></>}
+                    </div>
+                    <div className="map-list__item-tags">
+                      <span className={`map-list__item-tag ${s.visited ? 'is-visited' : ''}`}>
+                        {s.visited ? '行った' : 'まだ'}
+                      </span>
+                    </div>
+                  </div>
+                  {dist && (
+                    <div className="map-list__item-status">
+                      <div style={{ fontWeight: 700, color: 'var(--stg-gray-900)' }}>{dist}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+
+      {/* ─── 選択 pin の info card ─── */}
+      {selectedStockId && (() => {
+        const s = stocks.find(x => x.id === selectedStockId);
+        if (!s) return null;
+        const photo = s.photoUrls?.[0] ?? '';
+        const dist = userPosition && s.lat && s.lng
+          ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng))
+          : '';
+        return (
+          <div className="map-card">
+            <div className="map-card__photo">
+              {photo && <img loading="lazy" src={photo} alt={s.name} />}
+              <div className="map-card__photo-badge">
+                {s.visited ? (
+                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>行った</>
+                ) : (
+                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>まだ</>
+                )}
+              </div>
+            </div>
+            <div className="map-card__body">
+              <div className="map-card__top">
+                <h3 className="map-card__title">{s.name}</h3>
+                <button className="map-card__close" onClick={() => setSelectedStockId(null)} aria-label="閉じる">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="map-card__meta">
+                {s.address && <span>{s.address}</span>}
+                {dist && <><span className="map-card__meta-dot" /><span style={{ color: 'var(--stg-gray-900)', fontWeight: 600 }}>{dist}</span></>}
+                {s.genre && <><span className="map-card__meta-dot" /><span>{s.genre}</span></>}
+                {s.priceRange && <><span className="map-card__meta-dot" /><span>{s.priceRange}</span></>}
+              </div>
+              <div className="map-card__actions">
+                {s.videoUrl ? (
+                  <a className="map-card__action" href={s.videoUrl} target="_blank" rel="noopener noreferrer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>動画
+                  </a>
+                ) : (
+                  <button className="map-card__action" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>動画
+                  </button>
+                )}
+                <a
+                  className="map-card__action"
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.lat + ',' + s.lng)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>
+                  経路
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── Legend (左下) ─── */}
+      <div className="map-legend">
+        <div className="map-legend__item"><span className="map-legend__dot cat-todo" />まだ</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-visited" />行った</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-here" />現在地</div>
+      </div>
+
+      {/* ─── Layer switcher (右下) ─── */}
+      <div className="map-layers">
+        <button className={mapMode === '3d' ? 'is-active' : ''} onClick={() => handleSwitchMode('3d')}>3D</button>
+        <button className={mapMode === 'standard' && !simpleMode ? 'is-active' : ''} onClick={() => { handleSwitchMode('standard'); setSimpleMode(false); }}>標準</button>
+        <button className={simpleMode ? 'is-active' : ''} onClick={() => { handleSwitchMode('standard'); setSimpleMode(true); }}>シンプル</button>
+      </div>
 
       {/* Filter panel */}
       {filterOpen && (
