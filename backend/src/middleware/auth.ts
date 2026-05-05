@@ -72,8 +72,21 @@ export function invalidateTokenCache(token?: string) {
 }
 
 /**
- * Authorization ヘッダーから「すでに検証済みでキャッシュにある」userId を取り出す。
- * トークンが新規なら null（= verified userId は得られない）。
+ * Bearer ヘッダー or httpOnly Cookie からトークン文字列を取り出す。
+ * Web は cookie、iOS/Swift は Bearer（互換性のため両対応）。
+ */
+export const ACCESS_TOKEN_COOKIE = 'stoguru_at';
+function extractToken(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) return header.slice(7);
+  // cookie-parser が req.cookies にパース済み
+  const cookieToken = (req as unknown as { cookies?: Record<string, string> }).cookies?.[ACCESS_TOKEN_COOKIE];
+  return cookieToken || null;
+}
+
+/**
+ * Authorization ヘッダーまたは httpOnly cookie から「すでに検証済みで
+ * キャッシュにある」userId を取り出す。トークンが新規なら null。
  *
  * 用途: rate-limit の key 生成。verifyせずに token を decode した userId を使うと
  * 攻撃者が任意の userId を詐称して rate-limit を回避できるので、必ずキャッシュ
@@ -81,23 +94,21 @@ export function invalidateTokenCache(token?: string) {
  * IP ベースに fallback、検証後の継続リクエストは user ベースになる。
  */
 export function peekVerifiedUserId(req: Request): string | null {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) return null;
-  const token = header.slice(7);
+  const token = extractToken(req);
+  if (!token) return null;
   const cached = TOKEN_CACHE.get(token);
   if (cached && cached.expiresAt > Date.now()) return cached.user.userId;
   return null;
 }
 
 /// 認証は任意（ログインしてれば user セット、未ログインでも次へ進む）
-export const optionalAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+export const optionalAuth: RequestHandler = async (req: Request, _res: Response, next: NextFunction) => {
+  const token = extractToken(req);
+  if (!token) {
     next();
     return;
   }
   try {
-    const token = header.slice(7);
     const cached = TOKEN_CACHE.get(token);
     if (cached && cached.expiresAt > Date.now()) {
       (req as AuthRequest).user = cached.user;
@@ -119,15 +130,13 @@ export const optionalAuth: RequestHandler = async (req: Request, res: Response, 
 
 // Use RequestHandler so Express accepts this directly without `as any`
 export const requireAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+  const token = extractToken(req);
+  if (!token) {
     res.status(401).json({ error: 'ログインが必要です' });
     return;
   }
 
   try {
-    const token = header.slice(7);
-
     // キャッシュチェック
     const cached = TOKEN_CACHE.get(token);
     if (cached && cached.expiresAt > Date.now()) {

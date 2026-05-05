@@ -31,19 +31,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('accessToken'));
   const [loading, setLoading] = useState(!!localStorage.getItem('accessToken'));
 
-  // トークンがあれば自動ログイン
+  // ─── 自動ログイン ───
+  // トークン取得元の優先度:
+  //   1. httpOnly cookie（バックがログイン時に Set-Cookie で発行する。
+  //      JS から見えないので XSS でも盗めない）
+  //   2. localStorage（旧フロー / iOS WebView 等の互換用 fallback）
+  // どちらも /me が 200 なら認証済み扱い。
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    fetch(`${API}/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((u) => setUser(u))
-      .catch(() => { localStorage.removeItem('accessToken'); setToken(null); })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        // credentials: 'include' で cookie を必ず送る。token が localStorage に
+        // あれば Bearer ヘッダーも併送して二重に通す（cookie 期限切れ等のため）。
+        const res = await fetch(`${API}/me`, {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const u = await res.json();
+          setUser(u);
+        } else {
+          // 認証無効 → localStorage の旧トークンも掃除
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          setToken(null);
+        }
+      } catch {
+        // ネットワークエラーは tolerable（再試行は次回マウント時）
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [token]);
 
   async function signUp(email: string, password: string, nickname: string) {
     const res = await fetch(`${API}/signup`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, nickname }),
     });
@@ -57,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function confirm(email: string, code: string) {
     const res = await fetch(`${API}/confirm`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code }),
     });
@@ -69,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const res = await fetch(`${API}/login`, {
       method: 'POST',
+      credentials: 'include', // バックが Set-Cookie を返すので必須
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
@@ -77,16 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(data.error);
     }
     const data = await res.json();
-    localStorage.setItem('accessToken', data.accessToken);
-    if (data.refreshToken) {
-      localStorage.setItem('refreshToken', data.refreshToken);
-    }
-    setToken(data.accessToken);
+    // 旧フロー互換: access/refresh を localStorage にも保存。新フローでは
+    // cookie が真の保管場所だが、refresh エンドポイントは現状 refreshToken を
+    // body で要求するので localStorage にも保持しておく必要がある。
+    // 将来 refresh も cookie ベースに移行したら localStorage 利用は完全削除可。
+    if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+    if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+    setToken(data.accessToken ?? null);
   }
 
   async function forgotPassword(email: string) {
     const res = await fetch(`${API}/forgot-password`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
@@ -99,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function resetPassword(email: string, code: string, newPassword: string) {
     const res = await fetch(`${API}/reset-password`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code, newPassword }),
     });
@@ -116,7 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => prev ? { ...prev, email } : prev);
   }
 
-  function logout() {
+  async function logout() {
+    // バックの cookie も削除してもらう（fire-and-forget で OK）
+    try {
+      await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
+    } catch { /* ignore */ }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setToken(null);
@@ -134,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch(`${API}/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: rt }),
       });
@@ -142,9 +179,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
       const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      setToken(data.accessToken);
-      return data.accessToken;
+      if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      setToken(data.accessToken ?? null);
+      return data.accessToken ?? null;
     } catch {
       return null;
     }

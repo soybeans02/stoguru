@@ -12,18 +12,33 @@ function getToken() {
 
 function headers(): HeadersInit {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
+  // Bearer ヘッダーは互換性のため残す（cookie が無効/期限切れ時の fallback +
+  // 将来 iOS WebView 等で localStorage 共有してくる場合に対応）。
+  // 本命はバックが Set-Cookie で発行する httpOnly cookie。
   const t = getToken();
   if (t) h['Authorization'] = `Bearer ${t}`;
   return h;
 }
 
+/**
+ * 全 fetch に credentials: 'include' を付与する共通の init マージャ。
+ * これで Set-Cookie / Cookie ヘッダーが cross-origin リクエストにも乗る
+ * （バックの CORS は credentials: true / origin allowlist 済み）。
+ */
+function withCreds(init?: RequestInit): RequestInit {
+  return { credentials: 'include', ...init };
+}
+
 // 401時に自動でトークンリフレッシュしてリトライ
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
-  const res = await fetch(url, init);
+  const res = await fetch(url, withCreds(init));
   if (res.status === 401 && _refreshTokenFn) {
     const newToken = await _refreshTokenFn();
     if (newToken) {
-      const newInit = { ...init, headers: { ...Object.fromEntries(new Headers(init?.headers).entries()), Authorization: `Bearer ${newToken}` } };
+      const newInit = withCreds({
+        ...init,
+        headers: { ...Object.fromEntries(new Headers(init?.headers).entries()), Authorization: `Bearer ${newToken}` },
+      });
       return fetch(url, newInit);
     }
   }

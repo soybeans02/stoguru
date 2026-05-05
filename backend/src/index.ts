@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRouter from './routes/auth';
@@ -96,6 +97,7 @@ app.use(helmet({
   frameguard: { action: 'deny' },
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 
 // ─── CSRF対策: state-changing requestsにContent-Type: application/jsonを要求 ───
 app.use('/api', (req, res, next) => {

@@ -1,11 +1,37 @@
 import { Router, Request, Response } from 'express';
 import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword, isNicknameTaken, updateNickname, requestEmailChange, verifyEmailChange, resendEmailVerificationCode } from '../services/cognito';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireAuth, AuthRequest, ACCESS_TOKEN_COOKIE } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
 import { deleteAllUserPhotos } from '../services/s3';
 import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema, changeEmailSchema, verifyEmailSchema } from '../validators';
 
 const router = Router();
+
+/**
+ * Web 用に access/id token を httpOnly cookie でも配る。XSS で
+ * `localStorage` を読み出されてアカウント奪取される脆弱性への対策。
+ * iOS/Swift クライアントは Bearer ヘッダー方式のままで動くよう、JSON
+ * レスポンスにもトークンを含める（互換維持）。
+ *
+ * SameSite=Lax: 通常リンクからの GET には cookie が乗り、外部 form POST
+ * 等の CSRF 系には乗らない。Strict だと OAuth リダイレクト等で困る場合が
+ * あるので Lax を採用。Secure は本番（NODE_ENV=production）でのみ。
+ */
+function setAuthCookie(res: Response, accessToken: string | undefined) {
+  if (!accessToken) return;
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    // Cognito access token は通常 1 時間有効。cookie もそれに合わせる。
+    maxAge: 60 * 60 * 1000,
+    path: '/',
+  });
+}
+function clearAuthCookie(res: Response) {
+  res.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+}
 
 router.post('/signup', async (req: Request, res: Response) => {
   const v = validate(signupSchema, req.body);
@@ -39,6 +65,7 @@ router.post('/login', async (req: Request, res: Response) => {
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   try {
     const tokens = await signIn(v.data.email, v.data.password);
+    setAuthCookie(res, tokens.accessToken);
     res.json(tokens);
   } catch (err: unknown) {
     res.status(401).json({ error: 'メールアドレスまたはパスワードが正しくありません' });
@@ -50,10 +77,17 @@ router.post('/refresh', async (req: Request, res: Response) => {
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   try {
     const tokens = await refreshAccessToken(v.data.refreshToken);
+    setAuthCookie(res, tokens.accessToken);
     res.json(tokens);
   } catch (err: unknown) {
     res.status(401).json({ error: 'トークン更新に失敗しました' });
   }
+});
+
+// 明示的なログアウト：cookie をクリア（Web クライアント用）
+router.post('/logout', async (_req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });
 
 router.post('/forgot-password', async (req: Request, res: Response) => {
@@ -184,15 +218,26 @@ router.post('/change-password', requireAuth, async (req: AuthRequest, res: Respo
 router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
+    // Cognito DeleteUser には access token が必要。Bearer または cookie の
+    // どちらから来ていても取得できるよう両方見る。
+    const header = req.headers.authorization;
+    const cookies = (req as unknown as { cookies?: Record<string, string> }).cookies;
+    const accessToken = header?.startsWith('Bearer ')
+      ? header.slice(7)
+      : cookies?.[ACCESS_TOKEN_COOKIE];
+    if (!accessToken) { res.status(401).json({ error: '認証情報がありません' }); return; }
+
     // 1. DynamoDB のデータを全削除（プロフィール匿名化含む）
     await deleteAllUserData(userId);
     // 2. S3 上のユーザーアップロード写真を全削除
     await deleteAllUserPhotos(userId);
     // 3. Cognito ユーザーを削除
-    await deleteUser(req.headers.authorization!.split(' ')[1]);
+    await deleteUser(accessToken);
+    // 4. cookie もクリア
+    clearAuthCookie(res);
     res.json({ message: 'アカウントを削除しました' });
   } catch (err: unknown) {
-    console.error('Account deletion failed:', err);
+    console.error('Account deletion failed:', err instanceof Error ? err.message : 'unknown');
     res.status(500).json({ error: 'アカウント削除に失敗しました' });
   }
 });
