@@ -108,10 +108,14 @@
 .map-ctrl-stack button:hover { background: var(--stg-gray-100); }
 
 /* ─── 左 list panel ─── */
+/* legend (bottom:18px, height ~30px + shadow) と 30px 以上の余白を取りたいので
+   bottom を 80 → 80px のままだと最終アイテムが legend と被って見えた。
+   80 を 90 にして気持ち上げ、加えて legend を左パネルから完全に離すために
+   width 360px の隣（右側）に固定する形にした。 */
 .map-list {
   position: absolute;
   top: 88px; left: 18px;
-  bottom: 80px;
+  bottom: 90px;
   width: 360px;
   max-height: none;
   background: rgba(255,255,255,0.97);
@@ -302,11 +306,17 @@
 .map-card__action--primary:hover { background: var(--stg-orange-600); }
 
 /* ─── Legend ─── */
+/* list panel (left:18 / bottom:90) と layer switcher (right:18 / bottom:18)
+   どちらとも被らないように、left を 396px (= 18 + 360 + 18 = list panel の
+   右隣) から始めて max-width で抑える。bottom は 22px に上げて legend と
+   layer switcher の高さを揃え、視覚的に同じ row として並べる。 */
 .map-legend {
   position: absolute;
-  bottom: 18px; left: 18px;
+  bottom: 22px;
+  left: 396px;
+  max-width: calc(100% - 396px - 220px);
   display: flex; gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   background: rgba(255,255,255,0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -328,10 +338,14 @@
 .map-legend__dot.cat-here { background: var(--stg-blue); border: 2px solid white; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
 
 /* ─── Layer switcher ─── */
+/* 3D / 2D / 衛星 の 3 ボタンが必ず横並びで表示されるよう、
+   flex-wrap: nowrap + 各ボタンに white-space: nowrap + min-width を明示。
+   container には z-index を高めに振って他の overlay に隠されないように。 */
 .map-layers {
   position: absolute;
   bottom: 18px; right: 18px;
   display: flex;
+  flex-wrap: nowrap;
   gap: 4px;
   padding: 4px;
   background: rgba(255,255,255,0.96);
@@ -339,15 +353,18 @@
   border: 1px solid rgba(255,255,255,0.4);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.28);
-  z-index: 19;
+  z-index: 21;
 }
 .map-layers button {
   font-size: 12px; font-weight: 600;
   padding: 7px 12px;
+  min-width: 44px;
   background: transparent;
   border: none; border-radius: 8px;
   cursor: pointer;
   color: var(--stg-gray-700);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .map-layers button.is-active { background: var(--stg-orange-500); color: white; }
 
@@ -367,4 +384,12 @@
   .map-card__photo { width: 100%; height: 120px; }
   .map-top { gap: 8px; }
   .map-pill { padding: 9px 11px; font-size: 12px; }
+  /* small screen では list panel が画面いっぱいになるので legend を
+     bottom-left に戻し、layer switcher の上に積む（非常に窮屈なら
+     2 行にしてもいい）。 */
+  .map-legend {
+    left: 18px;
+    bottom: 70px;
+    max-width: calc(100% - 36px);
+  }
 }
