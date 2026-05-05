@@ -592,7 +592,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       bearing: -15,
       attributionControl: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+    // Mapbox 標準の NavigationControl は右下に +/- を出すが、デザインの
+     // top-right 側に自前で拡大縮小（.map-ctrl-stack）と現在地ボタンを
+     // 用意しているので重複になる。さらに layer switcher (3D/2D/衛星)
+     // とも被る。なのでこの addControl は外す。
+     // map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     mapRef.current = map;
 
 
