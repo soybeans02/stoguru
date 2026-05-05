@@ -43,9 +43,29 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [uploadStatus, setUploadStatus] = useState<api.UploadApplicationStatus>('none');
   const [uploadStatusLoading, setUploadStatusLoading] = useState(false);
   const [applyingUpload, setApplyingUpload] = useState(false);
+  // 通知設定（バックエンド未実装なのでクライアント側 localStorage 永続）
+  const [pushNotif, setPushNotif] = useState(() => localStorage.getItem('cache:pushNotif') !== '0');
+  const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('cache:emailNotif') === '1');
 
   const safeStocks = stocks ?? [];
   const visitedCount = safeStocks.filter((s) => s.visited).length;
+  // 7 日ストリーク（直近 7 日でお店を保存した日数）— Claude Design の活動バナー用
+  const streakDays = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = new Set<string>();
+    for (const s of safeStocks) {
+      const c = (s as { stockedAt?: string; createdAt?: string }).stockedAt
+        ?? (s as { stockedAt?: string; createdAt?: string }).createdAt;
+      if (!c) continue;
+      const d = new Date(c);
+      const diff = Math.floor((today.getTime() - d.getTime()) / 86400000);
+      if (diff >= 0 && diff < 7) days.add(d.toISOString().slice(0, 10));
+    }
+    return Math.min(7, days.size);
+  })();
+  // 投稿審査が approved なら verified 扱い（青チェック）
+  const isVerified = uploadStatus === 'approved';
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
@@ -409,10 +429,76 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                     </>
                   ) : (
                     <>
-                      <h1 className="text-[22px] sm:text-[24px] lg:text-[28px] font-extrabold tracking-[-0.02em] truncate">
+                      <h1
+                        className="font-extrabold tracking-[-0.025em] truncate flex items-center gap-2.5"
+                        style={{ fontSize: 28, color: 'var(--stg-gray-900)' }}
+                      >
                         {user?.nickname ?? 'ユーザー'}
+                        {isVerified && (
+                          <span
+                            aria-label="認証済み"
+                            className="inline-grid place-items-center flex-shrink-0"
+                            style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                          </span>
+                        )}
                       </h1>
-                      <p className="text-[13px] text-[var(--text-secondary)] mt-0.5 truncate">{user?.email}</p>
+                      <div
+                        className="flex items-center gap-2.5 truncate"
+                        style={{ fontSize: 14, color: 'var(--stg-gray-600)', marginTop: 4 }}
+                      >
+                        <span>@{user?.nickname ?? ''}</span>
+                        <span style={{ color: 'var(--stg-gray-300)' }}>·</span>
+                        <span className="truncate">{user?.email}</span>
+                      </div>
+                      {/* Bio + chips（将来 user.bio をバックエンドに保存する想定。今は固定文 + 動的 chip） */}
+                      <p
+                        className="leading-[1.6] max-w-[540px] mt-2"
+                        style={{ fontSize: 14, color: 'var(--stg-gray-700)' }}
+                      >
+                        {(user as { bio?: string } | null | undefined)?.bio
+                          ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
+                      </p>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {visitedCount > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 font-semibold"
+                            style={{
+                              fontSize: 12,
+                              padding: '6px 14px',
+                              borderRadius: 999,
+                              background: 'var(--stg-cream-200)',
+                              color: 'var(--stg-orange-700)',
+                              border: '1px solid rgba(254,141,40,0.20)',
+                            }}
+                          >🍴 {visitedCount} 軒訪問済み</span>
+                        )}
+                        <span
+                          className="inline-flex items-center gap-1 font-semibold"
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 14px',
+                            borderRadius: 999,
+                            background: 'var(--stg-cream-200)',
+                            color: 'var(--stg-orange-700)',
+                            border: '1px solid rgba(254,141,40,0.20)',
+                          }}
+                        >📌 {safeStocks.length} 件保存中</span>
+                        {streakDays >= 2 && (
+                          <span
+                            className="inline-flex items-center gap-1 font-semibold"
+                            style={{
+                              fontSize: 12,
+                              padding: '6px 14px',
+                              borderRadius: 999,
+                              background: 'var(--stg-cream-200)',
+                              color: 'var(--stg-orange-700)',
+                              border: '1px solid rgba(254,141,40,0.20)',
+                            }}
+                          >🔥 {streakDays} 日連続</span>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -540,7 +626,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           )}
         </div>
 
-        {/* ─── ストリークバナー（活動状況。動的に保存日数 / 訪問数を表示） ─── */}
+        {/* ─── ストリークバナー（7 日連続保存 + 炎ゲージ） ─── */}
         {safeStocks.length > 0 && (
           <div
             className="relative overflow-hidden mb-7 flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5"
@@ -565,13 +651,103 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4c0 5-3 5-3 9a3 3 0 0 0 6 0c0-1.5-.5-2.5-1.5-3.5C16.5 11 18 12.5 18 15a6 6 0 0 1-12 0c0-3 2-5 3-7 .5-1 1-2 1-3 .5 0 4 1 4-1Z"/></svg>
             </div>
             <div className="relative flex-1 min-w-0">
-              <div className="text-[17px] font-bold mb-1">あなたのコレクション、{safeStocks.length} 件</div>
+              <div className="text-[17px] font-bold mb-1">
+                {streakDays >= 7 ? '7 日連続でお店を保存！' : `${streakDays} 日連続でお店を保存中！`}
+              </div>
               <div className="text-[13px] leading-[1.5]" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                {visitedCount > 0 ? `そのうち ${visitedCount} 件は実際に訪問済み。残りも順番に消化していこう。` : '気になるお店をスワイプで貯めて、行きたい時に思い出そう。'}
+                {streakDays >= 7
+                  ? 'お見事！「ストグルマスター」相当のペース。'
+                  : `あと ${7 - streakDays} 日続けると「ストグルマスター」バッジを獲得できます`}
+              </div>
+              {/* 7-day flame indicator */}
+              <div className="flex gap-1 mt-2.5">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => {
+                  const lit = i <= streakDays;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: 22, height: 26,
+                        borderRadius: '50% 50% 50% 50% / 30% 30% 70% 70%',
+                        background: lit
+                          ? 'linear-gradient(180deg, #FBBF24, var(--stg-orange-500), #DC2626)'
+                          : 'rgba(255,255,255,0.20)',
+                        opacity: lit ? 0.92 : 0.18,
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
+            <button
+              className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2.5 flex-shrink-0"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.16)',
+                color: 'white',
+                borderRadius: 10,
+                cursor: 'pointer',
+              }}
+              onClick={() => alert('バッジ機能は近日対応予定')}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
+              バッジを見る
+            </button>
           </div>
         )}
+
+        {/* ─── PRO カード（プレースホルダ：将来の有料プラン） ─── */}
+        <div
+          className="relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5 mb-7"
+          style={{
+            background: 'linear-gradient(135deg, #18181B 0%, #27272A 100%)',
+            color: 'white',
+            borderRadius: 16,
+          }}
+        >
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: -40, right: -40, width: 200, height: 200,
+              background: 'radial-gradient(circle, rgba(254,141,40,0.30), transparent 70%)',
+            }}
+          />
+          <div className="relative flex-1 min-w-0">
+            <span
+              className="inline-block font-bold uppercase tracking-[0.08em]"
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                background: 'linear-gradient(135deg, #FBBF24, var(--stg-orange-500))',
+                color: '#1F1F1F',
+                borderRadius: 6,
+                marginBottom: 8,
+              }}
+            >
+              PRO
+            </span>
+            <div className="font-bold mb-1" style={{ fontSize: 18 }}>stoguru Pro にアップグレード</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+              無制限の保存・複数 SNS 連携・グループプラン作成
+            </div>
+          </div>
+          <button
+            className="relative ml-auto px-4 py-2.5 font-bold flex-shrink-0"
+            style={{
+              fontSize: 13,
+              background: 'linear-gradient(135deg, #FBBF24, var(--stg-orange-500))',
+              color: '#1F1F1F',
+              border: 'none',
+              borderRadius: 10,
+              cursor: 'pointer',
+            }}
+            onClick={() => alert('Pro プランは近日対応予定')}
+          >
+            月¥480 で試す →
+          </button>
+        </div>
 
         {/* ─── 連携アカウント（プレースホルダ：将来の OAuth 連携機能向け） ─── */}
         <SectionLabel>連携アカウント</SectionLabel>
@@ -642,6 +818,76 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           {settingTiles.map((tile, i) => <SettingTile key={i} {...tile} />)}
         </div>
 
+        {/* ─── 通知 ─── */}
+        <SectionLabel>通知</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div
+            className="flex items-center gap-3.5 px-4 py-3.5 sm:col-span-2"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+          >
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'rgba(255,55,95,0.12)', color: '#FF375F', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>プッシュ通知</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>新着のおすすめ・フォローイベント</div>
+            </div>
+            <Toggle
+              checked={pushNotif}
+              ariaLabel="プッシュ通知"
+              onChange={(next) => { setPushNotif(next); localStorage.setItem('cache:pushNotif', next ? '1' : '0'); }}
+            />
+          </div>
+          <div
+            className="flex items-center gap-3.5 px-4 py-3.5 sm:col-span-2"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+          >
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'rgba(0,122,255,0.12)', color: 'var(--stg-blue)', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>メール通知</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>週次のダイジェスト・お知らせ</div>
+            </div>
+            <Toggle
+              checked={emailNotif}
+              ariaLabel="メール通知"
+              onChange={(next) => { setEmailNotif(next); localStorage.setItem('cache:emailNotif', next ? '1' : '0'); }}
+            />
+          </div>
+        </div>
+
+        {/* ─── データとプライバシー ─── */}
+        <SectionLabel>データとプライバシー</SectionLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setPanel('privacy'); }}
+            className="group flex items-center gap-3.5 px-4 py-3.5 transition-all hover:-translate-y-px text-left no-underline"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
+          >
+            <div
+              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>プライバシー設定</div>
+              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>公開範囲・ブロック・履歴</div>
+            </div>
+            <span className="text-[var(--text-tertiary)] flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </a>
+        </div>
+
         {/* ─── サポート ─── */}
         <SectionLabel>{t('account.support')}</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -691,11 +937,13 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </button>
         </div>
 
-        {/* ─── Footer ─── */}
+        {/* ─── Footer ─── Claude Design 風 4 リンク + バージョン */}
         <div className="text-center mt-10" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
           <div className="flex justify-center gap-4 mb-2 flex-wrap">
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>プライバシー</a>
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>利用規約</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>クッキー</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>特定商取引</a>
           </div>
           <div>stoguru v1.0 · © 2026 stoguru</div>
         </div>
