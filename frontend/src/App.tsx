@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import './sidebar.css';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './context/LanguageContext';
 import { useGPS } from './hooks/useGPS';
@@ -28,94 +29,122 @@ import { MOCK_RESTAURANTS } from './data/mockRestaurants';
 import * as api from './utils/api';
 type Tab = 'home' | 'swipe' | 'stock' | 'map' | 'social' | 'account';
 
-/* ─── SVG Icons ─── */
-function IconHome({ active }: { active: boolean }) {
+/* ─── SVG Icons — Claude Design (account-app.jsx の Ic と完全一致の path) ─── */
+function IconHome({ size = 18 }: { active?: boolean; size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2Z"/>
     </svg>
   );
 }
-function IconMap({ active }: { active: boolean }) {
+function IconMap({ size = 18 }: { active?: boolean; size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6v15l6-3 6 3 6-3V3l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/>
     </svg>
   );
 }
-function IconBookmark({ active }: { active: boolean }) {
+function IconBookmark({ size = 18 }: { active?: boolean; size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/>
     </svg>
   );
 }
-function IconUser({ active }: { active: boolean }) {
+function IconUser({ size = 18 }: { active?: boolean; size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+    </svg>
+  );
+}
+/* Brand mark — Claude Design の <a className="brand"> 内 SVG と同一 */
+function BrandMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2c-4 0-7 3-7 7 0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7Z"/>
+      <circle cx="12" cy="9" r="3" fill="white"/>
     </svg>
   );
 }
 
-/* ─── Sidebar (PC) ─── */
-function Sidebar({ tab, onTabChange, onLogoClick }: { tab: Tab; onTabChange: (t: Tab) => void; onLogoClick?: () => void }) {
+/* ─── Sidebar (PC) — Claude Design 準拠 (.stg-sidebar / .side-link / .sidebar__user) ─── */
+function Sidebar({
+  tab,
+  onTabChange,
+  onLogoClick,
+  user,
+  stockCount,
+  profileImage,
+}: {
+  tab: Tab;
+  onTabChange: (t: Tab) => void;
+  onLogoClick?: () => void;
+  user: { userId: string; email: string; nickname: string } | null;
+  stockCount: number;
+  profileImage?: string;
+}) {
   const { t } = useTranslation();
-  // 「検索」タブは消し、ホームのヒーロー検索に集約
-  const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
-    { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
-    { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
-    { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
-    { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
+  const items: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: 'home', label: t('tabs.home'), icon: <IconHome /> },
+    { key: 'map', label: t('tabs.map'), icon: <IconMap /> },
+    { key: 'stock', label: t('tabs.stock'), icon: <IconBookmark />, count: stockCount },
+    { key: 'account', label: t('tabs.account'), icon: <IconUser /> },
   ];
 
+  // ユーザーのアバター文字（ニックネーム先頭 1 文字を大文字化）
+  const avatarChar = (user?.nickname ?? 'g').charAt(0).toUpperCase();
+  const handle = user ? user.nickname : 'guest';
+
   return (
-    <aside className="hidden lg:flex flex-col w-[220px] min-w-[220px] border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 h-svh sticky top-0">
-      {/* Logo (click → home + reload feed)。ホームに居る時はその場でリフレッシュして
-          おすすめが個別最適化されたフィードを再生成 */}
+    <aside className="stg-sidebar">
+      {/* Brand — design の .brand 構造そのまま */}
       <button
         onClick={() => { onTabChange('home'); onLogoClick?.(); }}
-        className="flex items-center gap-2.5 px-5 py-6 hover:opacity-80 transition-opacity"
+        className="stg-brand"
         aria-label="ホームを再読み込み"
       >
-        <img src="/app-icon.png" alt="" className="w-8 h-8 rounded-lg" />
-        <span
-          className="text-[20px] font-extrabold tracking-[-0.02em]"
-          style={{
-            background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
-        >
-          stoguru
+        <span className="stg-brand__mark">
+          <BrandMark />
+        </span>
+        <span className="stg-brand__name">
+          stoguru<span className="stg-brand__sub">ストグル</span>
         </span>
       </button>
 
-      {/* Nav items */}
-      <nav className="flex-1 flex flex-col gap-1 px-3 mt-2">
-        {items.map(({ key, label, icon }) => {
+      {/* Nav links */}
+      <nav className="stg-sidebar__nav">
+        {items.map(({ key, label, icon, count }) => {
           const active = tab === key;
           return (
             <button
               key={key}
               onClick={() => onTabChange(key)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                active
-                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-              }`}
+              className={`side-link ${active ? 'is-active' : ''}`}
             >
-              {icon(active)}
-              <span>{label}</span>
+              {icon}
+              {label}
+              {typeof count === 'number' && count > 0 && (
+                <span className="side-link__count">{count}</span>
+              )}
             </button>
           );
         })}
       </nav>
 
-      {/* Bottom area */}
-      <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800">
-        <p className="text-[10px] text-gray-300 dark:text-gray-600">© 2026 stoguru</p>
+      {/* 左下：現在ログイン中のユーザー（design の .sidebar__user） */}
+      <div className="sidebar__user">
+        <div className="sidebar__user-avatar">
+          {profileImage ? <img src={profileImage} alt="" /> : avatarChar}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="sidebar__user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.nickname ?? 'ゲスト'}
+          </div>
+          <div className="sidebar__user-handle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            @{handle}
+          </div>
+        </div>
       </div>
     </aside>
   );
@@ -125,11 +154,11 @@ function Sidebar({ tab, onTabChange, onLogoClick }: { tab: Tab; onTabChange: (t:
 function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
   const { t } = useTranslation();
   // 「検索」タブは消し、ホームのヒーロー検索に集約
-  const items: { key: Tab; label: string; icon: (a: boolean) => React.ReactNode }[] = [
-    { key: 'home', label: t('tabs.home'), icon: (a) => <IconHome active={a} /> },
-    { key: 'map', label: t('tabs.map'), icon: (a) => <IconMap active={a} /> },
-    { key: 'stock', label: t('tabs.stock'), icon: (a) => <IconBookmark active={a} /> },
-    { key: 'account', label: t('tabs.account'), icon: (a) => <IconUser active={a} /> },
+  const items: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'home', label: t('tabs.home'), icon: <IconHome size={22} /> },
+    { key: 'map', label: t('tabs.map'), icon: <IconMap size={22} /> },
+    { key: 'stock', label: t('tabs.stock'), icon: <IconBookmark size={22} /> },
+    { key: 'account', label: t('tabs.account'), icon: <IconUser size={22} /> },
   ];
 
   return (
@@ -142,7 +171,7 @@ function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => vo
             onClick={() => onTabChange(key)}
             className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-colors ${active ? 'text-orange-500' : 'text-gray-300 dark:text-gray-500'}`}
           >
-            {icon(active)}
+            {icon}
             <span className="text-[10px] font-medium">{label}</span>
           </button>
         );
@@ -278,10 +307,20 @@ function MainApp() {
     setTab('map');
   }, []);
 
+  // 左下ユーザー表示で使うプロフィール画像（AccountScreen と同じ localStorage キャッシュを参照）
+  const profileImage = (typeof localStorage !== 'undefined' ? localStorage.getItem('cache:profileImage') : null) ?? undefined;
+
   return (
     <div className="flex h-svh bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden">
       {/* PC: Left Sidebar */}
-      <Sidebar tab={tab} onTabChange={setTab} onLogoClick={refreshFeed} />
+      <Sidebar
+        tab={tab}
+        onTabChange={setTab}
+        onLogoClick={refreshFeed}
+        user={user}
+        stockCount={stocks.length}
+        profileImage={profileImage}
+      />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

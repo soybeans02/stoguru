@@ -1,0 +1,112 @@
+/* Claude Design — sidebar / brand / .side-link / .sidebar__user
+   stock-page.css の sidebar 関連ブロックをそのままコピー（共通 chrome）。 */
+
+/* ─── App shell（PC: 220px sidebar + 1fr main） ─── */
+.stg-app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ─── */
+.stg-sidebar {
+  background: white;
+  border-right: 1px solid var(--stg-gray-200);
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.stg-sidebar .stg-brand { padding: 0 8px; margin-bottom: 28px; }
+.stg-sidebar__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+/* Brand mark + wordmark */
+.stg-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  color: var(--stg-gray-900);
+  text-decoration: none;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.stg-brand__mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #FE9B3A, #FE8D28);
+  box-shadow: 0 4px 10px rgba(254,141,40,0.32);
+  flex-shrink: 0;
+}
+.stg-brand__mark svg { width: 18px; height: 18px; color: white; }
+.stg-brand__name { display: flex; align-items: baseline; gap: 6px; }
+.stg-brand__sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--stg-gray-600);
+  letter-spacing: 0;
+}
+
+.side-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--stg-gray-800);
+  text-decoration: none;
+  transition: background 120ms var(--stg-ease);
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.side-link:hover { background: var(--stg-gray-100); }
+.side-link.is-active { background: var(--stg-cream-100); color: var(--stg-orange-700); font-weight: 600; }
+.side-link.is-active svg { color: var(--stg-orange-500); }
+.side-link svg { width: 18px; height: 18px; color: var(--stg-gray-600); flex-shrink: 0; }
+.side-link__count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--stg-gray-100);
+  color: var(--stg-gray-700);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.side-link.is-active .side-link__count { background: var(--stg-orange-500); color: white; }
+
+/* ─── 左下の現在ログイン中ユーザー表示 ─── */
+.sidebar__user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px;
+  border-top: 1px solid var(--stg-gray-200);
+  margin-top: 16px;
+}
+.sidebar__user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--stg-orange-500); color: white;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar__user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sidebar__user-name { font-size: 13px; font-weight: 600; color: var(--stg-gray-900); }
+.sidebar__user-handle { font-size: 11px; color: var(--stg-gray-600); }
+
+/* Mobile: lg 未満ではデザインの sidebar は非表示。BottomTab を使う */
+@media (max-width: 1023px) {
+  .stg-sidebar { display: none; }
+}
