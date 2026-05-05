@@ -6,7 +6,6 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
-import { useTheme } from '../../context/ThemeContextDef';
 import { GENRE_TAGS } from '../../constants/genre';
 import './map-page.css';
 
@@ -514,7 +513,6 @@ function buildPopupNode(
 
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
   const { t } = useTranslation();
-  const { resolvedTheme, setTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
@@ -1389,38 +1387,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <button className={mapMode === 'satellite' ? 'is-active' : ''} onClick={() => handleSwitchMode('satellite')}>衛星</button>
       </div>
 
-      {/* ─── ダークモードトグル (右下、layer switcher の上に積む) ─── */}
-      <button
-        className="map-darktoggle"
-        title={resolvedTheme === 'black' ? 'ライトモードへ切替' : 'ダークモードへ切替'}
-        onClick={() => setTheme(resolvedTheme === 'black' ? 'white' : 'black')}
-        style={{
-          position: 'absolute',
-          // .map-layers (bottom:18px, height ~36px) と被らないように
-          // 18 + 36 + 8 = 62px の位置から持ち上げ。少し余裕を見て 70px に。
-          bottom: 70,
-          right: 18,
-          width: 44, height: 44,
-          background: 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.4)',
-          borderRadius: 12,
-          cursor: 'pointer',
-          display: 'grid', placeItems: 'center',
-          color: 'var(--stg-gray-900)',
-          boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
-          zIndex: 19,
-        }}
-      >
-        {resolvedTheme === 'black' ? (
-          // sun
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        ) : (
-          // moon
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
-        )}
-      </button>
+      {/* ダークモードトグルは map に置くと layer switcher と被って邪魔だったので削除。
+          テーマ切替はアカウント画面のテーマシートで行う。 */}
 
       {/* Filter panel */}
       {filterOpen && (
