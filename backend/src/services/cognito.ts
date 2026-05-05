@@ -162,27 +162,71 @@ export async function searchUsers(query: string) {
 
 // ─── ユーザー情報取得（userId指定） ───
 
-export async function getUserById(userId: string) {
+type UserInfo = { userId: string; nickname: string; createdAt?: string; username?: string };
+
+// userId → UserInfo の TTL キャッシュ。/ranking や /following で同じ
+// userId に対して頻繁に getUserById（= Cognito ListUsers + Filter）が叩かれて
+// いたため、30 分 TTL でメモ化。Cognito 側の rate-limit (30 RPS) 対策にもなる。
+const USER_INFO_CACHE = new Map<string, { info: UserInfo | null; expiresAt: number }>();
+const USER_INFO_TTL = 30 * 60_000; // 30 分
+const USER_INFO_MAX = 5000;
+const USER_INFO_INFLIGHT = new Map<string, Promise<UserInfo | null>>();
+
+function userInfoCachePut(userId: string, info: UserInfo | null) {
+  USER_INFO_CACHE.set(userId, { info, expiresAt: Date.now() + USER_INFO_TTL });
+  if (USER_INFO_CACHE.size > USER_INFO_MAX) {
+    // 古いエントリを 10% 削除（ざっくり LRU）
+    const drop = Math.ceil(USER_INFO_MAX * 0.1);
+    let i = 0;
+    for (const k of USER_INFO_CACHE.keys()) {
+      USER_INFO_CACHE.delete(k);
+      if (++i >= drop) break;
+    }
+  }
+}
+
+export function invalidateUserInfoCache(userId?: string) {
+  if (userId) USER_INFO_CACHE.delete(userId);
+  else USER_INFO_CACHE.clear();
+}
+
+export async function getUserById(userId: string): Promise<UserInfo | null> {
   // UUIDフォーマットのみ許可（インジェクション防止）
   if (!/^[a-f0-9-]+$/i.test(userId)) return null;
-  const command = new ListUsersCommand({
-    UserPoolId: getUserPoolId(),
-    Filter: `sub = "${userId}"`,
-    Limit: 1,
-  });
-  const result = await client.send(command);
-  const u = result.Users?.[0];
-  if (!u) return null;
-  const attrs: Record<string, string> = {};
-  u.Attributes?.forEach((a) => {
-    if (a.Name && a.Value) attrs[a.Name] = a.Value;
-  });
-  return {
-    userId: attrs['sub'],
-    nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0],
-    createdAt: u.UserCreateDate?.toISOString(),
-    username: u.Username,
-  };
+  const cached = USER_INFO_CACHE.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.info;
+  // 同じ userId に対する並列リクエストは inflight で dedup
+  const pending = USER_INFO_INFLIGHT.get(userId);
+  if (pending) return pending;
+
+  const p = (async () => {
+    try {
+      const command = new ListUsersCommand({
+        UserPoolId: getUserPoolId(),
+        Filter: `sub = "${userId}"`,
+        Limit: 1,
+      });
+      const result = await client.send(command);
+      const u = result.Users?.[0];
+      if (!u) { userInfoCachePut(userId, null); return null; }
+      const attrs: Record<string, string> = {};
+      u.Attributes?.forEach((a) => {
+        if (a.Name && a.Value) attrs[a.Name] = a.Value;
+      });
+      const info: UserInfo = {
+        userId: attrs['sub'],
+        nickname: attrs['nickname'] ?? attrs['email']?.split('@')[0] ?? '',
+        createdAt: u.UserCreateDate?.toISOString(),
+        username: u.Username,
+      };
+      userInfoCachePut(userId, info);
+      return info;
+    } finally {
+      USER_INFO_INFLIGHT.delete(userId);
+    }
+  })();
+  USER_INFO_INFLIGHT.set(userId, p);
+  return p;
 }
 
 // ─── ニックネーム変更 ───

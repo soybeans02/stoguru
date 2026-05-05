@@ -16,6 +16,7 @@ import {
   createNotification, getNotifications, markNotificationsRead,
   createShare, getSharesFeed, getRecentShares, deleteShare,
   getInfluencerProfile,
+  batchGetInfluencerProfiles,
   saveGenreRequest,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
@@ -74,9 +75,10 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
   }
 
   // インフルエンサープロフィールをまとめて取得
+  // 以前は postedBy ごとに per-row Get を Promise.all で並列していた
+  // (= N 回 GetItem)。BatchGet で 1 回（最大 100 件）にまとめて RCU 削減。
   const influencerIds = [...new Set(nearby.map((r) => r.postedBy))];
-  const profiles = await Promise.all(influencerIds.map((id) => getInfluencerProfile(id)));
-  const profileMap = new Map(profiles.filter(Boolean).map((p) => [p!.influencerId, p!]));
+  const profileMap = await batchGetInfluencerProfiles(influencerIds);
 
   const feed = nearby.map((r) => {
     const profile = profileMap.get(r.postedBy);
@@ -543,10 +545,9 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
   // private/hidden除外
   const visibleRestaurants = restaurants.filter((r) => r.visibility !== 'private' && r.visibility !== 'hidden');
 
-  // レストラン結果にインフルエンサー名を付与
+  // レストラン結果にインフルエンサー名を付与（BatchGet で N+1 解消）
   const postedByIds = [...new Set(visibleRestaurants.map((r) => r.postedBy))];
-  const profiles = await Promise.all(postedByIds.map((id) => getInfluencerProfile(id)));
-  const profileMap = new Map(profiles.filter(Boolean).map((p) => [p!.influencerId, p!]));
+  const profileMap = await batchGetInfluencerProfiles(postedByIds);
 
   res.json({
     users,
@@ -820,17 +821,34 @@ router.post('/genre-request', requireAuth, async (req: AuthRequest, res: Respons
 
 // ─── 投稿者ランキング（保存数の合計） ───
 
+// resolved profiles のキャッシュ（10 分）。ranking signature が変わらない
+// 限り Cognito + DynamoDB を毎リクエストで叩かない。
+type ResolvedRanking = { userId: string; totalStocks: number; nickname: string; profilePhotoUrl: string };
+let rankingResolvedCache: ResolvedRanking[] = [];
+let rankingResolvedSignature = '';
+let rankingResolvedExpiry = 0;
+const RANKING_RESOLVED_TTL = 10 * 60_000;
+
 router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
   const ranking = await getStockRankingV2(20); // 削除済みを弾いた後に Top N 切り出すため少し多めに取得
+  // signature: 上位 20 の (userId, totalStocks) を連結。変わらない限り再解決しない。
+  const sig = ranking.map((r) => `${r.postedBy}:${r.totalStocks}`).join(',');
+  if (sig === rankingResolvedSignature && Date.now() < rankingResolvedExpiry && rankingResolvedCache.length) {
+    res.json(rankingResolvedCache.slice(0, 5));
+    return;
+  }
+
+  // インフルエンサープロフィールは BatchGet で 1 回にまとめる（旧: per-row GetItem）
+  const profileMap = await batchGetInfluencerProfiles(ranking.map((r) => r.postedBy).filter(Boolean));
+
   const resolved = await Promise.all(ranking.map(async (r) => {
     if (!r.postedBy) return null; // 匿名化済み
     try {
-      const [profile, userInfo] = await Promise.all([
-        getInfluencerProfile(r.postedBy),
-        getUserById(r.postedBy).catch(() => null),
-      ]);
-      // Cognito にユーザーが存在しない = アカウント削除済み → ランキングから完全除外
-      if (!userInfo) return null;
+      // getUserById（Cognito ListUsers + sub フィルタ）はバッチ化が困難なので並列のまま。
+      // 結果はキャッシュに乗る（10 分）。
+      const userInfo = await getUserById(r.postedBy).catch(() => null);
+      if (!userInfo) return null; // Cognito にユーザー無し = 削除済み
+      const profile = profileMap.get(r.postedBy);
       const nickname = profile?.displayName || userInfo.nickname || '';
       if (!nickname) return null;
       return {
@@ -844,6 +862,9 @@ router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => 
     }
   }));
   const withProfiles = resolved.filter((x): x is NonNullable<typeof x> => x !== null).slice(0, 5);
+  rankingResolvedCache = withProfiles;
+  rankingResolvedSignature = sig;
+  rankingResolvedExpiry = Date.now() + RANKING_RESOLVED_TTL;
   res.json(withProfiles);
 });
 

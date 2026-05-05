@@ -513,27 +513,38 @@ function tryParseUrl(url: string): URL | null {
 let searchCache: RestaurantV2[] = [];
 let searchCacheExpiry = 0;
 const SEARCH_CACHE_TTL = 5 * 60_000; // 5分
+// 同時複数リクエストが cache miss すると並列で Scan が走る
+// （thundering herd）。inflight Promise を共有して 1 回にまとめる。
+let searchCacheInflight: Promise<RestaurantV2[]> | null = null;
 
 async function getSearchCache(): Promise<RestaurantV2[]> {
   if (Date.now() < searchCacheExpiry && searchCache.length > 0) return searchCache;
+  if (searchCacheInflight) return searchCacheInflight;
 
-  // 全件スキャン（V2テーブルが小さいうちはOK、将来はStreams+ESに移行）
-  const items: RestaurantV2[] = [];
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.restaurantsV2,
-      ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, priceRange, photoUrls, postedBy, visibility',
-      ExpressionAttributeNames: { '#n': 'name' },
-      ExclusiveStartKey: lastKey,
-    }));
-    items.push(...((result.Items ?? []) as RestaurantV2[]));
-    lastKey = result.LastEvaluatedKey;
-  } while (lastKey);
+  searchCacheInflight = (async () => {
+    try {
+      // 全件スキャン（V2テーブルが小さいうちはOK、将来はStreams+ESに移行）
+      const items: RestaurantV2[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await db.send(new ScanCommand({
+          TableName: TABLE.restaurantsV2,
+          ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, priceRange, photoUrls, postedBy, visibility',
+          ExpressionAttributeNames: { '#n': 'name' },
+          ExclusiveStartKey: lastKey,
+        }));
+        items.push(...((result.Items ?? []) as RestaurantV2[]));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-  searchCache = items;
-  searchCacheExpiry = Date.now() + SEARCH_CACHE_TTL;
-  return items;
+      searchCache = items;
+      searchCacheExpiry = Date.now() + SEARCH_CACHE_TTL;
+      return items;
+    } finally {
+      searchCacheInflight = null;
+    }
+  })();
+  return searchCacheInflight;
 }
 
 export function invalidateSearchCache() {
@@ -567,70 +578,88 @@ export async function searchRestaurantsV2(query: string, limit = 20): Promise<Re
 let rankingCache: { postedBy: string; totalStocks: number }[] = [];
 let rankingCacheExpiry = 0;
 const RANKING_CACHE_TTL = 10 * 60_000; // 10分
+let rankingCacheInflight: Promise<{ postedBy: string; totalStocks: number }[]> | null = null;
 
 // お店ごとのストック数ランキング（個別レストラン）
 let spotsRankingCache: RestaurantV2[] = [];
 let spotsRankingExpiry = 0;
 const SPOTS_RANKING_TTL = 10 * 60_000;
+let spotsRankingInflight: Promise<RestaurantV2[]> | null = null;
 
 export async function getTopRestaurantsByStockCount(limit = 10): Promise<RestaurantV2[]> {
   if (Date.now() < spotsRankingExpiry && spotsRankingCache.length > 0) {
     return spotsRankingCache.slice(0, limit);
   }
+  if (spotsRankingInflight) return (await spotsRankingInflight).slice(0, limit);
 
-  const items: RestaurantV2[] = [];
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.restaurantsV2,
-      ExclusiveStartKey: lastKey,
-    }));
-    items.push(...((result.Items ?? []) as RestaurantV2[]));
-    lastKey = result.LastEvaluatedKey;
-  } while (lastKey);
+  spotsRankingInflight = (async () => {
+    try {
+      const items: RestaurantV2[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await db.send(new ScanCommand({
+          TableName: TABLE.restaurantsV2,
+          ExclusiveStartKey: lastKey,
+        }));
+        items.push(...((result.Items ?? []) as RestaurantV2[]));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-  spotsRankingCache = items
-    .filter((r) => r.stockCount > 0 && r.visibility !== 'private' && r.visibility !== 'hidden')
-    .sort((a, b) => b.stockCount - a.stockCount);
-  spotsRankingExpiry = Date.now() + SPOTS_RANKING_TTL;
-  return spotsRankingCache.slice(0, limit);
+      spotsRankingCache = items
+        .filter((r) => r.stockCount > 0 && r.visibility !== 'private' && r.visibility !== 'hidden')
+        .sort((a, b) => b.stockCount - a.stockCount);
+      spotsRankingExpiry = Date.now() + SPOTS_RANKING_TTL;
+      return spotsRankingCache;
+    } finally {
+      spotsRankingInflight = null;
+    }
+  })();
+  return (await spotsRankingInflight).slice(0, limit);
 }
 
 export async function getStockRankingV2(limit = 30): Promise<{ postedBy: string; totalStocks: number }[]> {
   if (Date.now() < rankingCacheExpiry && rankingCache.length > 0) {
     return rankingCache.slice(0, limit);
   }
+  if (rankingCacheInflight) return (await rankingCacheInflight).slice(0, limit);
 
-  const items: RestaurantV2[] = [];
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await db.send(new ScanCommand({
-      TableName: TABLE.restaurantsV2,
-      ProjectionExpression: 'postedBy, stockCount, visibility',
-      ExclusiveStartKey: lastKey,
-    }));
-    items.push(...((result.Items ?? []) as RestaurantV2[]));
-    lastKey = result.LastEvaluatedKey;
-  } while (lastKey);
+  rankingCacheInflight = (async () => {
+    try {
+      const items: RestaurantV2[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await db.send(new ScanCommand({
+          TableName: TABLE.restaurantsV2,
+          ProjectionExpression: 'postedBy, stockCount, visibility',
+          ExclusiveStartKey: lastKey,
+        }));
+        items.push(...((result.Items ?? []) as RestaurantV2[]));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    // postedBy 空（削除済み匿名化）、private、hidden は除外
-    if (
-      item.postedBy &&
-      item.stockCount > 0 &&
-      item.visibility !== 'private' &&
-      item.visibility !== 'hidden'
-    ) {
-      counts.set(item.postedBy, (counts.get(item.postedBy) ?? 0) + item.stockCount);
+      const counts = new Map<string, number>();
+      for (const item of items) {
+        // postedBy 空（削除済み匿名化）、private、hidden は除外
+        if (
+          item.postedBy &&
+          item.stockCount > 0 &&
+          item.visibility !== 'private' &&
+          item.visibility !== 'hidden'
+        ) {
+          counts.set(item.postedBy, (counts.get(item.postedBy) ?? 0) + item.stockCount);
+        }
+      }
+
+      rankingCache = [...counts.entries()]
+        .map(([postedBy, totalStocks]) => ({ postedBy, totalStocks }))
+        .sort((a, b) => b.totalStocks - a.totalStocks);
+      rankingCacheExpiry = Date.now() + RANKING_CACHE_TTL;
+      return rankingCache;
+    } finally {
+      rankingCacheInflight = null;
     }
-  }
-
-  rankingCache = [...counts.entries()]
-    .map(([postedBy, totalStocks]) => ({ postedBy, totalStocks }))
-    .sort((a, b) => b.totalStocks - a.totalStocks);
-  rankingCacheExpiry = Date.now() + RANKING_CACHE_TTL;
-  return rankingCache.slice(0, limit);
+  })();
+  return (await rankingCacheInflight).slice(0, limit);
 }
 
 // =============================================
@@ -796,6 +825,41 @@ export async function getInfluencerProfile(influencerId: string): Promise<Influe
     Key: { influencerId },
   }));
   return (result.Item as InfluencerProfile) ?? null;
+}
+
+/**
+ * 複数のインフルエンサープロフィールを **BatchGetItem** で一括取得。
+ *
+ * /feed や /search で各レコードに `getInfluencerProfile` を fan-out して
+ * いた N+1 を解消する用。最大 100 件 / 1 リクエスト、超過分は 100 件単位で
+ * チャンク分割。UnprocessedKeys は空 Map をデフォルトでスキップ
+ * （次サイクルのキャッシュで埋まる想定）。
+ *
+ * 返り値: influencerId をキーとしたマップ。プロフィール未作成の id は
+ * 含まれない。
+ */
+export async function batchGetInfluencerProfiles(
+  influencerIds: string[],
+): Promise<Map<string, InfluencerProfile>> {
+  const out = new Map<string, InfluencerProfile>();
+  const unique = [...new Set(influencerIds.filter(Boolean))];
+  if (unique.length === 0) return out;
+  const CHUNK = 100;
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const batch = unique.slice(i, i + CHUNK);
+    const res = await db.send(new BatchGetCommand({
+      RequestItems: {
+        [TABLE.influencerProfiles]: {
+          Keys: batch.map((influencerId) => ({ influencerId })),
+        },
+      },
+    }));
+    for (const raw of (res.Responses?.[TABLE.influencerProfiles] ?? [])) {
+      const p = raw as InfluencerProfile;
+      if (p?.influencerId) out.set(p.influencerId, p);
+    }
+  }
+  return out;
 }
 
 // =============================================
