@@ -11,7 +11,9 @@ import { AuthModal } from '../auth/AuthModal';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
-import { POPULAR_GENRES, GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
+// `GENRE_PHOTOS` はこのファイル下方で genre keyword → 写真の解決用 const として
+// 別途定義しているので、衝突を避けるために import 側は alias で受ける。
+import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -2715,7 +2717,7 @@ function GenreListModal({
               >
                 <img
                   loading="lazy"
-                  src={GENRE_PHOTOS[g] ?? ''}
+                  src={ALL_GENRE_PHOTOS[g] ?? ''}
                   alt={g}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
