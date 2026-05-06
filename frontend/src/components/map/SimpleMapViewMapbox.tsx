@@ -642,7 +642,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       map.addLayer({ id: 'stocks-circle', type: 'circle', source: 'stocks', maxzoom: 15,
         filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
-          'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#ff5a5a'] } });
+          /* 保存 = 赤 (--stg-red #FD383C)、行った = 緑。
+             凡例の cat-todo と色を揃える。 */
+          'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#FD383C'] } });
       // 拡大時: ティアドロップピン
       map.addLayer({ id: 'stocks-pin', type: 'symbol', source: 'stocks', minzoom: 15,
         filter: ['!', ['has', 'point_count']],
@@ -1156,7 +1158,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </div>
         {([
           { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
-          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited).length },
+          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-red)', count: stocks.filter(s => !s.visited).length },
           { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
           // 「気になる」フィルターは UI バランス + 機能要件の整理で削除
         ]).map((c) => (

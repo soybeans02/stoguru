@@ -49,7 +49,7 @@
 }
 .stat-card__num { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--stg-gray-900); line-height: 1; }
 .stat-card__lbl { font-size: 11px; color: var(--stg-gray-600); margin-top: 4px; }
-.stat-card .ic-saved   { background: var(--stg-cream-100); color: var(--stg-orange-500); }
+.stat-card .ic-saved   { background: rgba(253,56,60,0.12); color: var(--stg-red); }
 .stat-card .ic-visited { background: rgba(52,199,89,0.12); color: var(--stg-green); }
 .stat-card .ic-todo    { background: rgba(0,122,255,0.10); color: var(--stg-blue); }
 .stat-card .ic-rate    { background: rgba(255,204,0,0.16); color: #B8920B; }

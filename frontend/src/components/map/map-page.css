@@ -331,7 +331,7 @@
 }
 .map-legend__item { display: inline-flex; align-items: center; gap: 6px; }
 .map-legend__dot { width: 10px; height: 10px; border-radius: 50%; }
-.map-legend__dot.cat-todo { background: var(--stg-orange-500); }
+.map-legend__dot.cat-todo { background: var(--stg-red); }
 .map-legend__dot.cat-visited { background: var(--stg-green); }
 .map-legend__dot.cat-noted { background: var(--stg-blue); }
 .map-legend__dot.cat-special { background: #AF52DE; }
