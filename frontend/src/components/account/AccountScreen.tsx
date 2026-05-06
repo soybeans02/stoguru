@@ -8,6 +8,7 @@ import type { StockedRestaurant } from '../stock/StockScreen';
 import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
 import { Sheet } from '../ui/Sheet';
 import { Toggle } from '../ui/Toggle';
+import { Input } from '../ui/Input';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { LegalSheet } from '../legal/LegalDocs';
 
@@ -16,7 +17,7 @@ interface Props {
   onRestaurantEdited?: () => void;
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce';
+type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce' | 'editProfile';
 type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
@@ -440,7 +441,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               {!editingNickname && (
                 <div className="flex flex-wrap gap-2 sm:pb-1.5">
                   <button
-                    onClick={() => { setNicknameInput(user?.nickname ?? ''); setEditingNickname(true); }}
+                    onClick={() => { setNicknameInput(user?.nickname ?? ''); setPanel('editProfile'); }}
                     className="px-4 py-2 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
                   >
                     {t('account.editProfile')}
@@ -901,6 +902,31 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {panel === 'terms' && <LegalSheet doc="terms" onClose={() => setPanel(null)} />}
       {panel === 'cookie' && <LegalSheet doc="cookie" onClose={() => setPanel(null)} />}
       {panel === 'commerce' && <LegalSheet doc="commerce" onClose={() => setPanel(null)} />}
+      {panel === 'editProfile' && (
+        <EditProfilePanel
+          currentNickname={user?.nickname ?? ''}
+          onSave={async (next) => {
+            // ニックネームだけサーバー側に反映、bio / 好きジャンル / 地域は
+            // 現状 cache（バックエンドに専用カラムがまだ無い）。
+            try {
+              if (next.nickname && next.nickname !== user?.nickname) {
+                await updateNickname(next.nickname);
+              }
+            } catch (e) {
+              alert(e instanceof Error ? e.message : 'ニックネームの更新に失敗しました');
+              return;
+            }
+            if (next.favoriteGenre) localStorage.setItem('cache:favoriteGenre', next.favoriteGenre);
+            else localStorage.removeItem('cache:favoriteGenre');
+            if (next.region) localStorage.setItem('cache:region', next.region);
+            else localStorage.removeItem('cache:region');
+            if (next.bio) localStorage.setItem('cache:bio', next.bio);
+            else localStorage.removeItem('cache:bio');
+            setPanel(null);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
       {/* List panels */}
       {listPanel === 'stocks' && (
         <Overlay title="保存" onClose={() => setListPanel(null)}>
@@ -1124,6 +1150,114 @@ function StaticTextSheet({ onClose, title, body }: { onClose: () => void; title:
   return (
     <Sheet isOpen onClose={onClose} title={title} maxWidth="lg">
       <div className="text-[13px] leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-line">{body}</div>
+    </Sheet>
+  );
+}
+
+/* ─── プロフィール編集 専用パネル ─── */
+/* 「プロフィール編集」ボタンから開く Sheet。
+   ニックネームだけサーバー反映、bio / 好きジャンル / 住んでる地域は
+   現状 localStorage キャッシュ（バックエンドの user テーブルに専用
+   カラムがまだ無いため）。 */
+function EditProfilePanel({
+  currentNickname,
+  onSave,
+  onClose,
+}: {
+  currentNickname: string;
+  onSave: (next: { nickname: string; bio: string; favoriteGenre: string; region: string }) => void | Promise<void>;
+  onClose: () => void;
+}) {
+  const [nickname, setNickname] = useState(currentNickname);
+  const [bio, setBio] = useState(() => localStorage.getItem('cache:bio') ?? '');
+  const [favoriteGenre, setFavoriteGenre] = useState(() => localStorage.getItem('cache:favoriteGenre') ?? '');
+  const [region, setRegion] = useState(() => localStorage.getItem('cache:region') ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSave() {
+    setError('');
+    const trimmed = nickname.trim();
+    if (!trimmed) { setError('ニックネームを入力してください'); return; }
+    if (trimmed.length > 50) { setError('ニックネームは 50 文字以内で入力してください'); return; }
+    setSaving(true);
+    try {
+      await onSave({
+        nickname: trimmed,
+        bio: bio.trim(),
+        favoriteGenre: favoriteGenre.trim(),
+        region: region.trim(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Sheet isOpen onClose={onClose} title="プロフィール編集" maxWidth="lg">
+      <div className="flex flex-col gap-4">
+        <Input
+          label="ニックネーム"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          maxLength={50}
+          placeholder="表示名"
+        />
+        <div>
+          <label className="block text-[12px] font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            自己紹介（{bio.length}/200）
+          </label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value.slice(0, 200))}
+            rows={3}
+            placeholder="お気に入りのジャンル、住んでる地域、好きな店の傾向など"
+            className="w-full px-3 py-2 rounded-[10px] resize-none outline-none transition-colors"
+            style={{
+              fontSize: 14,
+              background: 'var(--bg-soft)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        </div>
+        <Input
+          label="好きなジャンル"
+          value={favoriteGenre}
+          onChange={(e) => setFavoriteGenre(e.target.value)}
+          maxLength={20}
+          placeholder="ラーメン / カフェ / 焼肉 など"
+        />
+        <Input
+          label="住んでる地域"
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          maxLength={30}
+          placeholder="大阪 / 渋谷 / 京都 など"
+        />
+        {error && <p className="text-red-500 text-[12px]">{error}</p>}
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              background: 'var(--bg-soft)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
+            style={{ background: 'var(--accent-orange)' }}
+          >
+            {saving ? '保存中…' : '保存'}
+          </button>
+        </div>
+      </div>
     </Sheet>
   );
 }
