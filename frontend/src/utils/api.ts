@@ -308,7 +308,9 @@ export interface RankedUser {
 
 export async function getStockRanking(): Promise<RankedUser[]> {
   const res = await fetchWithRetry(`${BASE}/ranking`, { headers: headers() });
-  if (!res.ok) throw new Error('ランキング取得に失敗しました');
+  // ゲスト時に 401 を投げると console error になり UX が悪い。
+  // ランキングは public 表示なので、未認証/エラー時は空配列返却にとどめる。
+  if (!res.ok) return [];
   return res.json();
 }
 
@@ -327,7 +329,7 @@ export interface RankedSpot {
 
 export async function getSpotRanking(): Promise<RankedSpot[]> {
   const res = await fetchWithRetry(`${BASE}/ranking/spots`, { headers: headers() });
-  if (!res.ok) throw new Error('保存ランキング取得に失敗しました');
+  if (!res.ok) return [];
   return res.json();
 }
 

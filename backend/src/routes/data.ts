@@ -870,7 +870,9 @@ let rankingResolvedSignature = '';
 let rankingResolvedExpiry = 0;
 const RANKING_RESOLVED_TTL = 10 * 60_000;
 
-router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => {
+/* ランキング系はゲスト（未ログイン）でもホーム画面で見えるべきなので
+   optionalAuth に変更。401 を返さない代わりに public な集計だけ返す。 */
+router.get('/ranking', optionalAuth, async (_req: AuthRequest, res: Response) => {
   const ranking = await getStockRankingV2(20); // 削除済みを弾いた後に Top N 切り出すため少し多めに取得
   // signature: 上位 20 の (userId, totalStocks) を連結。変わらない限り再解決しない。
   const sig = ranking.map((r) => `${r.postedBy}:${r.totalStocks}`).join(',');
@@ -923,7 +925,7 @@ router.get('/stats/public', async (_req, res: Response) => {
   }
 });
 
-router.get('/ranking/spots', requireAuth, async (_req: AuthRequest, res: Response) => {
+router.get('/ranking/spots', optionalAuth, async (_req: AuthRequest, res: Response) => {
   const spots = await getTopRestaurantsByStockCount(10);
   res.json(spots);
 });
