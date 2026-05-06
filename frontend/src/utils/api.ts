@@ -79,6 +79,30 @@ export async function fetchRestaurantFeed(lat: number, lng: number, radius: numb
   return Array.isArray(data) ? data : data.items;
 }
 
+/** ホーム画面の統計（登録店 / アクティブユーザー / 保存数）— 認証不要。
+    バックエンドが DescribeTable.ItemCount を 5 分キャッシュで返す近似値。 */
+export type PublicStats = {
+  restaurants: number;
+  users: number;
+  stocks: number;
+  approximate?: boolean;
+};
+export async function getPublicStats(): Promise<PublicStats> {
+  try {
+    const res = await fetchWithRetry(`${BASE}/stats/public`);
+    if (!res.ok) throw new Error('stats/public failed');
+    const data = await res.json();
+    return {
+      restaurants: Number(data.restaurants) || 0,
+      users: Number(data.users) || 0,
+      stocks: Number(data.stocks) || 0,
+      approximate: !!data.approximate,
+    };
+  } catch {
+    return { restaurants: 0, users: 0, stocks: 0, approximate: true };
+  }
+}
+
 export async function fetchSettings() {
   const res = await fetchWithRetry(`${BASE}/settings`, { headers: headers() });
   if (!res.ok) throw new Error('Failed to fetch settings');

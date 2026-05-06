@@ -1,4 +1,4 @@
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, PutItemCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import {
   DynamoDBDocumentClient,
@@ -1253,6 +1253,54 @@ export async function deleteFeedback(id: string) {
     TableName: TABLE.feedback,
     Key: { id },
   }));
+}
+
+// =============================================
+// パブリック統計（ホーム画面の「12,400+ 登録店」等を実数値に）
+// =============================================
+
+export type PublicStats = {
+  restaurants: number;
+  users: number;
+  stocks: number;
+  /** ItemCount は ~6 時間ごとに DynamoDB が更新する近似値 */
+  approximate: true;
+};
+
+let publicStatsCache: { value: PublicStats; expiry: number } | null = null;
+const PUBLIC_STATS_TTL_MS = 5 * 60 * 1000; // 5 分キャッシュ
+
+/**
+ * DescribeTable.ItemCount で各テーブルの近似行数を取得。
+ * Scan しないので RCU 消費なし、かつ高速。
+ * 値は eventually consistent（~6 時間遅延あり）だがトップページの
+ * 「+」付き概数表示には十分。
+ */
+export async function getPublicStats(): Promise<PublicStats> {
+  if (publicStatsCache && Date.now() < publicStatsCache.expiry) {
+    return publicStatsCache.value;
+  }
+  const tablesToCount = [
+    TABLE.restaurantsV2,
+    TABLE.settings, // 1 user = 1 settings record
+    TABLE.userStocks,
+  ] as const;
+  const counts = await Promise.all(
+    tablesToCount.map(async (name) => {
+      try {
+        const r = await rawClient.send(new DescribeTableCommand({ TableName: name }));
+        return r.Table?.ItemCount ?? 0;
+      } catch { return 0; }
+    }),
+  );
+  const value: PublicStats = {
+    restaurants: counts[0],
+    users: counts[1],
+    stocks: counts[2],
+    approximate: true,
+  };
+  publicStatsCache = { value, expiry: Date.now() + PUBLIC_STATS_TTL_MS };
+  return value;
 }
 
 // =============================================

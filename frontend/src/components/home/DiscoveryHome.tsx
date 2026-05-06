@@ -201,6 +201,16 @@ export function DiscoveryHome({
   const [ranking, setRanking] = useState<api.RankedUser[]>([]);
   const [spotRanking, setSpotRanking] = useState<api.RankedSpot[]>([]);
 
+  // Public stats（hero 下の「12,400+ 登録店」等。実数値に置き換え）
+  const [publicStats, setPublicStats] = useState<api.PublicStats>({
+    restaurants: 0, users: 0, stocks: 0, approximate: true,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    api.getPublicStats().then((s) => { if (!cancelled) setPublicStats(s); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // GPS は watchPosition で高頻度に微小更新が来るので、~1km 粒度に丸めて
   // 「意味のある移動」だけ deps として扱う。サブメートルのジッターで
   // 毎秒フィードを再取得して画面が「リロード」状態になる症状の対策。
@@ -360,6 +370,9 @@ export function DiscoveryHome({
           tStatRestaurants={t('home.statRestaurants')}
           tStatUsers={t('home.statUsers')}
           tStatSaves={t('home.statSaves')}
+          statRestaurantsCount={publicStats.restaurants}
+          statUsersCount={publicStats.users}
+          statSavesCount={publicStats.stocks}
         />
 
         {/* ─── テーマで探す — Claude Design 風 4:5 アスペクトのオーバーレイカード ─── */}
@@ -848,6 +861,11 @@ type HeroDeckProps = {
   tStatRestaurants: string;
   tStatUsers: string;
   tStatSaves: string;
+  /** 実数値（バックエンドの DescribeTable.ItemCount 由来）。
+      0 のときは「+」を出さずプレースホルダ「-」を出す。 */
+  statRestaurantsCount: number;
+  statUsersCount: number;
+  statSavesCount: number;
 };
 
 /* Hero に出す「見本」カードは固定。ユーザーの feed や mock とは切り離して、
@@ -896,9 +914,21 @@ function HeroDeck({
   tHeroTitleA, tHeroTitleAccent, tHeroTitleB, tDescription,
   tCtaPrimary, tCtaSecondary,
   tStatRestaurants, tStatUsers, tStatSaves,
+  statRestaurantsCount, statUsersCount, statSavesCount,
 }: HeroDeckProps) {
   // ユーザーデータと無関係の「見本」カードを使う。
   const cards = HERO_SAMPLE_CARDS;
+  // 数値の表示整形：1000 以上なら "1.2k" 形式、1万以上は "1.2万" 形式。
+  // 0 のとき（fetch 前 / 失敗時）は "-" にしてプレースホルダ感を出す。
+  const formatStat = (n: number): { num: string; hasPlus: boolean } => {
+    if (!n || n <= 0) return { num: '-', hasPlus: false };
+    if (n < 1000) return { num: String(n), hasPlus: false };
+    if (n < 10000) return { num: (Math.floor(n / 100) / 10).toLocaleString() + 'k', hasPlus: true };
+    return { num: (Math.floor(n / 1000) / 10).toLocaleString() + '万', hasPlus: true };
+  };
+  const restStat = formatStat(statRestaurantsCount);
+  const userStat = formatStat(statUsersCount);
+  const saveStat = formatStat(statSavesCount);
 
   // 背景は「左だけ」viewport edge まで延ばす。
   // section に -ml-4 lg:-ml-8 を付けて親の左 padding を打ち消し、左側のみ
@@ -994,9 +1024,9 @@ function HeroDeck({
             style={{ borderTop: '1px solid var(--stg-gray-200)', maxWidth: 480 }}
           >
             {[
-              { num: '12,400', label: tStatRestaurants },
-              { num: '4,200', label: tStatUsers },
-              { num: '68,000', label: tStatSaves },
+              { ...restStat, label: tStatRestaurants },
+              { ...userStat, label: tStatUsers },
+              { ...saveStat, label: tStatSaves },
             ].map((s, i) => (
               <div key={i} className="min-w-0 flex-1">
                 <div
@@ -1004,7 +1034,7 @@ function HeroDeck({
                   style={{ fontSize: 'clamp(18px, 5vw, 28px)', letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
                 >
                   {s.num}
-                  <span style={{ color: 'var(--stg-orange-500)' }}>+</span>
+                  {s.hasPlus && <span style={{ color: 'var(--stg-orange-500)' }}>+</span>}
                 </div>
                 <div
                   className="mt-1.5"

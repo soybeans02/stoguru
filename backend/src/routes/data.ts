@@ -10,6 +10,7 @@ import {
   lookupRestaurantByUrl, searchRestaurantsV2,
   getStockRankingV2,
   getTopRestaurantsByStockCount,
+  getPublicStats,
   // 既存
   getUserSettings, putUserSettings,
   followUser, unfollowUser, getFollowing,
@@ -909,6 +910,18 @@ router.get('/ranking', requireAuth, async (_req: AuthRequest, res: Response) => 
 });
 
 // ─── 保存ランキング（お店別） ───
+
+// ─── Public stats（auth 不要、ホーム画面の「12,400+ 登録店」等で使用） ───
+router.get('/stats/public', async (_req, res: Response) => {
+  try {
+    const s = await getPublicStats();
+    // 5 分キャッシュ済みなので CDN にも 5 分キャッシュさせる
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.json(s);
+  } catch {
+    res.json({ restaurants: 0, users: 0, stocks: 0, approximate: true });
+  }
+});
 
 router.get('/ranking/spots', requireAuth, async (_req: AuthRequest, res: Response) => {
   const spots = await getTopRestaurantsByStockCount(10);
