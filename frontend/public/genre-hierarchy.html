@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>stoguru — ジャンル階層 候補</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --stg-orange: #FE8D28;
+      --stg-orange-50: #FFF6EC;
+      --stg-orange-100: #FFE7CC;
+      --stg-orange-500: #FE8D28;
+      --stg-orange-600: #E97600;
+      --stg-orange-700: #BC5E00;
+      --stg-cream-50: #FEFBF7;
+      --stg-cream-100: #FBF1E0;
+      --stg-cream-200: #F8E6CB;
+      --stg-ink: #1C1C1E;
+      --stg-ink-soft: #3A3A3C;
+      --stg-ink-muted: #636366;
+      --border: #E5E5EA;
+      --bg-soft: #F2F2F7;
+    }
+    * { -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+      background: #F4F4F8;
+      color: var(--stg-ink);
+    }
+    .phone {
+      width: 390px;
+      height: 760px;
+      background: white;
+      border-radius: 36px;
+      box-shadow: 0 24px 60px -10px rgba(0,0,0,0.25), 0 0 0 8px #1C1C1E, 0 0 0 9px #2C2C2E;
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-content {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .phone-content::-webkit-scrollbar { display: none; }
+    .notch {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #1C1C1E;
+      border-radius: 16px;
+      z-index: 50;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 50px 16px 12px;
+      z-index: 30;
+      border-bottom: 1px solid var(--border);
+    }
+    .pill { transition: all .15s ease; }
+    .pill:active { transform: scale(0.96); }
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .accordion-content.open { max-height: 600px; }
+    .chip-active {
+      background: var(--stg-orange) !important;
+      color: white !important;
+      border-color: var(--stg-orange) !important;
+    }
+    .candidate-tab.active {
+      background: var(--stg-ink);
+      color: white;
+    }
+    .genre-card {
+      transition: transform 0.15s ease;
+    }
+    .genre-card:active { transform: scale(0.97); }
+
+    /* グラデ各種 */
+    .grad-noodle    { background: linear-gradient(135deg, #FFAB6B, #FE8D28); }
+    .grad-japanese  { background: linear-gradient(135deg, #DC8F8F, #B85C5C); }
+    .grad-meat      { background: linear-gradient(135deg, #8B4513, #5D2F0B); }
+    .grad-western   { background: linear-gradient(135deg, #F4C25E, #E89800); }
+    .grad-asian     { background: linear-gradient(135deg, #6FCF8E, #3FA866); }
+    .grad-cafe      { background: linear-gradient(135deg, #C4A584, #8C6A47); }
+    .grad-bar       { background: linear-gradient(135deg, #6B5B95, #4B3F75); }
+    .grad-other     { background: linear-gradient(135deg, #9CA3AF, #6B7280); }
+
+    /* シーン グラデ */
+    .grad-lunch     { background: linear-gradient(135deg, #FFE066, #FFB347); }
+    .grad-dinner    { background: linear-gradient(135deg, #5C5470, #2D2A3E); }
+    .grad-drink     { background: linear-gradient(135deg, #F1948A, #C0392B); }
+    .grad-date      { background: linear-gradient(135deg, #F8A5C2, #E84393); }
+    .grad-quick     { background: linear-gradient(135deg, #74B9FF, #0984E3); }
+    .grad-sweet     { background: linear-gradient(135deg, #FFA8C5, #FF6F91); }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen p-6 lg:p-10">
+
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto mb-8">
+      <h1 class="text-3xl font-extrabold tracking-tight">stoguru / ジャンル階層 候補</h1>
+      <p class="text-sm text-gray-500 mt-1">26個フラットを階層化。スマホサイズで 4 案並列。各案をタップで切替できる。</p>
+    </header>
+
+    <!-- Tab switcher -->
+    <div class="max-w-6xl mx-auto mb-6 flex flex-wrap gap-2">
+      <button class="candidate-tab active px-4 py-2 rounded-full font-semibold text-sm border-2 border-orange-500 bg-orange-50 text-orange-700" data-target="E">
+        ★ E. 人気8 + 全件フラット（推奨）
+      </button>
+      <button class="candidate-tab px-4 py-2 rounded-full font-semibold text-sm border border-gray-300 bg-white" data-target="A">
+        A. アコーディオン
+      </button>
+      <button class="candidate-tab px-4 py-2 rounded-full font-semibold text-sm border border-gray-300 bg-white" data-target="B">
+        B. 2-pane
+      </button>
+      <button class="candidate-tab px-4 py-2 rounded-full font-semibold text-sm border border-gray-300 bg-white" data-target="C">
+        C. カードグリッド
+      </button>
+      <button class="candidate-tab px-4 py-2 rounded-full font-semibold text-sm border border-gray-300 bg-white" data-target="D">
+        D. シーン × ジャンル
+      </button>
+      <button class="candidate-tab px-4 py-2 rounded-full font-semibold text-sm border border-gray-300 bg-white" data-target="all">
+        全部並べて見る
+      </button>
+    </div>
+
+    <!-- Candidates wrapper -->
+    <div id="candidates" class="flex gap-6 flex-wrap justify-center lg:justify-start">
+
+      <!-- ════════════════ E: 人気8 + 全件フラット（推奨） ════════════════ -->
+      <section class="candidate" data-id="E">
+        <div class="mb-3 px-2">
+          <h2 class="font-bold text-lg">★ E. 人気8 + 全件フラット（食べログ / Retty 流）</h2>
+          <p class="text-xs text-gray-500 mt-0.5 max-w-[380px]">
+            上に写真付き8タイル、その下に全ジャンルをチップで一覧。階層は作らない。実装超シンプル、ユーザーの迷いも最小。
+          </p>
+        </div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-content">
+            <div class="topbar">
+              <div class="flex items-center justify-between mb-3">
+                <button class="text-2xl">←</button>
+                <h1 class="font-bold text-base">ジャンルからさがす</h1>
+                <button class="text-sm text-orange-600 font-semibold">クリア</button>
+              </div>
+            </div>
+
+            <!-- 人気8（写真タイル 2 列） -->
+            <div class="px-4 pt-4">
+              <div class="flex items-end justify-between mb-2.5">
+                <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400">人気ジャンル</div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">ラーメン</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">寿司</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">焼肉</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">居酒屋</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">イタリアン</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">カフェ</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">中華</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-[16/10] rounded-2xl overflow-hidden text-left text-white">
+                  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&q=70')"></div>
+                  <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))"></div>
+                  <div class="absolute bottom-2 left-3 right-3">
+                    <div class="font-extrabold text-[15px] drop-shadow">韓国料理</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- 全件フラット（チップ 2 列） -->
+            <div class="px-4 mt-7">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2.5">すべてのジャンル</div>
+              <div class="grid grid-cols-2 gap-2">
+                <!-- 残りジャンル -->
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">和食</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">海鮮・魚介</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">うどん</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">そば</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">天ぷら</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">とんかつ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">焼き鳥</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">串揚げ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">うなぎ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">しゃぶしゃぶ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">鍋・もつ鍋</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ステーキ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ハンバーガー</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ハンバーグ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">お好み焼き</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">たこ焼き</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">鉄板焼き</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">餃子</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">フレンチ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ビストロ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">スペイン料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">タイ料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ベトナム料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">インド料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">メキシカン</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">バー</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">ワインバー</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">喫茶店</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">スイーツ</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">パン・ベーカリー</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">カレー</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">定食・食堂</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">丼もの</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">創作料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">沖縄料理</button>
+                <button class="px-4 py-3 rounded-xl text-[13px] font-medium bg-orange-50 border border-gray-200 hover:bg-orange-100 text-left">その他</button>
+              </div>
+            </div>
+            <div class="h-6"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════ A: アコーディオン ════════════════ -->
+      <section class="candidate" data-id="A" style="display:none">
+        <div class="mb-3 px-2">
+          <h2 class="font-bold text-lg">A. アコーディオン</h2>
+          <p class="text-xs text-gray-500 mt-0.5 max-w-[380px]">大カテゴリのチップを横スクロール。タップすると下に該当する小ジャンルが展開。フィルターで使うイメージ。</p>
+        </div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-content">
+            <!-- Topbar -->
+            <div class="topbar">
+              <div class="flex items-center justify-between mb-3">
+                <button class="text-2xl">←</button>
+                <h1 class="font-bold text-base">ジャンルから探す</h1>
+                <button class="text-sm text-orange-600 font-semibold">クリア</button>
+              </div>
+            </div>
+
+            <!-- 大カテゴリ chips -->
+            <div class="px-4 pt-4 pb-3">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2.5">大カテゴリ</div>
+              <div class="flex flex-wrap gap-2">
+                <button class="pill chip-active px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🍜 麺類 <span class="opacity-60">5</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🍣 和食 <span class="text-gray-400">6</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🥩 肉・焼物 <span class="text-gray-400">4</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🌍 洋食 <span class="text-gray-400">3</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🥢 アジア <span class="text-gray-400">4</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">☕ カフェ・甘味 <span class="text-gray-400">3</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🍻 飲み <span class="text-gray-400">2</span></button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">🍛 その他 <span class="text-gray-400">1</span></button>
+              </div>
+            </div>
+
+            <!-- 展開されたジャンル -->
+            <div class="px-4 mt-3">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2.5">麺類のジャンル</div>
+              <div class="flex flex-wrap gap-2">
+                <button class="pill chip-active px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🍜 ラーメン</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">うどん</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">そば</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">つけ麺</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">パスタ</button>
+              </div>
+            </div>
+
+            <!-- 該当店プレビュー -->
+            <div class="px-4 mt-6">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2">42件のお店</div>
+              <div class="space-y-2.5">
+                <div class="rounded-2xl overflow-hidden border border-gray-200">
+                  <div class="aspect-[16/9] bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=70')"></div>
+                  <div class="p-3">
+                    <div class="font-bold">麺屋 極 梅田店</div>
+                    <div class="text-xs text-gray-500 mt-0.5">ラーメン · ¥900〜</div>
+                  </div>
+                </div>
+                <div class="rounded-2xl overflow-hidden border border-gray-200">
+                  <div class="aspect-[16/9] bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1631898037220-32d1aa00b8a5?w=400&q=70')"></div>
+                  <div class="p-3">
+                    <div class="font-bold">手打ちうどん 麦縁</div>
+                    <div class="text-xs text-gray-500 mt-0.5">うどん · ¥800〜</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 確定ボタン -->
+            <div class="sticky bottom-0 px-4 py-3 bg-white border-t border-gray-200">
+              <button class="w-full py-3.5 rounded-full text-white font-bold text-sm" style="background: var(--stg-orange)">
+                42件のお店を表示
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════ B: 2-pane ════════════════ -->
+      <section class="candidate" data-id="B" style="display:none">
+        <div class="mb-3 px-2">
+          <h2 class="font-bold text-lg">B. 2-pane（Apple Music / 食べログ風）</h2>
+          <p class="text-xs text-gray-500 mt-0.5 max-w-[380px]">左に大カテゴリリスト、右に選択中の小ジャンル。スマホでは画面遷移で 2-step に。</p>
+        </div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-content">
+            <div class="topbar">
+              <div class="flex items-center justify-between mb-3">
+                <button class="text-2xl">←</button>
+                <h1 class="font-bold text-base">麺類</h1>
+                <button class="text-sm text-orange-600 font-semibold">完了</button>
+              </div>
+            </div>
+
+            <!-- breadcrumb -->
+            <div class="px-4 pt-3 pb-2 text-[12px] text-gray-500">
+              ジャンル <span class="mx-1">›</span> <span class="text-gray-900 font-semibold">麺類</span>
+            </div>
+
+            <!-- 小ジャンル grid（2 列） -->
+            <div class="px-4 mt-2 grid grid-cols-2 gap-3">
+              <button class="genre-card relative aspect-[4/3] rounded-2xl overflow-hidden text-left text-white p-3 flex flex-col justify-end">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=70')"></div>
+                <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent, rgba(0,0,0,0.7))"></div>
+                <div class="relative">
+                  <div class="font-bold text-sm">ラーメン</div>
+                  <div class="text-[11px] opacity-80">42件</div>
+                </div>
+              </button>
+              <button class="genre-card relative aspect-[4/3] rounded-2xl overflow-hidden text-left text-white p-3 flex flex-col justify-end">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1631898037220-32d1aa00b8a5?w=400&q=70')"></div>
+                <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent, rgba(0,0,0,0.7))"></div>
+                <div class="relative">
+                  <div class="font-bold text-sm">うどん</div>
+                  <div class="text-[11px] opacity-80">12件</div>
+                </div>
+              </button>
+              <button class="genre-card relative aspect-[4/3] rounded-2xl overflow-hidden text-left text-white p-3 flex flex-col justify-end">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&q=70')"></div>
+                <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent, rgba(0,0,0,0.7))"></div>
+                <div class="relative">
+                  <div class="font-bold text-sm">そば</div>
+                  <div class="text-[11px] opacity-80">8件</div>
+                </div>
+              </button>
+              <button class="genre-card relative aspect-[4/3] rounded-2xl overflow-hidden text-left text-white p-3 flex flex-col justify-end">
+                <div class="absolute inset-0 grad-noodle"></div>
+                <div class="relative">
+                  <div class="font-bold text-sm">つけ麺</div>
+                  <div class="text-[11px] opacity-80">5件</div>
+                </div>
+              </button>
+              <button class="genre-card relative aspect-[4/3] rounded-2xl overflow-hidden text-left text-white p-3 flex flex-col justify-end">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400&q=70')"></div>
+                <div class="absolute inset-0" style="background:linear-gradient(180deg, transparent, rgba(0,0,0,0.7))"></div>
+                <div class="relative">
+                  <div class="font-bold text-sm">パスタ</div>
+                  <div class="text-[11px] opacity-80">14件</div>
+                </div>
+              </button>
+            </div>
+            <div class="h-6"></div>
+
+            <!-- 親階層の他カテゴリへの shortcut -->
+            <div class="px-4 mt-2 mb-6">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2">他のカテゴリ</div>
+              <div class="flex flex-wrap gap-2">
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">🍣 和食</button>
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">🥩 肉・焼物</button>
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">🌍 洋食</button>
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">🥢 アジア</button>
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">☕ カフェ</button>
+                <button class="pill px-3 py-1.5 rounded-full text-[12px] font-semibold border border-gray-200 bg-white">🍻 飲み</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════ C: カードグリッド ════════════════ -->
+      <section class="candidate" data-id="C" style="display:none">
+        <div class="mb-3 px-2">
+          <h2 class="font-bold text-lg">C. カードグリッド（Spotify / Apple Music ジャンル風）</h2>
+          <p class="text-xs text-gray-500 mt-0.5 max-w-[380px]">大カテゴリの色付きカードを 2 列 グリッドで全部見せる。タップで小ジャンル画面へ遷移。</p>
+        </div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-content">
+            <div class="topbar">
+              <div class="flex items-center justify-between mb-3">
+                <button class="text-2xl">←</button>
+                <h1 class="font-bold text-base">ジャンル</h1>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="px-4 pt-4 pb-6">
+              <p class="text-[13px] text-gray-500 mb-4">食べたい気分を選んで</p>
+              <div class="grid grid-cols-2 gap-3">
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-noodle">
+                  <div class="text-3xl">🍜</div>
+                  <div>
+                    <div class="font-extrabold text-base">麺類</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">ラーメン / うどん / そば +2</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-japanese">
+                  <div class="text-3xl">🍣</div>
+                  <div>
+                    <div class="font-extrabold text-base">和食</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">寿司 / 天ぷら / 和食 +3</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-meat">
+                  <div class="text-3xl">🥩</div>
+                  <div>
+                    <div class="font-extrabold text-base">肉・焼物</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">焼肉 / ステーキ / バーガー +1</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-western">
+                  <div class="text-3xl">🍝</div>
+                  <div>
+                    <div class="font-extrabold text-base">洋食</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">イタリアン / フレンチ +1</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-asian">
+                  <div class="text-3xl">🥢</div>
+                  <div>
+                    <div class="font-extrabold text-base">アジア</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">中華 / タイ / 韓国 +2</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-cafe">
+                  <div class="text-3xl">☕</div>
+                  <div>
+                    <div class="font-extrabold text-base">カフェ・甘味</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">カフェ / スイーツ / パン</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-bar">
+                  <div class="text-3xl">🍻</div>
+                  <div>
+                    <div class="font-extrabold text-base">飲み</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">居酒屋 / バー</div>
+                  </div>
+                </button>
+                <button class="genre-card relative aspect-square rounded-2xl overflow-hidden text-left p-4 flex flex-col justify-between text-white grad-other">
+                  <div class="text-3xl">🍛</div>
+                  <div>
+                    <div class="font-extrabold text-base">その他</div>
+                    <div class="text-[11px] opacity-80 mt-0.5">カレー / お好み焼き</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════ D: シーン × ジャンル ════════════════ -->
+      <section class="candidate" data-id="D" style="display:none">
+        <div class="mb-3 px-2">
+          <h2 class="font-bold text-lg">D. シーン × ジャンル ハイブリッド</h2>
+          <p class="text-xs text-gray-500 mt-0.5 max-w-[380px]">先に「気分・シーン」で大絞り → 残ったジャンルを横スクロールで小選択。stoguru の "気分で保存" と一番噛む。</p>
+        </div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-content">
+            <div class="topbar">
+              <div class="flex items-center justify-between mb-3">
+                <button class="text-2xl">←</button>
+                <h1 class="font-bold text-base">いまの気分</h1>
+                <button class="text-sm text-orange-600 font-semibold">クリア</button>
+              </div>
+            </div>
+
+            <!-- step 1: シーン -->
+            <div class="px-4 pt-4">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2.5">step 1 — シーン</div>
+              <div class="grid grid-cols-3 gap-2.5">
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-lunch">
+                  <div class="text-xl">☀️</div>
+                  <div class="font-bold text-[12px]">ランチ</div>
+                </button>
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-dinner">
+                  <div class="text-xl">🌙</div>
+                  <div class="font-bold text-[12px]">ディナー</div>
+                </button>
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-drink"
+                        style="outline: 3px solid var(--stg-orange); outline-offset: 2px">
+                  <div class="text-xl">🍻</div>
+                  <div class="font-bold text-[12px]">飲み</div>
+                </button>
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-date">
+                  <div class="text-xl">💕</div>
+                  <div class="font-bold text-[12px]">デート</div>
+                </button>
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-quick">
+                  <div class="text-xl">⚡</div>
+                  <div class="font-bold text-[12px]">サクッと</div>
+                </button>
+                <button class="genre-card relative aspect-[1/1] rounded-2xl overflow-hidden text-white p-2.5 flex flex-col justify-between grad-sweet">
+                  <div class="text-xl">🍰</div>
+                  <div class="font-bold text-[12px]">甘いもの</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- step 2: ジャンル絞り込み -->
+            <div class="px-4 mt-6">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2.5">step 2 — ジャンル（飲みに合うもの）</div>
+              <div class="flex flex-wrap gap-2">
+                <button class="pill chip-active px-3.5 py-1.5 rounded-full text-[13px] font-semibold border border-gray-200 bg-white">すべて</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🏮 居酒屋</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🍷 バー</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🥩 焼肉</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🥢 韓国料理</button>
+                <button class="pill px-3.5 py-1.5 rounded-full text-[13px] font-medium border border-gray-200 bg-white">🍻 立ち飲み</button>
+              </div>
+            </div>
+
+            <!-- 結果 -->
+            <div class="px-4 mt-6">
+              <div class="text-[11px] uppercase tracking-wide font-bold text-gray-400 mb-2">28件のお店</div>
+              <div class="space-y-2.5">
+                <div class="rounded-2xl overflow-hidden border border-gray-200">
+                  <div class="aspect-[16/9] bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&q=70')"></div>
+                  <div class="p-3">
+                    <div class="font-bold">立呑み 大衆酒場</div>
+                    <div class="text-xs text-gray-500 mt-0.5">居酒屋 · ¥1,500〜</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sticky bottom-0 px-4 py-3 bg-white border-t border-gray-200">
+              <button class="w-full py-3.5 rounded-full text-white font-bold text-sm" style="background: var(--stg-orange)">
+                28件のお店を表示
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 比較表 -->
+    <div class="max-w-6xl mx-auto mt-12">
+      <h2 class="font-bold text-xl mb-4">比較</h2>
+      <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left p-3 font-semibold border-b border-gray-200"></th>
+              <th class="text-left p-3 font-semibold border-b border-gray-200">A. アコーディオン</th>
+              <th class="text-left p-3 font-semibold border-b border-gray-200">B. 2-pane</th>
+              <th class="text-left p-3 font-semibold border-b border-gray-200">C. カードグリッド</th>
+              <th class="text-left p-3 font-semibold border-b border-gray-200">D. シーン × ジャンル</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-700">
+            <tr><td class="p-3 font-semibold border-b border-gray-100">タップ数</td><td class="p-3 border-b border-gray-100">1〜2 回</td><td class="p-3 border-b border-gray-100">2 回（遷移あり）</td><td class="p-3 border-b border-gray-100">2 回（遷移あり）</td><td class="p-3 border-b border-gray-100">2 回</td></tr>
+            <tr><td class="p-3 font-semibold border-b border-gray-100">画面遷移</td><td class="p-3 border-b border-gray-100">なし（同一画面）</td><td class="p-3 border-b border-gray-100">あり</td><td class="p-3 border-b border-gray-100">あり</td><td class="p-3 border-b border-gray-100">なし</td></tr>
+            <tr><td class="p-3 font-semibold border-b border-gray-100">ビジュアル</td><td class="p-3 border-b border-gray-100">テキスト中心</td><td class="p-3 border-b border-gray-100">写真カード</td><td class="p-3 border-b border-gray-100">グラデカード（強い）</td><td class="p-3 border-b border-gray-100">写真 + チップ</td></tr>
+            <tr><td class="p-3 font-semibold border-b border-gray-100">複数選択</td><td class="p-3 border-b border-gray-100">◎ 自然</td><td class="p-3 border-b border-gray-100">△ 別画面</td><td class="p-3 border-b border-gray-100">△ 別画面</td><td class="p-3 border-b border-gray-100">◎ 自然</td></tr>
+            <tr><td class="p-3 font-semibold border-b border-gray-100">stoguru らしさ</td><td class="p-3 border-b border-gray-100">並</td><td class="p-3 border-b border-gray-100">並</td><td class="p-3 border-b border-gray-100">○</td><td class="p-3 border-b border-gray-100">◎</td></tr>
+            <tr><td class="p-3 font-semibold">用途</td><td class="p-3">マップフィルター / スワイプフィルター</td><td class="p-3">投稿時のジャンル選択</td><td class="p-3">ホームの「ジャンル一覧」</td><td class="p-3">ホームの「気分で探す」</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 推し -->
+    <div class="max-w-6xl mx-auto mt-8 p-5 rounded-2xl bg-orange-50 border border-orange-100">
+      <h3 class="font-bold mb-2">★ 採用案：<span class="text-orange-600">E. 人気8 + 全件フラット</span></h3>
+      <p class="text-sm text-gray-700 leading-relaxed mb-3">
+        階層を作らず、よく押される 8 個だけ写真付きタイルで上に出して、残りは全部チップで一覧。
+        食べログ / Retty / ホットペッパー がやってる王道。実装も使い心地もシンプル。
+      </p>
+      <ul class="text-sm text-gray-700 space-y-1.5 leading-relaxed">
+        <li>• <b>人気8（写真タイル）</b>：ラーメン / 寿司 / 焼肉 / 居酒屋 / イタリアン / カフェ / 中華 / 韓国料理</li>
+        <li>• <b>全件フラット（チップ）</b>：和食 / 海鮮・魚介 / うどん / そば / 天ぷら / とんかつ / 焼き鳥 / 串揚げ / うなぎ / しゃぶしゃぶ / 鍋 / ステーキ / ハンバーガー / お好み焼き / たこ焼き / 鉄板焼き / 餃子 / フレンチ / ビストロ / タイ料理 / ベトナム料理 / インド料理 / メキシカン / バー / ワインバー / 喫茶店 / スイーツ / パン / カレー / 定食・食堂 / 丼もの / 創作料理 / その他 …</li>
+      </ul>
+      <p class="text-[12px] text-gray-500 mt-3 leading-relaxed">
+        実装側：<code class="bg-white px-1.5 py-0.5 rounded text-[11px]">POPULAR_GENRES</code>（8件）と <code class="bg-white px-1.5 py-0.5 rounded text-[11px]">GENRES</code>（全件 35〜40件）の 2 配列を data に置く。階層なしなので restaurant の <code class="bg-white px-1.5 py-0.5 rounded text-[11px]">genres</code> field はそのまま flat な string[] で OK。
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.candidate-tab');
+    const sections = document.querySelectorAll('.candidate');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const target = t.dataset.target;
+      sections.forEach(s => {
+        if (target === 'all' || s.dataset.id === target) s.style.display = '';
+        else s.style.display = 'none';
+      });
+    }));
+  </script>
+</body>
+</html>

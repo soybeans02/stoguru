@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SCENES, GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
+import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
 
 interface Props {
   selectedScenes: string[];
@@ -13,7 +13,7 @@ interface Props {
   onApply?: () => void;
 }
 
-const VISIBLE_GENRE_COUNT = 5;
+const VISIBLE_GENRE_COUNT = POPULAR_GENRES.length;
 
 export function FilterOverlay({
   selectedScenes,

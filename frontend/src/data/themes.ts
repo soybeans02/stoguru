@@ -114,25 +114,49 @@ export const GENRES_AS_THEMES: Theme[] = [
     kind: 'genre',
   },
   {
-    id: 'burger',
-    label: 'ハンバーガー',
-    description: 'ジューシーなパティと、こだわりのバンズ。',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=70',
-    keywords: ['ハンバーガー', 'バーガー'],
-    kind: 'genre',
-  },
-  {
     id: 'chinese',
     label: '中華',
     description: '町中華から本格点心まで、奥深い中華料理。',
     image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=70',
-    keywords: ['中華', '中国料理', '点心', '小籠包'],
+    keywords: ['中華', '中国料理', '点心', '小籠包', '餃子'],
+    kind: 'genre',
+  },
+  {
+    id: 'korean',
+    label: '韓国料理',
+    description: 'サムギョプサル、チゲ、本場のヤンニョム。',
+    image: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&q=70',
+    keywords: ['韓国料理', '韓国', 'サムギョプサル', 'チゲ'],
     kind: 'genre',
   },
 ];
 
 const ALL_THEMES: Theme[] = [...THEMES, ...GENRES_AS_THEMES];
 
+/** 静的テーマに無い ID（= GENRES の生ジャンル名）が来た時に、
+ *  ジャンル名そのものを keyword にした「自動テーマ」を生成して返す。
+ *  これでホームの全件モーダルからどのジャンルチップを押しても、
+ *  「テーマが見つかりません」にならず常に検索結果が出せる。 */
+function autoGenreTheme(rawId: string): Theme {
+  // GENRE_PHOTOS との連携は呼び出し側 (ThemeListScreen) で hint として
+  // 名前を渡すので、image はここでは Unsplash の汎用食事写真にする。
+  return {
+    id: rawId,
+    label: rawId,
+    description: `${rawId}が美味しいお店をまとめて見る。`,
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=70',
+    keywords: [rawId],
+    kind: 'genre',
+  };
+}
+
 export function findTheme(id: string): Theme | null {
-  return ALL_THEMES.find((t) => t.id === id) ?? null;
+  const hit = ALL_THEMES.find((t) => t.id === id);
+  if (hit) return hit;
+  // GENRES の生ジャンル名が URL に来る（/themes/焼き鳥 等）場合の救済。
+  // 完全に未知の ID の時だけ null を返したいので、最低限の妥当性だけ確認。
+  if (typeof id === 'string' && id.length > 0 && id.length <= 30) {
+    return autoGenreTheme(id);
+  }
+  return null;
 }

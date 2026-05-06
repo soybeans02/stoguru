@@ -7,6 +7,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
 import { GENRE_TAGS } from '../../constants/genre';
+import { POPULAR_GENRES } from '../../data/mockRestaurants';
 import './map-page.css';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
@@ -540,6 +541,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterGenres, setFilterGenres] = useState<string[]>([]);
+  // 「もっと見る」展開フラグ。OFF だと人気 8 ジャンルだけ、ON で全件表示。
+  const [filterAllGenres, setFilterAllGenres] = useState(false);
   // 0 = no limit, otherwise meters (100..10000)
   const [filterDistance, setFilterDistance] = useState<number>(0);
   // visited filter: 'all' | 'wishlist' | 'visited'
@@ -1387,24 +1390,44 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <>
           <div className="absolute inset-0 z-20" onClick={() => setFilterOpen(false)} />
           <div className="absolute top-40 right-4 z-30 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-xl w-[260px] max-h-[70vh] overflow-y-auto border border-gray-100 dark:border-gray-700" role="dialog" aria-label={t('map.filter')}>
-            {/* Genre */}
+            {/* Genre — 既定では人気 8 だけ。「もっと見る」で全 33 ジャンル展開。
+                既に選択されてるが人気外のジャンルがあれば自動展開する（隠れて
+                外せなくなる事故を回避） */}
             <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.genre')}</p>
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {GENRE_TAGS.map((tag) => {
-                const active = filterGenres.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => setFilterGenres(prev => prev.includes(tag) ? prev.filter(g => g !== tag) : [...prev, tag])}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                      active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
+            {(() => {
+              const popularSet = new Set(POPULAR_GENRES as readonly string[]);
+              const hasOffPopularSelected = filterGenres.some((g) => !popularSet.has(g));
+              const expanded = filterAllGenres || hasOffPopularSelected;
+              const visibleTags: readonly string[] = expanded ? GENRE_TAGS : POPULAR_GENRES;
+              return (
+                <>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {visibleTags.map((tag) => {
+                      const active = filterGenres.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => setFilterGenres(prev => prev.includes(tag) ? prev.filter(g => g !== tag) : [...prev, tag])}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                            active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!hasOffPopularSelected && (
+                    <button
+                      onClick={() => setFilterAllGenres((v) => !v)}
+                      className="mb-4 text-[11px] font-semibold text-[var(--accent-orange)] hover:underline"
+                    >
+                      {expanded ? '閉じる' : `もっと見る (${GENRE_TAGS.length - POPULAR_GENRES.length})`}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Distance */}
             <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.distance')}</p>

@@ -11,6 +11,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
+import { POPULAR_GENRES, GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -221,6 +222,9 @@ export function DiscoveryHome({
   const [showHowTo, setShowHowTo] = useState(false);
   const [legalPanel, setLegalPanel] = useState<LegalDocType | null>(null);
   const [showThemes, setShowThemes] = useState(false);
+  // 「ジャンルから探す」セクションの右上 → ボタンで開く全件モーダル。
+  // 食べログ / Retty 風：人気 8 タイル + flat な全件チップ。
+  const [showAllGenres, setShowAllGenres] = useState(false);
   const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | null>(null);
 
@@ -436,11 +440,13 @@ export function DiscoveryHome({
           </div>
         </section>
 
-        {/* ─── ジャンルから探す — Claude Design 風の円形タイル ─── */}
+        {/* ─── ジャンルから探す — 円形タイル 8 個 + 右上「すべて見る ↗」 ─── */}
         <section className="py-10">
           <SectionHead
             title={t('home.categoriesTitle')}
             subtitle="食べたいジャンルから一気に絞り込む"
+            link="すべて見る ↗"
+            onLinkClick={() => setShowAllGenres(true)}
           />
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 mt-2">
             {GENRES_AS_THEMES.map((g) => {
@@ -798,6 +804,12 @@ export function DiscoveryHome({
           onClose={() => setShowThemes(false)}
         />
       )}
+      {showAllGenres && (
+        <GenreListModal
+          onClose={() => setShowAllGenres(false)}
+          onSelectGenre={(g) => { setShowAllGenres(false); navigate(`/themes/${encodeURIComponent(g)}`); }}
+        />
+      )}
       {selectedTheme && (
         <ThemeDetailModal
           theme={selectedTheme}
@@ -847,33 +859,11 @@ const PRICE_OPTIONS = [
   '9,000〜10,000円',
   '10,000円〜',
 ];
-/* ジャンル：GENRES_AS_THEMES（ホームのタイル）より広く、検索用の細かい分類 */
-const GENRE_OPTIONS = [
-  // 麺
-  'ラーメン', 'つけ麺', '担々麺', 'うどん', 'そば', 'パスタ',
-  // 和食
-  '寿司', '回転寿司', '海鮮丼', '天ぷら', 'うなぎ', 'とんかつ', 'おでん', '串揚げ', '串カツ',
-  '焼き鳥', '焼肉', 'ホルモン', 'すき焼き', 'しゃぶしゃぶ', 'もつ鍋', '鍋',
-  '居酒屋', 'バル', '立ち飲み', '日本酒バー',
-  '定食', '丼', 'お好み焼き', 'たこ焼き', '鉄板焼き', 'もんじゃ',
-  // 洋食
-  'イタリアン', 'ピザ', 'フレンチ', 'スペイン料理', 'ステーキ', 'ハンバーグ',
-  'ハンバーガー', 'サンドイッチ',
-  // アジア
-  '中華', '小籠包', '点心', '北京料理', '四川料理', '台湾料理',
-  '韓国料理', 'サムギョプサル', 'チゲ',
-  'タイ料理', 'ベトナム料理', 'インド料理', 'ネパール料理', 'インドネシア料理',
-  // その他
-  'メキシカン', '南米料理', '中東料理', 'トルコ料理', 'アフリカ料理',
-  // カフェ・甘味
-  'カフェ', 'コーヒー専門', 'ベーカリー', 'スイーツ', 'パンケーキ', 'クレープ', 'かき氷',
-  // ヘルシー・ベジ
-  'ヴィーガン', 'ベジタリアン', 'サラダ', 'スムージー',
-  // バー
-  'バー', 'ワインバー', 'クラフトビール', 'カクテルバー', 'シーシャ',
-  // ファストフード・テイクアウト
-  'ファストフード', 'お弁当', 'デリ',
-];
+/* 検索バーのジャンル <select>。`GENRES`（人気 8 + 残り 25）をそのまま流用。
+   旧版は 70+ 項目で「担々麺」「四川料理」「サムギョプサル」など下位カテゴリと
+   親ジャンルが両方並んで被っていたため、`mockRestaurants.GENRES` の整理済み
+   一覧に統一する。 */
+const GENRE_OPTIONS = [...GENRES];
 const SELECT_BG_DATAURI = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")';
 const NO_OUTLINE: React.CSSProperties = { outline: 'none', boxShadow: 'none' };
 
@@ -2663,6 +2653,105 @@ function ThemesListModal({
           {themes.map((th) => (
             <Story key={th.id} image={th.image} tag={th.tag} title={th.title} desc={th.desc} onClick={() => onSelectTheme(th)} />
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────
+   ジャンル全件モーダル（食べログ / Retty 風）
+   ───────────────────────────────────── */
+/* 「ジャンルから探す」セクションの右上 → から開く全件モーダル。
+   人気 8 個は写真タイル、残り（25 個前後）はチップで一覧。
+   タップで /themes/{name} に遷移（findTheme は未登録ジャンルでも auto fallback）。 */
+function GenreListModal({
+  onClose,
+  onSelectGenre,
+}: {
+  onClose: () => void;
+  onSelectGenre: (genre: string) => void;
+}) {
+  const restGenres = GENRES.filter((g) => !(POPULAR_GENRES as readonly string[]).includes(g));
+  return (
+    <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto animate-fade-in" onClick={onClose}>
+      <div
+        className="max-w-[860px] mx-auto px-4 sm:px-8 py-6 sm:py-10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em]">
+              ジャンルからさがす
+            </h2>
+            <p className="text-[13px] text-[var(--text-tertiary)] mt-1">
+              食べたい料理ジャンルを選んでお店をしぼりこみ
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-10 h-10 grid place-items-center rounded-full bg-[var(--card-bg)] border border-[var(--border)] hover:bg-[var(--bg-soft)] shadow-[var(--shadow-sm)]"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 人気 8（写真タイル） */}
+        <div className="mb-7">
+          <div className="text-[11px] uppercase tracking-[0.04em] font-bold text-[var(--text-tertiary)] mb-3">
+            人気ジャンル
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {POPULAR_GENRES.map((g) => (
+              <button
+                key={g}
+                onClick={() => onSelectGenre(g)}
+                className="relative aspect-[16/10] rounded-2xl overflow-hidden text-left transition-transform hover:-translate-y-0.5"
+                style={{ background: 'var(--bg-soft)' }}
+              >
+                <img
+                  loading="lazy"
+                  src={GENRE_PHOTOS[g] ?? ''}
+                  alt={g}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))' }}
+                />
+                <div className="absolute bottom-2 left-3 right-3 text-white">
+                  <div className="font-extrabold text-[15px] drop-shadow">{g}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 全件フラット（チップ 2 列） */}
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.04em] font-bold text-[var(--text-tertiary)] mb-3">
+            すべてのジャンル
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {restGenres.map((g) => (
+              <button
+                key={g}
+                onClick={() => onSelectGenre(g)}
+                className="px-4 py-3 rounded-xl text-[13px] font-medium text-left transition-colors hover:bg-[var(--stg-cream-100)]"
+                style={{
+                  background: 'var(--stg-cream-50)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
