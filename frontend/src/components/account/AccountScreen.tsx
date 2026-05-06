@@ -42,8 +42,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<api.UploadApplicationStatus>('none');
-  // 投稿申請バナーを UI から外したので uploadStatusLoading / applyingUpload は不要。
+  // インフルエンサー登録 / 管理者承認の投稿ゲートは撤廃済み。
+  // 誰でも「お店を編集」から直接ダッシュボードに入って投稿できる。
   // 通知設定（バックエンド未実装なのでクライアント側 localStorage 永続）
   const [pushNotif, setPushNotif] = useState(() => localStorage.getItem('cache:pushNotif') !== '0');
   const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('cache:emailNotif') === '1');
@@ -66,8 +66,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     return Math.min(7, days.size);
   })();
   // 認証バッジは design 準拠で常時表示（後で本実装に差し替え予定）。
-  // uploadStatus を見るのは内部の運営フロー用に残しておく。
-  void uploadStatus;
   const isVerified = true;
 
   useEffect(() => {
@@ -112,9 +110,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       }));
       setFollowersList(withNicks);
     }).catch(() => {});
-    api.getUploadApplication()
-      .then((r) => setUploadStatus(r.status))
-      .catch(() => setUploadStatus('none'));
   }, []);
 
   // ニックネーム保存は EditProfilePanel 内で updateNickname() を直接呼ぶ
@@ -405,15 +400,14 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   >
                     {t('account.editProfile')}
                   </button>
-                  {uploadStatus === 'approved' && (
-                    <button
-                      onClick={() => setShowInfluencerDashboard(true)}
-                      className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
-                      style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-                    >
-                      {t('account.editSpots')}
-                    </button>
-                  )}
+                  {/* 投稿ゲートは撤廃済み。アプリに登録している人は誰でも投稿できる。 */}
+                  <button
+                    onClick={() => setShowInfluencerDashboard(true)}
+                    className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
+                    style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
+                  >
+                    {t('account.editSpots')}
+                  </button>
                   <button
                     onClick={async () => {
                       const url = `${window.location.origin}/u/${user?.userId ?? ''}`;
@@ -544,10 +538,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </div>
         </div>
 
-        {/* Apply / Edit spots banner（投稿申請フロー）は design に無いので削除済。
-            投稿は誰でもできる前提に切り替える plan に従い、UI から外す。
-            uploadStatus の state や InfluencerDashboard は残しておくが、
-            本パネルからはアクセスしない。 */}
+        {/* インフルエンサー登録 / 管理者承認による投稿ゲートは撤廃済み。
+            アプリに登録しているユーザーは「お店を編集」ボタンから
+            直接 InfluencerDashboard で投稿・編集できる。 */}
 
         {/* ─── ストリークバナー（7 日連続保存 + 炎ゲージ） ─── */}
         {safeStocks.length > 0 && (
@@ -834,7 +827,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
 2. 保存タブで一覧管理 (ピン留め・行った)
 3. マップタブで近くのお店を確認
 4. 検索タブでユーザー・お店・URL から探す
-5. 投稿は「投稿を申請」から審査後に可能`
+5. 「お店を編集」から自分でお店を投稿`
           )}
         />
       )}

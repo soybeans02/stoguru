@@ -93,27 +93,30 @@ interface Props {
    推測できない時だけ id ハッシュで一般プールから選ぶ。
    これで「BURGER STAND UMEDA なのにパスタ写真」みたいな
    ミスマッチを減らす。 */
+// Unsplash には ?h=450&fit=crop&crop=entropy を渡してサーバー側で 4:3 に
+// トリミングしてもらう。`object-cover` だけだと natural aspect が portrait の時に
+// 上下が均等に削られて、料理の上半分（具材・トッピング）が切れて見える事故が起きる。
 const GENRE_PHOTOS: Record<string, string> = {
-  burger:    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=70',
-  ramen:     'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=70',
-  sushi:     'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=70',
-  italian:   'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=70',
-  cafe:      'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=600&q=70',
-  yakiniku:  'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=600&q=70',
-  izakaya:   'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=70',
-  chinese:   'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=70',
-  curry:     'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=70',
+  burger:    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=450&fit=crop&crop=entropy&q=70',
+  ramen:     'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=450&fit=crop&crop=entropy&q=70',
+  sushi:     'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=450&fit=crop&crop=entropy&q=70',
+  italian:   'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=450&fit=crop&crop=entropy&q=70',
+  cafe:      'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=600&h=450&fit=crop&crop=entropy&q=70',
+  yakiniku:  'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=600&h=450&fit=crop&crop=entropy&q=70',
+  izakaya:   'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=450&fit=crop&crop=entropy&q=70',
+  chinese:   'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&h=450&fit=crop&crop=entropy&q=70',
+  curry:     'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&h=450&fit=crop&crop=entropy&q=70',
 };
 
 const PHOTO_POOL = [
-  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300',
-  'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300',
-  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
-  'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=300',
-  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300',
+  'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=450&fit=crop&crop=entropy&q=70',
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=450&fit=crop&crop=entropy&q=70',
 ];
 
 function fallbackPhoto(id: string, hint?: { name?: string; genre?: string }): string {
@@ -1652,7 +1655,12 @@ function SpotRankCard({
   return (
     <button
       onClick={onClick}
-      className="group text-left overflow-hidden cursor-pointer transition-all hover:-translate-y-1"
+      /* `flex flex-col` を明示しないと、grid cell に伸ばされた button の中で
+         コンテンツがブラウザ既定のボタンセンタリングで縦方向中央寄せになり、
+         「行った」chip がある card だけ body が高い → 他の card は photo が
+         下にズレて見える、という事故が起きる。flex 列にして photo を必ず
+         先頭に固定する。 */
+      className="group text-left overflow-hidden cursor-pointer transition-all hover:-translate-y-1 flex flex-col"
       style={{
         /* dark mode でも自然に切り替わるよう card-bg に。 */
         background: 'var(--card-bg)',
@@ -1660,7 +1668,7 @@ function SpotRankCard({
         boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px var(--border)',
       }}
     >
-      <div className="relative overflow-hidden" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
+      <div className="relative overflow-hidden flex-shrink-0" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
         <img
           loading="lazy"
           src={photo}
@@ -1710,7 +1718,7 @@ function SpotRankCard({
           </svg>
         </span>
       </div>
-      <div className="px-4 pt-3.5 pb-4">
+      <div className="px-4 pt-3.5 pb-4 flex-1 flex flex-col">
         <div
           className="font-bold tracking-[-0.01em] truncate"
           style={{ fontSize: 15, color: 'var(--text-primary)' }}
@@ -1744,14 +1752,20 @@ function SpotRankCard({
             ))}
           </div>
         )}
-        {visited && (
-          <span
-            className="inline-flex items-center gap-1 mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ color: 'var(--visited-green)', background: 'rgba(140,199,64,0.12)' }}
-          >
-            <CheckIcon size={11} /> {visitedLabel}
-          </span>
-        )}
+        {/* 行った chip — visited で無くても DOM に常駐させて高さを予約する。
+            これで「行った」付き card と無し card の body 高さが揃い、
+            写真が縦にズレない。 */}
+        <span
+          aria-hidden={!visited}
+          className="inline-flex items-center gap-1 mt-2 self-start text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          style={{
+            color: 'var(--visited-green)',
+            background: 'rgba(140,199,64,0.12)',
+            visibility: visited ? 'visible' : 'hidden',
+          }}
+        >
+          <CheckIcon size={11} /> {visitedLabel}
+        </span>
       </div>
     </button>
   );
@@ -2391,7 +2405,14 @@ export function RestaurantPreviewModal({
         distanceMetres(userPosition.lat, userPosition.lng, restaurant.lat, restaurant.lng),
       )
     : restaurant.distance || '';
-  const photo = (restaurant.photoUrls && restaurant.photoUrls[0]) || fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre });
+  // photoUrls が複数あれば全部使う。空なら genre-aware fallback 1 枚で carousel 実質無効。
+  const photos = (restaurant.photoUrls && restaurant.photoUrls.length > 0)
+    ? restaurant.photoUrls
+    : [fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre })];
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const hasMultiplePhotos = photos.length > 1;
+  const goPrev = () => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length);
+  const goNext = () => setPhotoIdx((i) => (i + 1) % photos.length);
   const area = restaurant.address ? restaurant.address.split(/[市区町村]/)[0] || restaurant.address : '';
   const genre = restaurant.genre || (restaurant.scene && restaurant.scene[0]) || '';
   return (
@@ -2407,34 +2428,66 @@ export function RestaurantPreviewModal({
           className="rounded-[20px] overflow-hidden shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]"
           style={{ background: 'var(--card-bg)' }}
         >
-          {/* ── 写真エリア（× / 保存する を overlay）── */}
+          {/* ── 写真エリア（× を右上 / 保存する を右下 / 複数枚なら左右タップで切替）── */}
           <div className="relative" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
             <img
+              key={photos[photoIdx]}
               loading="lazy"
-              src={photo}
+              src={photos[photoIdx]}
               alt={restaurant.name}
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id); }}
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre }); }}
             />
+            {/* 左右タップゾーン（複数枚あるときだけ） */}
+            {hasMultiplePhotos && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                  aria-label="前の写真"
+                  className="absolute left-0 top-12 bottom-16 w-1/3 flex items-center justify-start pl-2 group"
+                  style={{ background: 'transparent' }}
+                >
+                  <span className="grid place-items-center w-9 h-9 rounded-full bg-black/45 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); goNext(); }}
+                  aria-label="次の写真"
+                  className="absolute right-0 top-12 bottom-16 w-1/3 flex items-center justify-end pr-2 group"
+                  style={{ background: 'transparent' }}
+                >
+                  <span className="grid place-items-center w-9 h-9 rounded-full bg-black/45 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </span>
+                </button>
+                {/* dot indicators（写真上端近く） */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 h-6 rounded-full bg-black/45 backdrop-blur-md">
+                  {photos.map((_, i) => (
+                    <span
+                      key={i}
+                      className="block rounded-full transition-all"
+                      style={{
+                        width: i === photoIdx ? 14 : 6,
+                        height: 4,
+                        background: i === photoIdx ? 'white' : 'rgba(255,255,255,0.5)',
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
             {/* 上部のうっすらグラデで × ボタンを浮かせる */}
             <div className="absolute inset-x-0 top-0 h-20 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0))' }} />
+            {/* × は design 通り右上 */}
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-3 left-3 flex items-center justify-center w-9 h-9 rounded-full bg-black/55 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
+              className="absolute top-3 right-3 flex items-center justify-center w-9 h-9 rounded-full bg-black/55 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            {onShowOnMap && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onClose(); onShowOnMap(); }}
-                aria-label="マップで見る"
-                className="absolute top-3 right-3 flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/55 backdrop-blur-md text-white text-[12px] font-semibold hover:bg-black/70 transition-colors"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                マップ
-              </button>
-            )}
+            {/* 保存する／保存済み — 写真の右下 */}
             <button
               onClick={(e) => { e.stopPropagation(); onBookmark(); }}
               aria-label={bookmarked ? 'Unsave' : 'Save'}
@@ -2516,6 +2569,62 @@ export function RestaurantPreviewModal({
                 ))}
               </div>
             )}
+
+            {/* ボトムアクション：マップで見る / 公式サイトを開く（design 準拠） */}
+            <div className="grid grid-cols-2 gap-2.5 mt-5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onShowOnMap) {
+                    onClose();
+                    onShowOnMap();
+                  }
+                }}
+                disabled={!onShowOnMap}
+                className="inline-flex items-center justify-center gap-1.5 h-11 rounded-full font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  fontSize: 13,
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-strong)',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                マップで見る
+              </button>
+              {(() => {
+                // 「公式サイトを開く」: videoUrl があればそれを開く（TikTok / Instagram /
+                // YouTube / 公式サイトリンクを restaurant が videoUrl に詰めて持つ）。
+                // 無ければ Google マップに店名 + 住所で飛ばすフォールバック。
+                const officialUrl = restaurant.videoUrl
+                  || (restaurant.name
+                        ? `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + ' ' + (restaurant.address ?? ''))}`
+                        : '');
+                return (
+                  <a
+                    href={officialUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!officialUrl) e.preventDefault();
+                    }}
+                    aria-disabled={!officialUrl}
+                    className="inline-flex items-center justify-center gap-1.5 h-11 rounded-full font-semibold text-white shadow-[0_8px_20px_rgba(254,141,40,0.35)] hover:-translate-y-0.5 transition-transform"
+                    style={{
+                      fontSize: 13,
+                      background: 'var(--accent-orange)',
+                      textDecoration: 'none',
+                      opacity: officialUrl ? 1 : 0.4,
+                      pointerEvents: officialUrl ? 'auto' : 'none',
+                    }}
+                  >
+                    公式サイトを開く
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+                  </a>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>

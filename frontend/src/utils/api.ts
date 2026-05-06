@@ -511,28 +511,7 @@ export async function adminRejectUploadApplication(token: string, userId: string
   if (!res.ok) throw new Error('Failed to reject');
 }
 
-// ─── 投稿申請 (uploadStatus: none/pending/approved/rejected) ───
-
-export type UploadApplicationStatus = 'none' | 'pending' | 'approved' | 'rejected';
-
-export interface UploadApplication {
-  status: UploadApplicationStatus;
-}
-
-export async function getUploadApplication(): Promise<UploadApplication> {
-  const res = await fetchWithRetry(`${BASE}/influencer/upload-application`, { headers: headers() });
-  if (!res.ok) return { status: 'none' };
-  const data = await res.json();
-  const status = (data?.status as UploadApplicationStatus | undefined) ?? 'none';
-  return { status };
-}
-
-export async function submitUploadApplication(): Promise<UploadApplication> {
-  const res = await fetchWithRetry(`${BASE}/influencer/upload-application`, {
-    method: 'POST', headers: headers(), body: JSON.stringify({}),
-  });
-  if (!res.ok) throw new Error('投稿申請の送信に失敗しました');
-  const data = await res.json();
-  return { status: (data?.status as UploadApplicationStatus) ?? 'pending' };
-}
+// 投稿申請フロー (UploadApplicationStatus / getUploadApplication /
+// submitUploadApplication) は撤廃済み。アプリに登録すれば誰でも投稿可。
+// admin 用の AdminUploadApplication は履歴表示のため残す。
 
