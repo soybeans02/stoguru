@@ -122,6 +122,22 @@ const PHOTO_POOL = [
   'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=450&fit=crop&crop=entropy&q=70',
 ];
 
+/** 「大阪府大阪市生野区生野西3-1-7」→「大阪市生野区」のように、市区町村まで
+ *  だけを取り出してエリア表示用に整える。
+ *  - 都道府県は冗長なので外す
+ *  - 番地以降（生野西3-1-7 等）も外す
+ *  - ローマ字住所など漢字の市区町村が含まれない場合は先頭 12 文字で切る */
+function extractArea(address: string): string {
+  if (!address) return '';
+  // 都道府県プレフィックスを取り除く（e.g.「大阪府」「東京都」）
+  const stripped = address.replace(/^[^都道府県]{1,5}[都道府県]/, '').trim() || address;
+  // 「市町村」+ 「区」の組み合わせをまず試す（大阪市生野区, 京都市東山区 など）
+  const m = stripped.match(/^(.+?[市町村区])(.+?区)?/);
+  if (m) return m[1] + (m[2] ?? '');
+  // 漢字 admin が無いとき（ローマ字住所など）は先頭を簡潔に
+  return stripped.length > 12 ? stripped.slice(0, 12) + '…' : stripped;
+}
+
 function fallbackPhoto(id: string, hint?: { name?: string; genre?: string }): string {
   const text = `${hint?.genre ?? ''} ${hint?.name ?? ''}`.toLowerCase();
   if (/burger|ハンバーガー|バーガー/.test(text)) return GENRE_PHOTOS.burger;
@@ -2402,7 +2418,7 @@ export function RestaurantPreviewModal({
   const hasMultiplePhotos = photos.length > 1;
   const goPrev = () => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length);
   const goNext = () => setPhotoIdx((i) => (i + 1) % photos.length);
-  const area = restaurant.address ? restaurant.address.split(/[市区町村]/)[0] || restaurant.address : '';
+  const area = extractArea(restaurant.address ?? '');
   const genre = restaurant.genre || (restaurant.scene && restaurant.scene[0]) || '';
   return (
     <div
@@ -2493,19 +2509,17 @@ export function RestaurantPreviewModal({
             <h2 className="font-extrabold tracking-[-0.01em]" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.2 }}>
               {restaurant.name}
             </h2>
-            <div
-              className="flex items-center gap-2.5 flex-wrap mt-2"
-              style={{ fontSize: 13, color: 'var(--text-secondary)' }}
-            >
-              {restaurant.address && (
-                <span className="inline-flex items-center gap-1">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {restaurant.address}
-                </span>
-              )}
-              {genre && <><span className="opacity-40">·</span><span>{genre}</span></>}
-              {restaurant.priceRange && <><span className="opacity-40">·</span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{restaurant.priceRange}</span></>}
-            </div>
+            {/* 細い字の行は住所のみ。ジャンルと価格帯は下の 2x2 グリッドに
+                同じ情報があるので重複を削る。コメント（description）は次の段で出す。 */}
+            {restaurant.address && (
+              <div
+                className="flex items-center gap-2 mt-2"
+                style={{ fontSize: 13, color: 'var(--text-secondary)' }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span className="truncate">{restaurant.address}</span>
+              </div>
+            )}
 
             {restaurant.description && (
               <p

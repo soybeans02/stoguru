@@ -10,6 +10,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { goBack, navigate } from '../../utils/navigate';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
+import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -609,12 +610,24 @@ export function ThemeListScreen({ themeId }: Props) {
       <FooterStrip />
 
       {previewRestaurant && (
-        <RestaurantDetailModal
-          restaurant={previewRestaurant}
+        <RestaurantPreviewModal
+          restaurant={previewRestaurant as unknown as FeedRestaurant}
           userPosition={position}
+          bookmarked={false}
+          onBookmark={() => {
+            // 匿名ユーザーは保存できないのでサインアップ誘導。
+            // 旧 RestaurantDetailModal はログイン後 saved 状態をローカルに
+            // 切り替えるだけで永続化していなかったので、ここでも一旦
+            // 閉じる挙動だけ揃える（実際のストック反映は将来 stockRestaurant 等が
+            // 整備された時に差し替え）。
+            if (isAnonymous) {
+              setPreviewRestaurant(null);
+              setAuthModal('signup');
+              return;
+            }
+            setPreviewRestaurant(null);
+          }}
           onClose={() => setPreviewRestaurant(null)}
-          onRequireAuth={() => setAuthModal('signup')}
-          isAnonymous={isAnonymous}
         />
       )}
 
@@ -764,173 +777,9 @@ function ThemeCard({
   );
 }
 
-/* ─── 詳細モーダル ─── */
-function RestaurantDetailModal({
-  restaurant,
-  userPosition,
-  onClose,
-  onRequireAuth,
-  isAnonymous,
-}: {
-  restaurant: Restaurant;
-  userPosition: { lat: number; lng: number } | null;
-  onClose: () => void;
-  onRequireAuth: () => void;
-  isAnonymous: boolean;
-}) {
-  const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0
-    ? restaurant.photoUrls
-    : [fallbackPhoto(restaurant.id)];
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [saved, setSaved] = useState(false);
-  const distance = userPosition
-    ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, restaurant.lat, restaurant.lng))
-    : restaurant.distance || '';
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') setPhotoIdx((i) => (i - 1 + photos.length) % photos.length);
-      if (e.key === 'ArrowRight') setPhotoIdx((i) => (i + 1) % photos.length);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [photos.length, onClose]);
-
-  function handleSave() {
-    if (isAnonymous) { onRequireAuth(); return; }
-    setSaved(true);
-    setTimeout(onClose, 800);
-  }
-
-  const officialUrl = restaurant.urls?.[0] || restaurant.videoUrl || '';
-  const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lng}`;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[var(--card-bg)] rounded-[var(--radius-2xl)] max-w-[560px] w-full max-h-[92svh] overflow-hidden shadow-[var(--shadow-xl)] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 写真エリア */}
-        <div className="relative aspect-[4/3] bg-[var(--bg-soft)] flex-shrink-0 overflow-hidden">
-          <img loading="lazy" src={photos[photoIdx]} alt={restaurant.name} className="w-full h-full object-cover" />
-          {photos.length > 1 && (
-            <div className="absolute top-3 left-4 right-4 flex gap-1 z-[5]">
-              {photos.map((_, i) => (
-                <div key={i} className={`flex-1 h-[3px] rounded ${i === photoIdx ? 'bg-white' : 'bg-white/40'}`} />
-              ))}
-            </div>
-          )}
-          {photos.length > 1 && (
-            <>
-              <button
-                onClick={() => setPhotoIdx((photoIdx - 1 + photos.length) % photos.length)}
-                className="absolute top-0 bottom-0 left-0 w-[35%] cursor-pointer z-[3]"
-                aria-label="前の写真"
-              />
-              <button
-                onClick={() => setPhotoIdx((photoIdx + 1) % photos.length)}
-                className="absolute top-0 bottom-0 right-0 w-[35%] cursor-pointer z-[3]"
-                aria-label="次の写真"
-              />
-            </>
-          )}
-          <button
-            onClick={onClose}
-            aria-label="閉じる"
-            className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md grid place-items-center text-white hover:bg-black/70 transition-colors z-[10]"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleSave(); }}
-            className="absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-bold text-[13px] text-white shadow-[var(--shadow-md)] z-[5]"
-            style={{ background: saved ? 'var(--visited-green)' : 'var(--accent-orange)' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-            {saved ? '保存済み' : '保存する'}
-          </button>
-        </div>
-
-        {/* 本文 */}
-        <div className="px-6 py-5 overflow-y-auto">
-          <h2 className="text-[22px] font-extrabold tracking-[-0.015em] mb-2 leading-tight">{restaurant.name}</h2>
-          <div className="flex flex-wrap gap-x-3.5 gap-y-1 text-[13px] text-[var(--text-secondary)] mb-3">
-            {restaurant.address && (
-              <span className="inline-flex items-center gap-1">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                {restaurant.address}
-              </span>
-            )}
-            {restaurant.genre && <span>{restaurant.genre}</span>}
-            {restaurant.priceRange && <span className="text-[var(--text-primary)] font-bold tabular-nums">{restaurant.priceRange}</span>}
-          </div>
-          {restaurant.description && (
-            <p className="text-[14px] text-[var(--text-secondary)] leading-[1.7] mb-4">{restaurant.description}</p>
-          )}
-
-          {/* 情報カード */}
-          <div className="bg-[var(--bg-soft)] rounded-[var(--radius-md)] px-4 py-3.5 grid grid-cols-2 gap-3 mb-4">
-            <InfoRow label="距離" value={distance || '—'} />
-            <InfoRow label="ジャンル" value={restaurant.genre || '—'} />
-            <InfoRow label="価格帯" value={restaurant.priceRange || '—'} />
-            <InfoRow label="エリア" value={restaurant.address?.split(/[市区町村]/)[0]?.slice(-6) || '—'} />
-          </div>
-
-          {/* タグ */}
-          {(restaurant.scene && restaurant.scene.length > 0) && (
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {restaurant.scene.map((s) => (
-                <span key={s} className="text-[11.5px] font-semibold px-2.5 py-0.5 rounded-full" style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}>
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* アクション */}
-          <div className="flex gap-2.5 pt-3 border-t border-[var(--border)]">
-            <a
-              href={mapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] border border-[var(--border-strong)] bg-[var(--card-bg)] text-[13px] font-bold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-              マップで見る
-            </a>
-            {officialUrl && (
-              <a
-                href={officialUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] text-[13px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-              >
-                公式サイトを開く
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 min-w-0">
-      <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">{label}</span>
-      <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{value}</span>
-    </div>
-  );
-}
-
+/* RestaurantDetailModal は home/DiscoveryHome の RestaurantPreviewModal に
+   統一済みなのでこのファイルからは削除。フィルター結果のカードグリッド用
+   写真フォールバックだけ残す。 */
 function fallbackPhoto(id: string): string {
   const pool = [
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
