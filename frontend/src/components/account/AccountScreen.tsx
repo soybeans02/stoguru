@@ -542,14 +542,16 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           {/* Stats row — Claude Design: 4 セル、間に縦罫、hover で薄いクリーム */}
           <div
             className="grid grid-cols-4"
-            style={{ borderTop: '1px solid var(--stg-gray-200)' }}
+            style={{ borderTop: '1px solid var(--border)' }}
           >
             {stats.map((s, i) => (
               <button
                 key={i}
                 onClick={s.onClick}
-                className="flex flex-col items-center justify-center py-4 transition-colors hover:bg-[var(--stg-cream-50)]"
-                style={i < stats.length - 1 ? { borderRight: '1px solid var(--stg-gray-200)' } : undefined}
+                /* hover bg を theme-aware に。stg-cream-50 (#FEFBF7) は
+                   dark mode で light bg + light text = 不可視 になっていた。 */
+                className="flex flex-col items-center justify-center py-4 transition-colors hover:bg-[var(--bg-soft)]"
+                style={i < stats.length - 1 ? { borderRight: '1px solid var(--border)' } : undefined}
                 aria-label={s.label}
               >
                 <span
