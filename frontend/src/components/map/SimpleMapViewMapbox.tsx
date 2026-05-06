@@ -1186,7 +1186,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </button>
       </div>
 
-      {/* ─── 右側 control stack（zoom + 現在地 + 経路 + フォロー）
+      {/* ─── 右側 control stack（zoom + 現在地 + フォロー）
             Claude Design map.html 準拠 ─── */}
       <div className="map-right">
         <div className="map-ctrl-stack">
@@ -1204,19 +1204,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
         </button>
-        <button
-          className="map-ctrl"
-          title="経路（Google Maps）"
-          onClick={() => {
-            // 選択中の店があればそこへ、なければマップ中心へ経路を引く
-            const map = mapRef.current; if (!map) return;
-            const sel = stocks.find(x => x.id === selectedStockId);
-            const c = sel ? { lat: sel.lat, lng: sel.lng } : (() => { const cc = map.getCenter(); return { lat: cc.lat, lng: cc.lng }; })();
-            window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat + ',' + c.lng)}`, '_blank', 'noopener');
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>
-        </button>
+        {/* 経路（Google Maps）ボタンは情報パネル側の「経路」リンクで
+            十分なので、右コントロールスタックからは削除した。 */}
         <button
           className={`map-ctrl ${selectedFollowUser ? 'is-active' : ''}`}
           title={t('account.following')}
