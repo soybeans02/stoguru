@@ -8,7 +8,6 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { AuthModal } from '../auth/AuthModal';
-import { SwipeCard } from '../swipe/SwipeCard';
 import { navigate } from '../../utils/navigate';
 import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
@@ -89,7 +88,23 @@ interface Props {
    HERO_IMAGES は HERO_SAMPLE_CARDS（固定見本）に統合済みなので削除。
    ───────────────────────────────────── */
 
-/* Demo photo pool (fallback when API restaurant has no photo) */
+/* Demo photo pool (fallback when API restaurant has no photo).
+   ジャンル/店名から推測できるときは genre-aware の写真を返す。
+   推測できない時だけ id ハッシュで一般プールから選ぶ。
+   これで「BURGER STAND UMEDA なのにパスタ写真」みたいな
+   ミスマッチを減らす。 */
+const GENRE_PHOTOS: Record<string, string> = {
+  burger:    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=70',
+  ramen:     'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=70',
+  sushi:     'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=70',
+  italian:   'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=70',
+  cafe:      'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=600&q=70',
+  yakiniku:  'https://images.unsplash.com/photo-1535473895227-bdecb20fb157?w=600&q=70',
+  izakaya:   'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=70',
+  chinese:   'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=70',
+  curry:     'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=70',
+};
+
 const PHOTO_POOL = [
   'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300',
   'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300',
@@ -101,7 +116,18 @@ const PHOTO_POOL = [
   'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300',
 ];
 
-function fallbackPhoto(id: string): string {
+function fallbackPhoto(id: string, hint?: { name?: string; genre?: string }): string {
+  const text = `${hint?.genre ?? ''} ${hint?.name ?? ''}`.toLowerCase();
+  if (/burger|ハンバーガー|バーガー/.test(text)) return GENRE_PHOTOS.burger;
+  if (/ramen|ラーメン|つけ麺|中華そば/.test(text)) return GENRE_PHOTOS.ramen;
+  if (/sushi|寿司|鮨|すし/.test(text)) return GENRE_PHOTOS.sushi;
+  if (/italian|pasta|pizza|イタリアン|パスタ|ピッツァ|ピザ/.test(text)) return GENRE_PHOTOS.italian;
+  if (/cafe|coffee|カフェ|コーヒー|喫茶/.test(text)) return GENRE_PHOTOS.cafe;
+  if (/yakiniku|焼肉|ホルモン/.test(text)) return GENRE_PHOTOS.yakiniku;
+  if (/izakaya|居酒屋|バル/.test(text)) return GENRE_PHOTOS.izakaya;
+  if (/chinese|中華|点心|小籠包/.test(text)) return GENRE_PHOTOS.chinese;
+  if (/curry|カレー|インド|ネパール/.test(text)) return GENRE_PHOTOS.curry;
+  // hint で当たらない時は id ハッシュで一般プールから選ぶ
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return PHOTO_POOL[Math.abs(h) % PHOTO_POOL.length];
@@ -1622,7 +1648,7 @@ function SpotRankCard({
     rank === 3 ? 'var(--stg-orange-500)' :
     'var(--stg-gray-700)';
   const medalColor = rank === 1 ? '#5a3e00' : 'white';
-  const photo = (spot.photoUrls && spot.photoUrls[0]) || fallbackPhoto(spot.restaurantId);
+  const photo = (spot.photoUrls && spot.photoUrls[0]) || fallbackPhoto(spot.restaurantId, { name: spot.name, genre: spot.genres?.[0] });
   return (
     <button
       onClick={onClick}
@@ -1641,7 +1667,7 @@ function SpotRankCard({
           alt={spot.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(spot.restaurantId);
+            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(spot.restaurantId, { name: spot.name, genre: spot.genres?.[0] });
           }}
         />
         {/* メダル + 順位ピル */}
@@ -1898,7 +1924,7 @@ function RestaurantCard({
   visitedLabel: string;
 }) {
   const photo =
-    (restaurant.photoUrls && restaurant.photoUrls[0]) || fallbackPhoto(restaurant.id);
+    (restaurant.photoUrls && restaurant.photoUrls[0]) || fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre });
   const photoCount = restaurant.photoUrls?.length ?? 0;
   const handle =
     restaurant.influencerHandle ||
@@ -1921,7 +1947,7 @@ function RestaurantCard({
           alt={restaurant.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id);
+            (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre });
           }}
         />
         {/* 下端のグラデでキャプション読みやすく */}
@@ -2365,76 +2391,132 @@ export function RestaurantPreviewModal({
         distanceMetres(userPosition.lat, userPosition.lng, restaurant.lat, restaurant.lng),
       )
     : restaurant.distance || '';
+  const photo = (restaurant.photoUrls && restaurant.photoUrls[0]) || fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre });
+  const area = restaurant.address ? restaurant.address.split(/[市区町村]/)[0] || restaurant.address : '';
+  const genre = restaurant.genre || (restaurant.scene && restaurant.scene[0]) || '';
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="flex flex-col gap-3 w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px]"
+        className="w-full max-w-[460px] md:max-w-[520px] my-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ヘッダー：カードの外側に配置して被りを防ぐ */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2">
-            {/* 保存ページから開いた場合だけ「マップで見る」を出す */}
+        <div
+          className="rounded-[20px] overflow-hidden shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]"
+          style={{ background: 'var(--card-bg)' }}
+        >
+          {/* ── 写真エリア（× / 保存する を overlay）── */}
+          <div className="relative" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
+            <img
+              loading="lazy"
+              src={photo}
+              alt={restaurant.name}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id); }}
+            />
+            {/* 上部のうっすらグラデで × ボタンを浮かせる */}
+            <div className="absolute inset-x-0 top-0 h-20 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0))' }} />
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute top-3 left-3 flex items-center justify-center w-9 h-9 rounded-full bg-black/55 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
             {onShowOnMap && (
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); onShowOnMap(); }}
                 aria-label="マップで見る"
-                className="flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] bg-white/10 text-white hover:bg-white/20 backdrop-blur-md transition-colors"
+                className="absolute top-3 right-3 flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/55 backdrop-blur-md text-white text-[12px] font-semibold hover:bg-black/70 transition-colors"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                 マップ
               </button>
             )}
             <button
               onClick={(e) => { e.stopPropagation(); onBookmark(); }}
               aria-label={bookmarked ? 'Unsave' : 'Save'}
-              className={`flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] backdrop-blur-md transition-colors ${
-                bookmarked
-                  ? 'text-white'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-              style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
+              className="absolute bottom-4 right-4 flex items-center gap-1.5 px-4 h-10 rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(254,141,40,0.45)] transition-transform hover:-translate-y-0.5"
+              style={{ background: bookmarked ? 'var(--stg-gray-700)' : 'var(--accent-orange)' }}
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill={bookmarked ? 'white' : 'none'}
-                stroke="white"
-                strokeWidth="2"
-              >
-                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>
-              {bookmarked ? '保存済み' : '保存'}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              {bookmarked ? '保存済み' : '保存する'}
             </button>
           </div>
-        </div>
 
-        {/* カード本体。固定 px だと小型端末（iPhone SE/8）で
-            ヘッダー含めて画面に収まらず切れるため、min(目標, 100svh − 余白) で逃がす */}
-        <div className="relative w-full h-[min(520px,calc(100svh-160px))] md:h-[min(580px,calc(100svh-160px))] lg:h-[min(640px,calc(100svh-160px))]">
-          <SwipeCard
-            restaurant={restaurant}
-            distance={distance}
-            onSwipeComplete={() => onClose()}
-            active={false}
-            preview
-          />
+          {/* ── 情報エリア ── */}
+          <div className="px-5 sm:px-6 pt-5 pb-6">
+            <h2 className="font-extrabold tracking-[-0.01em]" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              {restaurant.name}
+            </h2>
+            <div
+              className="flex items-center gap-2.5 flex-wrap mt-2"
+              style={{ fontSize: 13, color: 'var(--text-secondary)' }}
+            >
+              {restaurant.address && (
+                <span className="inline-flex items-center gap-1">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {restaurant.address}
+                </span>
+              )}
+              {genre && <><span className="opacity-40">·</span><span>{genre}</span></>}
+              {restaurant.priceRange && <><span className="opacity-40">·</span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{restaurant.priceRange}</span></>}
+            </div>
+
+            {restaurant.description && (
+              <p
+                className="leading-[1.6] mt-3"
+                style={{ fontSize: 14, color: 'var(--text-secondary)' }}
+              >
+                {restaurant.description}
+              </p>
+            )}
+
+            {/* 2×2 grid：距離 / ジャンル / 価格帯 / エリア */}
+            <div
+              className="grid grid-cols-2 gap-3 mt-5 p-4 rounded-[14px]"
+              style={{ background: 'var(--bg-soft)' }}
+            >
+              {[
+                { label: '距離', value: distance || '—' },
+                { label: 'ジャンル', value: genre || '—' },
+                { label: '価格帯', value: restaurant.priceRange || '—' },
+                { label: 'エリア', value: area || '—' },
+              ].map((row) => (
+                <div key={row.label}>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: 'var(--text-tertiary)' }}>
+                    {row.label}
+                  </div>
+                  <div className="font-bold mt-0.5 truncate" style={{ fontSize: 15, color: 'var(--text-primary)' }} title={row.value}>
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* シーン chips */}
+            {restaurant.scene && restaurant.scene.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {restaurant.scene.slice(0, 5).map((s) => (
+                  <span
+                    key={s}
+                    className="inline-flex items-center font-semibold"
+                    style={{
+                      fontSize: 12,
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      background: 'var(--stg-cream-200)',
+                      color: 'var(--stg-orange-700)',
+                    }}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
