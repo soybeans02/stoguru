@@ -901,21 +901,21 @@ function HeroDeck({
   const cards = HERO_SAMPLE_CARDS;
 
   // Hero の左右レイアウト：lg+ で 2 カラム、それ未満で 1 カラム + デッキ縮小
-  // 親の px-4 (mobile/tablet) を -mx-4 で打ち消して section / gradient を
-  // viewport edge まで full-bleed に。lg 以上は親の px-8 がそのまま効くので
-  // -mx は無し。テキストには px-4 lg:px-0 を別途付けて読み心地は維持。
+  // section / content は親 padding 内に収め、deck カードや右側の文字が
+  // viewport 端に「めり込む」ことを防ぐ。背景の暖色グロー (gradient) は
+  // 左側だけ controlled に出す簡素版にして、右側に過剰な glow を出さない。
   return (
-    <section className="relative py-12 sm:py-16 lg:py-20 overflow-hidden -mx-4 lg:mx-0">
-      {/* 背景グラデ（Claude Design 風の暖色グロー）— full-bleed で extends to edge */}
+    <section className="relative py-12 sm:py-16 lg:py-20 overflow-hidden">
+      {/* 背景グラデ — 左上にだけ暖色グローを出す（右の glow は削除）*/}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(60% 60% at 12% 0%, rgba(254,141,40,0.12), transparent 60%), radial-gradient(50% 50% at 100% 60%, rgba(254,204,0,0.10), transparent 65%)',
+            'radial-gradient(60% 60% at 12% 0%, rgba(254,141,40,0.12), transparent 60%)',
         }}
       />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center px-4 lg:px-0">
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center">
         <div>
           {/* eyebrow */}
           <div
