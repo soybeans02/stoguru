@@ -910,17 +910,28 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {/* List panels */}
       {listPanel === 'stocks' && (
         <Overlay title="保存" onClose={() => setListPanel(null)}>
-          {safeStocks.filter(s => !s.visited).length === 0 ? (
+          {/* 「保存」カウントは safeStocks.length（行った含む全件）で出してるので
+              リストも全件を出して数字と中身を揃える。「行った」だけ見たい人は
+              隣の「行った」ステータスをタップ。 */}
+          {safeStocks.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">まだ保存がないよ</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {safeStocks.filter(s => !s.visited).map(s => (
+              {safeStocks.map(s => (
                 <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
                   <span className="text-xl">{s.photoEmoji}</span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
                     <p className="text-[11px] text-gray-400">{s.genre}</p>
                   </div>
+                  {s.visited && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ color: 'var(--visited-green)', background: 'rgba(140,199,64,0.12)' }}
+                    >
+                      行った
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
