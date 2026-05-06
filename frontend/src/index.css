@@ -180,6 +180,28 @@
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
 
   --bg-image: none;
+
+  /* iOS systemGray の dark scale。light mode の値と反転して、
+     gray-900 (text 用) は light に、gray-100 (bg 用) は dark になる。
+     これで `color: var(--stg-gray-900)` の dark text が dark mode で
+     ちゃんと読める。 */
+  --stg-gray-50:  #1C1C1E;
+  --stg-gray-100: #2C2C2E;
+  --stg-gray-200: #3A3A3C;
+  --stg-gray-300: #48484A;
+  --stg-gray-400: #636366;
+  --stg-gray-500: #8E8E93;
+  --stg-gray-600: #AEAEB2;
+  --stg-gray-700: #C7C7CC;
+  --stg-gray-800: #E5E5EA;
+  --stg-gray-900: #F5F5F7;
+
+  /* Cream は warm 系の chip 背景に使われている。dark mode では
+     しっとりめのウォームダークに置き換え（テキストの orange-700 が
+     乗っても読める色）。 */
+  --stg-cream-50:  #2A1F12;
+  --stg-cream-100: #3A2A18;
+  --stg-cream-200: #4D3820;
 }
 
 [data-theme="wood"] {
@@ -250,6 +272,20 @@
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
     --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
     --bg-image: none;
+    /* iOS systemGray dark scale（[data-theme="black"] と同値） */
+    --stg-gray-50:  #1C1C1E;
+    --stg-gray-100: #2C2C2E;
+    --stg-gray-200: #3A3A3C;
+    --stg-gray-300: #48484A;
+    --stg-gray-400: #636366;
+    --stg-gray-500: #8E8E93;
+    --stg-gray-600: #AEAEB2;
+    --stg-gray-700: #C7C7CC;
+    --stg-gray-800: #E5E5EA;
+    --stg-gray-900: #F5F5F7;
+    --stg-cream-50:  #2A1F12;
+    --stg-cream-100: #3A2A18;
+    --stg-cream-200: #4D3820;
   }
 }
 
