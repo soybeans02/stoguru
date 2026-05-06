@@ -182,6 +182,7 @@ function BottomTab({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => vo
 
 function MainApp() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isAnonymous = !user;
   const [tab, setTabState] = useState<Tab>(() => {
     const saved = sessionStorage.getItem('activeTab') as Tab | null;
@@ -368,8 +369,8 @@ function MainApp() {
           {tab === 'stock' && (
             isAnonymous ? (
               <SignUpGate
-                title="Save your favorites"
-                description="Create an account to save spots you swiped and revisit them later."
+                title={t('auth.gateStockTitle')}
+                description={t('auth.gateStockDescription')}
               />
             ) : (
               <StockScreen
@@ -414,8 +415,8 @@ function MainApp() {
                     <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
                   </svg>
                 }
-                title="Create your profile"
-                description="Sign up to follow friends, post your favorite spots, and keep your stash in sync."
+                title={t('auth.gateAccountTitle')}
+                description={t('auth.gateAccountDescription')}
               />
             ) : (
               <AccountScreen stocks={stocks} onRestaurantEdited={refreshFeed} />

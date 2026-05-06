@@ -45,6 +45,11 @@ export const ja = {
     alreadyHaveAccount: 'すでにアカウントをお持ちですか？',
     backToLogin: 'ログインに戻る',
     signUpCTA: 'はじめる',
+    // 未ログイン時の案内ゲート（保存タブ / アカウントタブで使う）
+    gateStockTitle: 'お気に入りのお店を保存',
+    gateStockDescription: 'アカウントを作るとスワイプしたお店を保存して、あとで見返せます。',
+    gateAccountTitle: 'プロフィールを作る',
+    gateAccountDescription: '新規登録すると友達をフォローしたり、お気に入りのお店を投稿したり、保存リストを端末間で同期できます。',
   },
   // 保存
   stock: {

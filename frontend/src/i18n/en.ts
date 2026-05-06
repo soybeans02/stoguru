@@ -44,6 +44,10 @@ export const en: TranslationKeys = {
     alreadyHaveAccount: 'Already have an account?',
     backToLogin: 'Back to log in',
     signUpCTA: 'Get started',
+    gateStockTitle: 'Save your favorites',
+    gateStockDescription: 'Create an account to save spots you swiped and revisit them later.',
+    gateAccountTitle: 'Create your profile',
+    gateAccountDescription: 'Sign up to follow friends, post your favorite spots, and keep your stash in sync.',
   },
   stock: {
     title: 'Saved',
