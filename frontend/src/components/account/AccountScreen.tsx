@@ -273,7 +273,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       sub: 'データ取り扱いについて',
       onClick: () => setPanel('privacy'),
       iconBg: 'var(--stg-gray-100)',
-      iconColor: 'var(--stg-gray-700)',
+      iconColor: 'var(--text-secondary)',
       icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22S2 18 2 10V4l10-2 10 2v6c0 8-10 12-10 12Z"/></svg>),
     },
     {
@@ -281,7 +281,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       sub: '利用規約',
       onClick: () => setPanel('terms'),
       iconBg: 'var(--stg-gray-100)',
-      iconColor: 'var(--stg-gray-700)',
+      iconColor: 'var(--text-secondary)',
       icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>),
     },
   ];
@@ -419,7 +419,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   ) : (
                     <h1
                       className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
-                      style={{ fontSize: 28, color: 'var(--stg-gray-900)', lineHeight: 1.15 }}
+                      style={{ fontSize: 28, color: 'var(--text-primary)', lineHeight: 1.15 }}
                     >
                       <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
                       {isVerified && (
@@ -479,15 +479,15 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <div className="mt-4">
                 <div
                   className="flex items-center gap-2.5 flex-wrap"
-                  style={{ fontSize: 14, color: 'var(--stg-gray-600)' }}
+                  style={{ fontSize: 14, color: 'var(--text-secondary)' }}
                 >
-                  <span className="font-medium" style={{ color: 'var(--stg-gray-900)' }}>@{user?.nickname ?? ''}</span>
+                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>@{user?.nickname ?? ''}</span>
                   <span style={{ color: 'var(--stg-gray-300)' }}>·</span>
                   <span className="truncate">{user?.email}</span>
                 </div>
                 <p
                   className="leading-[1.6] max-w-[640px] mt-2"
-                  style={{ fontSize: 14, color: 'var(--stg-gray-700)' }}
+                  style={{ fontSize: 14, color: 'var(--text-secondary)' }}
                 >
                   {(user as { bio?: string } | null | undefined)?.bio
                     ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
@@ -554,11 +554,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               >
                 <span
                   className="font-extrabold tabular-nums leading-none"
-                  style={{ fontSize: 26, letterSpacing: '-0.025em', color: 'var(--stg-gray-900)' }}
+                  style={{ fontSize: 26, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}
                 >
                   {s.count}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--stg-gray-600)', marginTop: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                   {s.label}
                 </span>
               </button>
@@ -666,8 +666,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{c.svg}</svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{c.name}</div>
-                <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--stg-gray-600)' }}>
+                <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{c.name}</div>
+                <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
                   <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-gray-400)' }} />
                   {c.sub}
                 </div>
@@ -675,7 +675,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <button
                 disabled
                 className="text-[12px] font-semibold px-3 py-1 cursor-not-allowed opacity-60"
-                style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 8, border: 'none' }}
+                style={{ background: 'var(--stg-gray-100)', color: 'var(--text-secondary)', borderRadius: 8, border: 'none' }}
                 title="OAuth 連携は近日対応予定"
               >
                 準備中
@@ -694,13 +694,13 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           >
             <div
               className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
-              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--text-secondary)', borderRadius: 10 }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{t('account.privateAccount')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>{t('account.privateAccountHint')}</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('account.privateAccount')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.privateAccountHint')}</div>
             </div>
             <Toggle
               checked={isPrivate}
@@ -729,8 +729,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>プッシュ通知</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>新着のおすすめ・フォローイベント</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>プッシュ通知</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>新着のおすすめ・フォローイベント</div>
             </div>
             <Toggle
               checked={pushNotif}
@@ -749,8 +749,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>メール通知</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>週次のダイジェスト・お知らせ</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>メール通知</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>週次のダイジェスト・お知らせ</div>
             </div>
             <Toggle
               checked={emailNotif}
@@ -771,13 +771,13 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           >
             <div
               className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
-              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--text-secondary)', borderRadius: 10 }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>プライバシー設定</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>公開範囲・ブロック・履歴</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>プライバシー設定</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>公開範囲・ブロック・履歴</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -801,13 +801,13 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           >
             <div
               className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
-              style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-700)', borderRadius: 10 }}
+              style={{ background: 'var(--stg-gray-100)', color: 'var(--text-secondary)', borderRadius: 10 }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-gray-900)' }}>{t('auth.logOut')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>このデバイスからサインアウト</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('auth.logOut')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>このデバイスからサインアウト</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -826,7 +826,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-red)' }}>{t('account.deleteAccount')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>すべてのデータが永久に削除されます</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>すべてのデータが永久に削除されます</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -835,7 +835,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </div>
 
         {/* ─── Footer ─── Claude Design 風 4 リンク + バージョン */}
-        <div className="text-center mt-10" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+        <div className="text-center mt-10" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
           <div className="flex justify-center gap-4 mb-2 flex-wrap">
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>プライバシー</a>
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>利用規約</a>
@@ -1009,13 +1009,13 @@ function SettingTile({ label, value, sub, onClick, iconBg, iconColor, icon }: Se
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold truncate" style={{ color: 'var(--stg-gray-900)' }}>{label}</div>
+        <div className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{label}</div>
         {(sub || value) && (
-          <div className="text-[12px] truncate" style={{ color: 'var(--stg-gray-600)', marginTop: 2 }}>{sub ?? value}</div>
+          <div className="text-[12px] truncate" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{sub ?? value}</div>
         )}
       </div>
       {value && sub && (
-        <span className="text-[13px] flex-shrink-0" style={{ color: 'var(--stg-gray-600)', marginRight: 4 }}>{value}</span>
+        <span className="text-[13px] flex-shrink-0" style={{ color: 'var(--text-secondary)', marginRight: 4 }}>{value}</span>
       )}
       <span className="text-[var(--text-tertiary)] flex-shrink-0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -1029,7 +1029,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2
       className="font-bold mb-3"
-      style={{ fontSize: 13, color: 'var(--stg-gray-600)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 28 }}
+      style={{ fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 28 }}
     >
       {children}
     </h2>
