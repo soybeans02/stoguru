@@ -466,10 +466,10 @@ export function DiscoveryHome({
                   </div>
                   <span
                     className="font-semibold flex flex-col items-center gap-0.5"
-                    style={{ fontSize: 13, color: 'var(--stg-gray-900)' }}
+                    style={{ fontSize: 13, color: 'var(--text-primary)' }}
                   >
                     <span>{g.label}</span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--stg-gray-600)' }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
                       {count}件
                     </span>
                   </span>
