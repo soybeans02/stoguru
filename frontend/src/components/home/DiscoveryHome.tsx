@@ -338,12 +338,11 @@ export function DiscoveryHome({
       />
 
       {/*
-        max-w + mx-auto を外して main エリアいっぱいに広げる。
-        mobile/tablet では左右の padding を詰めて edge に寄せる
-        (px-3 = 12px)。「左の空きが切れて見える」フィードバック対応。
-        lg 以上だけ ゆとり (px-8 = 32px)。
+        mobile/tablet は左右 edge-to-edge (padding 0)、lg 以上だけ余白付き。
+        左帯の「切れ」フィードバックに対する根治対応。
+        各 section が必要に応じて自前で内側 padding を持つ前提。
       */}
-      <div className="px-3 lg:px-8">
+      <div className="px-0 lg:px-8">
         {/* ─── Hero（Claude Design 風スタックデッキ） ─── */}
         <HeroDeck
           isAnonymous={isAnonymous}
@@ -1421,10 +1420,9 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      {/* topbar も hero / themes / genres と同じ full-width 揃え。
-          mobile/tablet では左右の余白を詰めて edge 寄りに（左端の余白が
-          「切れて見える」というフィードバックに対応）。lg 以上だけ ゆとり。 */}
-      <div className="px-3 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
+      {/* mobile/tablet は左右 edge-to-edge（padding 0）。lg 以上だけ余白付き。
+          「左の空き帯が切れて見える」フィードバックに対する根治対応。 */}
+      <div className="px-0 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示。
             タップでホームを再読み込み（おすすめを再生成） */}
         <button
