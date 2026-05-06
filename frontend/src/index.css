@@ -49,6 +49,12 @@
   --stg-gray-800: #3A3A3C;
   --stg-gray-900: #1C1C1E;
 
+  /* 常に「dark text」(白背景バッジ等で使用)。
+     stg-gray-900 と違って dark mode でも反転しない。 */
+  --stg-ink:        #1C1C1E;
+  --stg-ink-soft:   #3A3A3C;
+  --stg-ink-muted:  #636366;
+
   /* Type families */
   --stg-font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
   --stg-font-jp:     "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;

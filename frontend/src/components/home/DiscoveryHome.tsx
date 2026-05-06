@@ -969,11 +969,13 @@ function HeroDeck({
             </button>
             <button
               onClick={onShowHowTo}
-              className="inline-flex items-center gap-2 px-5 py-3 sm:py-3.5 rounded-[14px] text-[14px] sm:text-[15px] font-semibold transition-colors hover:bg-[var(--stg-gray-50)]"
+              className="inline-flex items-center gap-2 px-5 py-3 sm:py-3.5 rounded-[14px] text-[14px] sm:text-[15px] font-semibold transition-colors"
               style={{
-                color: 'var(--stg-gray-900)',
+                /* 白背景なので text は常に dark (stg-ink)。
+                   gray-900 を使うと dark mode で白文字 → 不可視になる。 */
+                color: 'var(--stg-ink)',
                 background: 'white',
-                border: '1px solid var(--stg-gray-200)',
+                border: '1px solid #E5E5EA',
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>
@@ -1020,7 +1022,7 @@ function HeroDeck({
           {/* visited badge — 浮遊 */}
           <div
             className="stg-float-1 absolute z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-semibold"
-            style={{ top: 32, left: -10, background: 'white', color: 'var(--stg-gray-900)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
+            style={{ top: 32, left: -10, background: 'white', color: 'var(--stg-ink)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
           >
             <span
               className="grid place-items-center w-[18px] h-[18px] rounded-full text-white"
@@ -1096,13 +1098,13 @@ function HeroDeck({
               されて「4.8 大阪・北区」が PC で見切れてた。中に寄せる。 */}
           <div
             className="stg-float-2 absolute z-10 inline-flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-semibold"
-            style={{ bottom: 32, right: 8, background: 'white', color: 'var(--stg-gray-900)', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.14)' }}
+            style={{ bottom: 32, right: 8, background: 'white', color: 'var(--stg-ink)', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.14)' }}
           >
             <span style={{ color: 'var(--stg-yellow)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
             </span>
             4.8
-            <span className="text-[11px] font-medium" style={{ color: 'var(--stg-gray-600)' }}>大阪・北区</span>
+            <span className="text-[11px] font-medium" style={{ color: 'var(--stg-ink-muted)' }}>大阪・北区</span>
           </div>
 
           {/* action ring — 完全に装飾のみ。クリックしても何もしない（noop）。
