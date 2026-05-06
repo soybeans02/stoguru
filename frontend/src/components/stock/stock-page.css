@@ -339,15 +339,22 @@
 @media (max-width: 900px) {
   .stg-main { padding: 20px 18px 40px; }
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
-  /* mobile: photo | body | × の 3 列だけにして date / actions は隠す。
-     × ボタン分の余白を pr で確保し、自前の grid item ではなく absolute に。 */
+  /* mobile: photo | body の 2 列。actions は隠して × を absolute に。
+     date は body 内に小さく表示（情報を削らない）。 */
   .stock-row {
     grid-template-columns: 64px 1fr;
     gap: 12px;
     padding: 12px 38px 12px 14px;
   }
   .stock-row__photo { width: 64px; height: 52px; }
-  .stock-row__date { display: none; }
+  /* date は grid item ではなく body 内のフッタとして再配置 */
+  .stock-row__date {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 4px;
+    align-self: start;
+    font-size: 11px;
+  }
   .stock-row__actions { display: none; }
   /* delete (×) は absolute で右上に置く（grid からは外す） */
   .stock-row > button[aria-label="削除"] {
@@ -355,11 +362,8 @@
     top: 8px; right: 8px;
     padding: 4px !important;
   }
-  /* mobile では address は 1 行の省略表示で詰める */
+  /* mobile では meta が 2 行に折り返しても綺麗に並ぶよう row-gap も明示 */
   .stock-row__meta { gap: 6px; row-gap: 4px; }
-}
-
-/* さらに狭い画面 (≤480px) では address は隠して genre / 価格だけにする */
-@media (max-width: 480px) {
-  .stock-row__meta-address { display: none; }
+  /* address は 1 行に省略（… で切る）。情報は残しつつ縦潰れだけ防ぐ。 */
+  .stock-row__meta-address { max-width: 100%; }
 }
