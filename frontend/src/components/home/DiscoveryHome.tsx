@@ -982,13 +982,13 @@ function HeroDeck({
           </div>
 
           {/*
-            stats row：gap-9 (36px) + max-w-[480px] だと narrow viewport で
-            「68,000+」(保存数) がはみ出てた。gap を詰めて、それぞれの cell
-            に min-width を持たせず flex-1 で均等分配する形にする。
-            最後の保存数だけ食い込んでた現象もこれで解消。
+            stats row：narrow viewport でも必ず 1 行で収まるようにする。
+            wrap させると見にくいので、font-size を viewport に応じて
+            clamp で詰める。3 cell は flex-1 で均等分配、cell 内では
+            whitespace-nowrap で数字を崩さない。
           */}
           <div
-            className="flex gap-x-5 gap-y-3 flex-wrap pt-7"
+            className="flex gap-x-3 sm:gap-x-5 lg:gap-x-9 pt-7"
             style={{ borderTop: '1px solid var(--stg-gray-200)', maxWidth: 480 }}
           >
             {[
@@ -996,17 +996,17 @@ function HeroDeck({
               { num: '4,200', label: tStatUsers },
               { num: '68,000', label: tStatSaves },
             ].map((s, i) => (
-              <div key={i} className="min-w-0 flex-shrink-0">
+              <div key={i} className="min-w-0 flex-1">
                 <div
                   className="font-extrabold tabular-nums leading-none whitespace-nowrap"
-                  style={{ fontSize: 26, letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
+                  style={{ fontSize: 'clamp(18px, 5vw, 28px)', letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
                 >
                   {s.num}
                   <span style={{ color: 'var(--stg-orange-500)' }}>+</span>
                 </div>
                 <div
                   className="mt-1.5"
-                  style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}
+                  style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'var(--stg-gray-600)' }}
                 >
                   {s.label}
                 </div>
