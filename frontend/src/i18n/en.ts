@@ -118,7 +118,7 @@ export const en: TranslationKeys = {
     feedTitle: 'Picked for you',
     feedSubtitle: 'Based on your swipes',
     feedViewAll: 'See more →',
-    visitedTag: '✓ Been there',
+    visitedTag: 'Been there',
     mapTitle: 'See your saves on the map',
     mapDescription: 'All your spots, one map. Get nudged when you walk past, and filter by genre or distance.',
     mapFeature1: 'Auto-alert when a saved spot is within 100m',

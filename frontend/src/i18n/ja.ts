@@ -123,7 +123,7 @@ export const ja = {
     feedTitle: 'あなたへのおすすめ',
     feedSubtitle: 'スワイプ履歴から推薦',
     feedViewAll: 'もっと見る →',
-    visitedTag: '✓ 行った',
+    visitedTag: '行った',
     mapTitle: 'マップで見る、保存したお店',
     mapDescription: '全部 1 つの地図で。近くを通った時にお知らせ、ジャンル・距離で絞り込みも自在。',
     mapFeature1: '100m 以内の保存店を自動通知',
