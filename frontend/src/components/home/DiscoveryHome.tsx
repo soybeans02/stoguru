@@ -861,10 +861,7 @@ const PRICE_OPTIONS = [
   '9,000〜10,000円',
   '10,000円〜',
 ];
-/* 検索バーのジャンル <select>。`GENRES`（人気 8 + 残り 25）をそのまま流用。
-   旧版は 70+ 項目で「担々麺」「四川料理」「サムギョプサル」など下位カテゴリと
-   親ジャンルが両方並んで被っていたため、`mockRestaurants.GENRES` の整理済み
-   一覧に統一する。 */
+/* 検索バーのジャンル <select>。`GENRES`（人気 8 + 残り）をそのまま流用。 */
 const GENRE_OPTIONS = [...GENRES];
 const SELECT_BG_DATAURI = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' fill=\'none\'><path d=\'M1 1l4 4 4-4\' stroke=\'%23999\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg>")';
 const NO_OUTLINE: React.CSSProperties = { outline: 'none', boxShadow: 'none' };

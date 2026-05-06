@@ -177,12 +177,12 @@ export const POPULAR_GENRES = [
 export const GENRES = [
   ...POPULAR_GENRES,
   // 和食まわり
-  '和食', '海鮮・魚介', '天ぷら', 'とんかつ', '焼き鳥', '串揚げ',
-  'うなぎ', 'しゃぶしゃぶ', 'すき焼き', '鍋', 'もつ鍋',
+  '和食', '海鮮・魚介', '天ぷら', 'とんかつ', '焼き鳥',
+  'うなぎ', 'しゃぶしゃぶ', 'すき焼き', '鍋',
   // 麺
   'うどん', 'そば',
   // 粉もん
-  'お好み焼き', 'たこ焼き', '鉄板焼き',
+  'お好み焼き', 'たこ焼き',
   // 中華の一部（餃子は店として独立カテゴリで扱える）
   '餃子',
   // 洋食
@@ -194,8 +194,8 @@ export const GENRES = [
   'バー', 'ワインバー',
   // カフェ・甘味
   '喫茶店', 'スイーツ', 'パン・ベーカリー',
-  // その他
-  'カレー', '定食・食堂', '丼もの', 'その他',
+  // 食事系
+  'カレー', '定食・食堂', '丼もの',
 ] as const;
 
 /** ジャンル名 → 代表写真 URL（Unsplash、重複なし）
@@ -215,17 +215,14 @@ export const GENRE_PHOTOS: Record<string, string> = {
   天ぷら: 'https://images.unsplash.com/photo-1606502288749-f0c6c2b63b4d?w=400&h=300&fit=crop&crop=entropy&q=70',
   とんかつ: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=400&h=300&fit=crop&crop=entropy&q=70',
   焼き鳥: 'https://images.unsplash.com/photo-1606756790138-261d2b21cd75?w=400&h=300&fit=crop&crop=entropy&q=70',
-  串揚げ: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400&h=300&fit=crop&crop=entropy&q=70',
   うなぎ: 'https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?w=400&h=300&fit=crop&crop=entropy&q=70',
   しゃぶしゃぶ: 'https://images.unsplash.com/photo-1542528180-a1208c5169a5?w=400&h=300&fit=crop&crop=entropy&q=70',
   すき焼き: 'https://images.unsplash.com/photo-1604908554007-cca0fbf61d4e?w=400&h=300&fit=crop&crop=entropy&q=70',
   鍋: 'https://images.unsplash.com/photo-1582450871972-ab5ca641643d?w=400&h=300&fit=crop&crop=entropy&q=70',
-  もつ鍋: 'https://images.unsplash.com/photo-1587116049269-ada3e36cb6b3?w=400&h=300&fit=crop&crop=entropy&q=70',
   うどん: 'https://images.unsplash.com/photo-1631898037220-32d1aa00b8a5?w=400&h=300&fit=crop&crop=entropy&q=70',
   そば: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=300&fit=crop&crop=entropy&q=70',
   お好み焼き: 'https://images.unsplash.com/photo-1611601679008-3a0db49ed4d6?w=400&h=300&fit=crop&crop=entropy&q=70',
   たこ焼き: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&h=300&fit=crop&crop=entropy&q=70',
-  鉄板焼き: 'https://images.unsplash.com/photo-1564671165093-20688ff1fffa?w=400&h=300&fit=crop&crop=entropy&q=70',
   餃子: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&h=300&fit=crop&crop=entropy&q=70',
   フレンチ: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=400&h=300&fit=crop&crop=entropy&q=70',
   ビストロ: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop&crop=entropy&q=70',
@@ -246,5 +243,4 @@ export const GENRE_PHOTOS: Record<string, string> = {
   カレー: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop&crop=entropy&q=70',
   '定食・食堂': 'https://images.unsplash.com/photo-1547928576-b822bc410bdf?w=400&h=300&fit=crop&crop=entropy&q=70',
   丼もの: 'https://images.unsplash.com/photo-1583224874284-cb0c41b4a5d6?w=400&h=300&fit=crop&crop=entropy&q=70',
-  その他: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop&crop=entropy&q=70',
 };
