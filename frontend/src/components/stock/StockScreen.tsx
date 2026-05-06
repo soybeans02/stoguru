@@ -93,6 +93,26 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-none stg-main">
+      {/* ─── 一番上の全幅検索窓（design ではこれが最上段）─── */}
+      <div className="page-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input
+          placeholder="店名・ジャンル・エリアで検索"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            aria-label="検索クリア"
+            className="page-search__clear"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        )}
+      </div>
+
       <header className="page-head">
         <div>
           <h1>保存</h1>
@@ -133,10 +153,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       </div>
 
       <div className="toolbar">
-        <div className="toolbar__search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-          <input placeholder="店名・ジャンル・エリアで検索" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+        {/* 検索窓は最上段の .page-search に移動済み（design 準拠） */}
         <div className="tab-pills">
           <button className={`tab-pill ${filter === 'all' ? 'is-active' : ''}`} onClick={() => setFilter('all')}>すべて<span className="tab-pill__count">{stocks.length}</span></button>
           <button className={`tab-pill ${filter === 'unvisited' ? 'is-active' : ''}`} onClick={() => setFilter('unvisited')}>まだ<span className="tab-pill__count">{todoCount}</span></button>

@@ -54,6 +54,47 @@
 .stat-card .ic-todo    { background: rgba(0,122,255,0.10); color: var(--stg-blue); }
 .stat-card .ic-rate    { background: rgba(255,204,0,0.16); color: #B8920B; }
 
+/* ─── 最上段の全幅検索窓（page-head の上に積む。design 準拠） ─── */
+.page-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid var(--stg-gray-200);
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-size: 14px;
+  margin-bottom: 18px;
+  transition: border-color 120ms var(--stg-ease), box-shadow 120ms var(--stg-ease);
+}
+.page-search:focus-within {
+  border-color: var(--stg-orange-500);
+  box-shadow: 0 0 0 3px rgba(254,141,40,0.12);
+}
+.page-search > svg { color: var(--stg-gray-500); flex-shrink: 0; }
+.page-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--stg-font-app);
+  font-size: 15px;
+  color: var(--stg-gray-900);
+  min-width: 0;
+}
+.page-search input::placeholder { color: var(--stg-gray-500); }
+.page-search__clear {
+  background: var(--stg-gray-100);
+  border: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--stg-gray-700);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.page-search__clear:hover { background: var(--stg-gray-200); }
+
 /* Toolbar (search + filters + sort + view) */
 .toolbar {
   display: flex;
