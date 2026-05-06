@@ -31,9 +31,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const [editingNickname, setEditingNickname] = useState(false);
-  const [nicknameInput, setNicknameInput] = useState('');
-  const [nicknameError, setNicknameError] = useState('');
+  // editingNickname は EditProfilePanel に置き換えたので常に false。
+  // 既存 JSX の {!editingNickname && ...} ガードは互換のため残す。
+  const editingNickname = false;
   const [panel, setPanel] = useState<Panel>(null);
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
@@ -117,17 +117,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       .catch(() => setUploadStatus('none'));
   }, []);
 
-  async function handleSaveNickname() {
-    if (!nicknameInput.trim()) return;
-    try {
-      setNicknameError('');
-      const result = await api.updateNickname(nicknameInput.trim());
-      updateNickname(result.nickname);
-      setEditingNickname(false);
-    } catch (err: unknown) {
-      setNicknameError(err instanceof Error ? err.message : 'エラー');
-    }
-  }
+  // ニックネーム保存は EditProfilePanel 内で updateNickname() を直接呼ぶ
+  // ので、ここに専用ハンドラは不要。
 
   async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -357,9 +348,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </div>
 
           <div className="px-5 sm:px-7 lg:px-8 pb-6 lg:pb-7">
-            {/* Avatar + identity row — pull-up を浅めにして名前とカバーの間に余白を確保 */}
-            <div className="-mt-8 sm:-mt-10 lg:-mt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 min-w-0">
+            {/* Avatar 行：avatar (左、cover に被せて) と action buttons (右)。
+                Twitter のプロフィール準拠で、名前 / @handle / email / bio / chips は
+                すべて avatar の下に配置する。 */}
+            <div className="-mt-8 sm:-mt-10 lg:-mt-12 flex items-end justify-between gap-4">
+              <div className="flex items-end gap-4 min-w-0">
                 {/* Avatar */}
                 <input
                   ref={fileInputRef}
@@ -399,59 +392,15 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   </div>
                 </button>
 
-                {/* Name only — avatar の右に H1 + 認証バッジだけ並べる。
-                    @handle / email / bio / chips は下の行に降ろして全幅で出す
-                    （PC で items-end が効かない / 縦に伸びすぎる問題対策）。 */}
-                <div className="min-w-0 sm:pb-1.5 flex-1">
-                  {editingNickname ? (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input
-                        value={nicknameInput}
-                        onChange={(e) => setNicknameInput(e.target.value)}
-                        className="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[280px] text-[var(--text-primary)] py-0.5"
-                        style={{ borderColor: 'var(--accent-orange)' }}
-                        autoFocus
-                        maxLength={50}
-                      />
-                      <button onClick={handleSaveNickname} className="text-[12px] font-semibold px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
-                      <button onClick={() => setEditingNickname(false)} className="text-[12px] font-semibold px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
-                      {nicknameError && <p className="text-red-500 text-[11px] mt-1 w-full">{nicknameError}</p>}
-                    </div>
-                  ) : (
-                    <>
-                      <h1
-                        className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
-                        style={{ fontSize: 28, color: 'var(--text-primary)', lineHeight: 1.15 }}
-                      >
-                        <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
-                        {isVerified && (
-                          <span
-                            aria-label="認証済み"
-                            className="inline-grid place-items-center flex-shrink-0"
-                            style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                          </span>
-                        )}
-                      </h1>
-                      {/* twitter 風：名前の直下に @handle。
-                          email は下の行（bio の前）に小さく表示。 */}
-                      <div
-                        className="truncate mt-0.5"
-                        style={{ fontSize: 14, color: 'var(--text-secondary)' }}
-                      >
-                        @{user?.nickname ?? ''}
-                      </div>
-                    </>
-                  )}
-                </div>
+                {/* avatar の右にはもう何も置かない。Twitter 風で名前 / @handle /
+                    email / bio / chips は avatar の下 (full-width) に並べる。 */}
               </div>
 
-              {/* Action buttons — 上の行（avatar + name と同じ row）の右端 */}
+              {/* Action buttons — 上の行（avatar と同じ row）の右端 */}
               {!editingNickname && (
                 <div className="flex flex-wrap gap-2 sm:pb-1.5">
                   <button
-                    onClick={() => { setNicknameInput(user?.nickname ?? ''); setPanel('editProfile'); }}
+                    onClick={() => setPanel('editProfile')}
                     className="px-4 py-2 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
                   >
                     {t('account.editProfile')}
@@ -485,18 +434,39 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               )}
             </div>
 
-            {/* ─── 下の行：email + bio + chips（hero card の全幅） ───
-                @handle は H1 直下（名前のすぐ下）に移動済なのでここでは出さない。 */}
+            {/* ─── avatar の下：name + verified + @handle + email + bio + chips。
+                Twitter 風プロフィール。プロフィール画像と同じ列に出す。 */}
             {!editingNickname && (
-              <div className="mt-4">
+              <div className="mt-3">
+                <h1
+                  className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
+                  style={{ fontSize: 24, color: 'var(--text-primary)', lineHeight: 1.15 }}
+                >
+                  <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
+                  {isVerified && (
+                    <span
+                      aria-label="認証済み"
+                      className="inline-grid place-items-center flex-shrink-0"
+                      style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                  )}
+                </h1>
                 <div
-                  className="truncate"
+                  className="truncate mt-0.5"
+                  style={{ fontSize: 14, color: 'var(--text-secondary)' }}
+                >
+                  @{user?.nickname ?? ''}
+                </div>
+                <div
+                  className="truncate mt-1"
                   style={{ fontSize: 13, color: 'var(--text-tertiary)' }}
                 >
                   {user?.email}
                 </div>
                 <p
-                  className="leading-[1.6] max-w-[640px] mt-2"
+                  className="leading-[1.6] max-w-[640px] mt-3"
                   style={{ fontSize: 14, color: 'var(--text-secondary)' }}
                 >
                   {(user as { bio?: string } | null | undefined)?.bio
