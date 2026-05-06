@@ -16,13 +16,13 @@
 }
 .page-head h1 {
   font-size: 32px; font-weight: 800; letter-spacing: -0.025em;
-  margin: 0 0 4px; color: var(--stg-gray-900);
+  margin: 0 0 4px; color: var(--text-primary);
 }
 .page-head__sub {
-  font-size: 13px; color: var(--stg-gray-600);
+  font-size: 13px; color: var(--text-secondary);
   display: flex; gap: 14px; align-items: center;
 }
-.page-head__sub b { color: var(--stg-gray-900); font-weight: 700; }
+.page-head__sub b { color: var(--text-primary); font-weight: 700; }
 .page-head__actions { display: flex; gap: 8px; }
 
 /* Stats strip */
@@ -184,6 +184,10 @@
   position: relative;
   transition: transform 220ms var(--stg-ease), box-shadow 220ms var(--stg-ease), border-color 120ms var(--stg-ease);
   cursor: pointer;
+  /* 説明が短いカードでも 動画/マップ/行った の行が他カードと
+     同じ位置に揃うよう、flex column + body flex-1 + actions mt-auto に。 */
+  display: flex;
+  flex-direction: column;
 }
 .stock-card:hover {
   transform: translateY(-3px);
@@ -237,7 +241,14 @@
 }
 .stock-card__visited-badge svg { width: 11px; height: 11px; }
 
-.stock-card__body { padding: 14px 16px 16px; }
+.stock-card__body {
+  padding: 14px 16px 16px;
+  /* body 自体も flex column にして、.stock-card__actions に
+     margin-top: auto を効かせて下端に張り付かせる。 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .stock-card__title {
   font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
   margin: 0 0 6px; color: var(--stg-gray-900);
@@ -273,7 +284,12 @@
   background: var(--stg-gray-100); color: var(--stg-gray-700);
 }
 .stock-card__actions {
-  display: flex; gap: 6px; margin-top: 12px; padding-top: 12px;
+  display: flex; gap: 6px;
+  /* 短いカードでも actions が必ず body の下端に張り付くよう
+     margin-top: auto。これで複数カードの並びで「マップ / 動画 / 行った」
+     行が水平に揃う。 */
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid var(--stg-gray-200);
 }
 .stock-card__action {
