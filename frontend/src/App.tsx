@@ -466,12 +466,27 @@ function useRoute(): Route {
   return route;
 }
 
+/** PWA / iOS native 起動かどうかを判定。
+ *  web ブラウザで開いている時はオンボーディングを丸ごとスキップする。
+ *  - iOS Safari: navigator.standalone === true
+ *  - Android / Chromium PWA: display-mode: standalone */
+function isStandaloneApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const iosStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+  const displayMode = typeof window.matchMedia === 'function'
+    && window.matchMedia('(display-mode: standalone)').matches;
+  return iosStandalone || displayMode;
+}
+
 export default function App() {
   const { loading } = useAuth();
   const route = useRoute();
-  const [onboardingDone, setOnboardingDone] = useState(() =>
-    localStorage.getItem('onboarding_done') === '1'
-  );
+  // web ブラウザで開いた時はオンボーディング画面（取説）を出さない。
+  // PWA インストール / iOS native（将来）の時だけ初回表示。
+  const [onboardingDone, setOnboardingDone] = useState(() => {
+    if (!isStandaloneApp()) return true;
+    return localStorage.getItem('onboarding_done') === '1';
+  });
 
   const handleOnboardingComplete = useCallback((selectedScenes: string[]) => {
     localStorage.setItem('onboarding_done', '1');
