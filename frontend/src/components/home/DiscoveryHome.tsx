@@ -1422,7 +1422,10 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      <div className="max-w-[1280px] xl:max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
+      {/* topbar も hero / themes / genres と同じ full-width 揃えに（max-w + mx-auto を外す）。
+          これでサイドバー右端から topbar / 各セクション全部が同じ左ライン
+          (px-4 sm:px-6 lg:px-8) で揃って、左端の「切れ」が消える。 */}
+      <div className="px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示。
             タップでホームを再読み込み（おすすめを再生成） */}
         <button
