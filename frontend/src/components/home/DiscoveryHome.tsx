@@ -744,7 +744,6 @@ export function DiscoveryHome({
           </div>
           <div className="mt-8 pt-6 border-t border-[var(--border)] flex justify-between text-[12px] text-[var(--text-tertiary)]">
             <span>{t('home.footerCopyright')}</span>
-            <span>{t('home.footerLove')}</span>
           </div>
         </footer>
       </div>
@@ -2211,8 +2210,13 @@ function HowToGuideModal({ onClose }: { onClose: () => void }) {
    ───────────────────────────────────── */
 function AppDownloadBanner() {
   const { t } = useTranslation();
-  const APP_STORE_URL = '#';
-  const PLAY_STORE_URL: string | null = null;
+  // 実際の App Store / Google Play 配信が始まったらここに URL を入れる。
+  // 未公開の間は null にして PlayStore と同じく「準備中」として disabled
+  // 表示する（誤って '#' に飛ぶと UX 上ノイズになるため）。
+  // 例: 'https://apps.apple.com/jp/app/stoguru/id0000000000'
+  //     'https://play.google.com/store/apps/details?id=app.stoguru'
+  const APP_STORE_URL: string | null = (import.meta.env.VITE_APP_STORE_URL as string | undefined) ?? null;
+  const PLAY_STORE_URL: string | null = (import.meta.env.VITE_PLAY_STORE_URL as string | undefined) ?? null;
 
   return (
     <section
@@ -2255,14 +2259,20 @@ function AppDownloadBanner() {
   );
 }
 
-function AppStoreBadge({ href, t }: { href: string; t: (k: string) => string }) {
+function AppStoreBadge({ href, t }: { href: string | null; t: (k: string) => string }) {
+  // href が null の間は「準備中」として disabled 表示（PlayStoreBadge と
+  // 同パターン）。実際にストアに公開されたら VITE_APP_STORE_URL を設定。
+  const disabled = !href;
+  const Wrapper = disabled ? 'div' : 'a';
+  const wrapperProps = disabled
+    ? { 'aria-disabled': true as const, title: t('home.appBadgeComingSoon') }
+    : { href: href as string, target: '_blank', rel: 'noopener noreferrer' as const, 'aria-label': 'Download on the App Store' };
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2.5 bg-black text-white px-3.5 py-2 rounded-[10px] hover:bg-gray-900 transition-colors"
-      aria-label="Download on the App Store"
+    <Wrapper
+      {...(wrapperProps as Record<string, unknown>)}
+      className={`flex items-center gap-2.5 bg-black text-white px-3.5 py-2 rounded-[10px] transition-colors ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-900'
+      }`}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M17.523 12.78c-.04-3.276 2.673-4.866 2.794-4.94-1.523-2.226-3.892-2.531-4.738-2.567-2.014-.205-3.93 1.18-4.95 1.18-1.022 0-2.6-1.151-4.275-1.119-2.198.033-4.226 1.276-5.358 3.246-2.286 3.965-.585 9.83 1.638 13.045 1.087 1.575 2.382 3.345 4.075 3.281 1.638-.066 2.255-1.061 4.235-1.061 1.97 0 2.541 1.061 4.275 1.025 1.768-.029 2.886-1.6 3.964-3.18 1.247-1.823 1.762-3.587 1.79-3.677-.039-.018-3.42-1.31-3.45-5.233zM14.286 3.04c.905-1.097 1.515-2.621 1.348-4.139-1.305.053-2.886.868-3.823 1.965-.84.97-1.575 2.519-1.378 4.012 1.456.112 2.948-.74 3.853-1.838z"/>
@@ -2271,7 +2281,7 @@ function AppStoreBadge({ href, t }: { href: string; t: (k: string) => string }) 
         <span className="text-[9px] font-medium opacity-90">{t('home.appBadgeAppStoreLine1')}</span>
         <span className="text-[14px] font-semibold tracking-tight">{t('home.appBadgeAppStoreLine2')}</span>
       </div>
-    </a>
+    </Wrapper>
   );
 }
 
