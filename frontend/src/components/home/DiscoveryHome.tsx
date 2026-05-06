@@ -338,11 +338,14 @@ export function DiscoveryHome({
       />
 
       {/*
-        mobile/tablet は左右 edge-to-edge (padding 0)、lg 以上だけ余白付き。
-        左帯の「切れ」フィードバックに対する根治対応。
-        各 section が必要に応じて自前で内側 padding を持つ前提。
+        mobile/tablet: px-4 (16px) で「めり込まず・空きすぎず」のバランス。
+        lg 以上: px-8 (32px) でゆとり。
+        過去：px-4 sm:px-6 lg:px-8 → 左空きすぎ
+              px-3 lg:px-8     → まだ空きすぎ
+              px-0 lg:px-8     → めり込む
+        現在：px-4 lg:px-8     ← ここに着地
       */}
-      <div className="px-0 lg:px-8">
+      <div className="px-4 lg:px-8">
         {/* ─── Hero（Claude Design 風スタックデッキ） ─── */}
         <HeroDeck
           isAnonymous={isAnonymous}
@@ -1420,9 +1423,10 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      {/* mobile/tablet は左右 edge-to-edge（padding 0）。lg 以上だけ余白付き。
-          「左の空き帯が切れて見える」フィードバックに対する根治対応。 */}
-      <div className="px-0 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
+      {/* mobile/tablet: px-4 (16px) — モバイルアプリ標準の余白。
+          px-0 だと content が edge に「めり込む」のでこのライン。
+          lg 以上は px-8 (32px) でゆとり。 */}
+      <div className="px-4 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示。
             タップでホームを再読み込み（おすすめを再生成） */}
         <button
