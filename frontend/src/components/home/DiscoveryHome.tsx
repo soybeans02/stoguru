@@ -959,10 +959,11 @@ function HeroDeck({
             ストック × グルメ
           </div>
 
-          {/* h1 — design では 40-64px clamp */}
+          {/* h1 — design では 40-64px clamp。ページ背景に直で乗るので
+              theme で色を反転させる必要 → var(--text-primary) を使用。 */}
           <h1
             className="font-extrabold leading-[1.05] tracking-[-0.035em] mb-5"
-            style={{ fontSize: 'clamp(36px,5vw,60px)', color: 'var(--stg-gray-900)' }}
+            style={{ fontSize: 'clamp(36px,5vw,60px)', color: 'var(--text-primary)' }}
           >
             {tHeroTitleA}
             <br />
@@ -981,7 +982,7 @@ function HeroDeck({
 
           <p
             className="text-[15px] sm:text-[17px] leading-[1.7] mb-7 max-w-[480px]"
-            style={{ color: 'var(--stg-gray-600)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {tDescription}
           </p>
@@ -1031,14 +1032,14 @@ function HeroDeck({
               <div key={i} className="min-w-0 flex-1">
                 <div
                   className="font-extrabold tabular-nums leading-none whitespace-nowrap"
-                  style={{ fontSize: 'clamp(18px, 5vw, 28px)', letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
+                  style={{ fontSize: 'clamp(18px, 5vw, 28px)', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
                 >
                   {s.num}
                   {s.hasPlus && <span style={{ color: 'var(--stg-orange-500)' }}>+</span>}
                 </div>
                 <div
                   className="mt-1.5"
-                  style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'var(--stg-gray-600)' }}
+                  style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'var(--text-secondary)' }}
                 >
                   {s.label}
                 </div>

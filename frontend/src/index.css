@@ -187,29 +187,16 @@
 
   --bg-image: none;
 
-  /* iOS systemGray の dark scale。light mode の値と反転して、
-     gray-900 (text 用) は light に、gray-100 (bg 用) は dark になる。
-     これで `color: var(--stg-gray-900)` の dark text が dark mode で
-     ちゃんと読める。
-     2026-05: 「薄くて読みにくい」フィードバックで primary 系を
-     #F5F5F7 → #FFFFFF などに更に持ち上げ、コントラストを最大化。 */
-  --stg-gray-50:  #1C1C1E;
-  --stg-gray-100: #2C2C2E;
-  --stg-gray-200: #3A3A3C;
-  --stg-gray-300: #48484A;
-  --stg-gray-400: #636366;
-  --stg-gray-500: #8E8E93;
-  --stg-gray-600: #C7C7CC;  /* 補助テキスト、AEAEB2 → C7C7CC */
-  --stg-gray-700: #DDDDE2;  /* hover bg だけど text にも使われる場面あり */
-  --stg-gray-800: #F5F5F7;
-  --stg-gray-900: #FFFFFF;  /* primary text、純白で最大コントラスト */
+  /* gray scale はテーマで反転させない（戻し）。
+     stg-gray-* は「白背景の上で使う dark 系」「dark 背景の上で使う
+     light 系」に用途が混在しているので、一括で flip すると白背景の
+     カード/タイルで「白文字 on 白背景 → 不可視」事故が起きる。
+     dark bg 上で使う text は components 側で var(--text-primary) を
+     使う形に統一して、stg-gray-* は dark text 用に固定で残す。
 
-  /* Cream は warm 系の chip 背景に使われている。dark mode では
-     しっとりめのウォームダークに置き換え（テキストの orange-700 が
-     乗っても読める色）。 */
-  --stg-cream-50:  #2A1F12;
-  --stg-cream-100: #3A2A18;
-  --stg-cream-200: #4D3820;
+     Cream も chip 背景として使うが、明るいベース色で text に
+     orange-700 が乗っているので dark mode でもこのまま読める。
+     →cream の override も外す。 */
 }
 
 [data-theme="wood"] {
@@ -280,20 +267,8 @@
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
     --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
     --bg-image: none;
-    /* iOS systemGray dark scale（[data-theme="black"] と同値） */
-    --stg-gray-50:  #1C1C1E;
-    --stg-gray-100: #2C2C2E;
-    --stg-gray-200: #3A3A3C;
-    --stg-gray-300: #48484A;
-    --stg-gray-400: #636366;
-    --stg-gray-500: #8E8E93;
-    --stg-gray-600: #C7C7CC;
-    --stg-gray-700: #DDDDE2;
-    --stg-gray-800: #F5F5F7;
-    --stg-gray-900: #FFFFFF;
-    --stg-cream-50:  #2A1F12;
-    --stg-cream-100: #3A2A18;
-    --stg-cream-200: #4D3820;
+    /* gray / cream scale はテーマで flip させない（[data-theme="black"]
+       と同様、白背景カードでの白文字事故を避けるため固定）。 */
   }
 }
 
