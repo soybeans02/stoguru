@@ -322,11 +322,11 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                 <div className="stock-row__photo">
                   {photo && <img loading="lazy" src={photo} alt={s.name} />}
                 </div>
-                <div>
+                <div className="stock-row__body">
                   <div className="stock-row__title">{s.name}</div>
                   <div className="stock-row__meta">
                     <span className={`stock-card__source-dot ${src}`}>{src.toUpperCase()}</span>
-                    {s.address && <span>{s.address}</span>}
+                    {s.address && <span className="stock-row__meta-address">{s.address}</span>}
                     {dist && <><span className="stock-card__meta-dot"></span><span>{dist}</span></>}
                     {s.genre && <><span className="stock-card__meta-dot"></span><span>{s.genre}</span></>}
                     {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}
