@@ -14,6 +14,7 @@ import { loadAllFeatures } from '../../data/features';
 import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
+import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
 import {
   CheckIcon, CheckCircleIcon, StarIcon, CameraIcon, MapPinIcon, MapIcon,
   UsersIcon, HelpIcon,
@@ -189,6 +190,7 @@ export function DiscoveryHome({
     }
   };
   const [showHowTo, setShowHowTo] = useState(false);
+  const [legalPanel, setLegalPanel] = useState<LegalDocType | null>(null);
   const [showThemes, setShowThemes] = useState(false);
   const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | null>(null);
@@ -733,9 +735,10 @@ export function DiscoveryHome({
             <FooterCol
               heading={t('home.footerOther')}
               items={[
-                { label: t('home.footerPrivacy'), href: '/p/privacy' },
-                { label: t('home.footerTerms'), href: '/p/terms' },
-                { label: t('home.footerLegal'), href: '/p/legal' },
+                { label: t('home.footerPrivacy'), onClick: () => setLegalPanel('privacy') },
+                { label: t('home.footerTerms'), onClick: () => setLegalPanel('terms') },
+                { label: 'クッキーポリシー', onClick: () => setLegalPanel('cookie') },
+                { label: '特定商取引法に基づく表記', onClick: () => setLegalPanel('commerce') },
               ]}
             />
           </div>
@@ -759,6 +762,7 @@ export function DiscoveryHome({
         />
       )}
       {showHowTo && <HowToGuideModal onClose={() => setShowHowTo(false)} />}
+      {legalPanel && <LegalSheet doc={legalPanel} onClose={() => setLegalPanel(null)} />}
       {showThemes && (
         <ThemesListModal
           themes={themeConfigs}
@@ -2030,7 +2034,15 @@ function MapPin({
   );
 }
 
-function FooterCol({ heading, items }: { heading: string; items: { label: string; href: string }[] }) {
+function FooterCol({
+  heading,
+  items,
+}: {
+  heading: string;
+  /** href を指定すると navigate、onClick を指定するとそれを優先呼び出し
+      （legal 系は SPA 内で sheet を開きたいので onClick を使う） */
+  items: { label: string; href?: string; onClick?: () => void }[];
+}) {
   return (
     <div>
       <h4 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">
@@ -2040,7 +2052,7 @@ function FooterCol({ heading, items }: { heading: string; items: { label: string
         {items.map((item) => (
           <li key={item.label}>
             <button
-              onClick={() => navigate(item.href)}
+              onClick={() => { if (item.onClick) item.onClick(); else if (item.href) navigate(item.href); }}
               className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--accent-orange)] transition-colors cursor-pointer text-left"
             >
               {item.label}

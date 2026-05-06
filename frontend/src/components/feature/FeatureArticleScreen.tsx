@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { findFeature, findRelated } from '../../data/features';
 import type { FeatureArticle, FeatureEntry } from '../../data/features';
 import { AuthModal } from '../auth/AuthModal';
+import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
 import { navigate, goBack } from '../../utils/navigate';
 
 interface Props {
@@ -369,15 +370,20 @@ export function ArticleTopBar({
 
 /* ─── 共通フッター（記事・静的ページで共有） ─── */
 export function FooterStrip() {
+  const [legalPanel, setLegalPanel] = useState<LegalDocType | null>(null);
   return (
-    <footer className="border-t border-[var(--border)] py-10 px-6">
-      <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
-        <button onClick={() => navigate('/p/contact')} className="hover:text-[var(--accent-orange)] transition-colors">お問い合わせ</button>
-        <button onClick={() => navigate('/p/privacy')} className="hover:text-[var(--accent-orange)] transition-colors">プライバシーポリシー</button>
-        <button onClick={() => navigate('/p/terms')} className="hover:text-[var(--accent-orange)] transition-colors">利用規約</button>
-        <button onClick={() => navigate('/p/legal')} className="hover:text-[var(--accent-orange)] transition-colors">特商法表記</button>
-        <span>© 2026 stoguru</span>
-      </div>
-    </footer>
+    <>
+      <footer className="border-t border-[var(--border)] py-10 px-6">
+        <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
+          <button onClick={() => navigate('/p/contact')} className="hover:text-[var(--accent-orange)] transition-colors">お問い合わせ</button>
+          <button onClick={() => setLegalPanel('privacy')} className="hover:text-[var(--accent-orange)] transition-colors">プライバシーポリシー</button>
+          <button onClick={() => setLegalPanel('terms')} className="hover:text-[var(--accent-orange)] transition-colors">利用規約</button>
+          <button onClick={() => setLegalPanel('cookie')} className="hover:text-[var(--accent-orange)] transition-colors">クッキーポリシー</button>
+          <button onClick={() => setLegalPanel('commerce')} className="hover:text-[var(--accent-orange)] transition-colors">特商法表記</button>
+          <span>© 2026 stoguru</span>
+        </div>
+      </footer>
+      {legalPanel && <LegalSheet doc={legalPanel} onClose={() => setLegalPanel(null)} />}
+    </>
   );
 }

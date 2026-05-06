@@ -9,13 +9,14 @@ import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
 import { Sheet } from '../ui/Sheet';
 import { Toggle } from '../ui/Toggle';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
+import { LegalSheet } from '../legal/LegalDocs';
 
 interface Props {
   stocks: StockedRestaurant[];
   onRestaurantEdited?: () => void;
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms';
+type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce';
 type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
@@ -838,8 +839,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           <div className="flex justify-center gap-4 mb-2 flex-wrap">
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>プライバシー</a>
             <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>利用規約</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>クッキー</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>特定商取引</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('cookie'); }} style={{ color: 'inherit', textDecoration: 'none' }}>クッキー</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('commerce'); }} style={{ color: 'inherit', textDecoration: 'none' }}>特定商取引</a>
           </div>
           <div>stoguru v1.0 · © 2026 stoguru</div>
         </div>
@@ -894,20 +895,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           )}
         />
       )}
-      {panel === 'privacy' && (
-        <StaticTextSheet
-          onClose={() => setPanel(null)}
-          title={t('account.privacyPolicy')}
-          body={'本アプリは、利用に必要な範囲で位置情報・利用ログを取得します。詳細は https://soybeans02.github.io/stoguru/privacy.html を参照してください。'}
-        />
-      )}
-      {panel === 'terms' && (
-        <StaticTextSheet
-          onClose={() => setPanel(null)}
-          title={t('account.termsOfService')}
-          body={'stoguru をご利用いただきありがとうございます。利用規約の全文は /p/terms を参照してください。'}
-        />
-      )}
+      {panel === 'privacy' && <LegalSheet doc="privacy" onClose={() => setPanel(null)} />}
+      {panel === 'terms' && <LegalSheet doc="terms" onClose={() => setPanel(null)} />}
+      {panel === 'cookie' && <LegalSheet doc="cookie" onClose={() => setPanel(null)} />}
+      {panel === 'commerce' && <LegalSheet doc="commerce" onClose={() => setPanel(null)} />}
       {/* List panels */}
       {listPanel === 'stocks' && (
         <Overlay title="保存" onClose={() => setListPanel(null)}>
