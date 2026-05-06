@@ -1091,10 +1091,12 @@ function HeroDeck({
             );
           })}
 
-          {/* rating badge — 浮遊 */}
+          {/* rating badge — 浮遊。
+              旧 right: -8 だと section の overflow-hidden で右端が clip
+              されて「4.8 大阪・北区」が PC で見切れてた。中に寄せる。 */}
           <div
             className="stg-float-2 absolute z-10 inline-flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-semibold"
-            style={{ bottom: 32, right: -8, background: 'white', color: 'var(--stg-gray-900)', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.14)' }}
+            style={{ bottom: 32, right: 8, background: 'white', color: 'var(--stg-gray-900)', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.14)' }}
           >
             <span style={{ color: 'var(--stg-yellow)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
