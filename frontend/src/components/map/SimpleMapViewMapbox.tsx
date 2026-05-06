@@ -523,7 +523,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [listOpen, setListOpen] = useState(true);
   const [listSearch, setListSearch] = useState('');
   const [topSearch, setTopSearch] = useState('');
-  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist' | 'noted'>('all');
+  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist'>('all');
   const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
   const [showFollowingPicker, setShowFollowingPicker] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
@@ -1156,10 +1156,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </div>
         {([
           { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
-          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited && !s.pinned).length },
+          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-orange-500)', count: stocks.filter(s => !s.visited).length },
           { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
-          // 「気になる」は pinned フラグを流用（後で専用 status を持つ場合は差し替え）
-          { key: 'noted' as const, label: '気になる', color: 'var(--stg-blue)', count: stocks.filter(s => s.pinned && !s.visited).length },
+          // 「気になる」フィルターは UI バランス + 機能要件の整理で削除
         ]).map((c) => (
           <button
             key={c.key}
@@ -1258,8 +1257,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             const items = stocks
               .filter((s) => {
                 if (catFilter === 'visited') return s.visited;
-                if (catFilter === 'wishlist') return !s.visited && !s.pinned;
-                if (catFilter === 'noted') return s.pinned && !s.visited;
+                if (catFilter === 'wishlist') return !s.visited;
                 return true;
               })
               .filter((s) => {
@@ -1375,12 +1373,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         );
       })()}
 
-      {/* ─── Legend (左下) — Claude Design map.html と同一の 5 項目 ─── */}
+      {/* ─── Legend (左下) — 4 項目に整理：保存 / 行った / 投稿（紫） / 現在地 ─── */}
       <div className="map-legend">
         <div className="map-legend__item"><span className="map-legend__dot cat-todo" />保存</div>
         <div className="map-legend__item"><span className="map-legend__dot cat-visited" />行った</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-noted" />気になる</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-special" />特別</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-special" />投稿</div>
         <div className="map-legend__item"><span className="map-legend__dot cat-here" />現在地</div>
       </div>
 
