@@ -1187,6 +1187,17 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 12h12M15 18h6"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
           絞り込み
         </button>
+        {/* リストを表示 — 旧版は absolute で top:80px に置いていたが、狭い viewport
+            では上部の検索バー + フィルター chip 群が wrap した行と被る事故が
+            起きるため、map-top の最後に取り込んで flex-wrap に従って自然に
+            折り返すようにした。 */}
+        {!listOpen && (
+          <button className="map-list-toggle" onClick={() => setListOpen(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+            リストを表示
+            <span className="map-pill__count">{stocks.length}</span>
+          </button>
+        )}
       </div>
 
       {/* ─── 右側 control stack（zoom + 現在地 + フォロー）
@@ -1218,14 +1229,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </button>
       </div>
 
-      {/* ─── 左 list panel ─── */}
-      {!listOpen && (
-        <button className="map-list-toggle" onClick={() => setListOpen(true)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
-          リストを表示
-          <span className="map-pill__count">{stocks.length}</span>
-        </button>
-      )}
+      {/* ─── 左 list panel ───
+          list を開く toggle は map-top に inline 化したのでここでは出さない */}
       <div className={`map-list ${listOpen ? '' : 'is-collapsed'}`}>
         <div className="map-list__head">
           <div>
