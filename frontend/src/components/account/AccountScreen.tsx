@@ -397,109 +397,45 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   </div>
                 </button>
 
-                {/* Name + email */}
-                <div className="min-w-0 sm:pb-1.5">
+                {/* Name only — avatar の右に H1 + 認証バッジだけ並べる。
+                    @handle / email / bio / chips は下の行に降ろして全幅で出す
+                    （PC で items-end が効かない / 縦に伸びすぎる問題対策）。 */}
+                <div className="min-w-0 sm:pb-1.5 flex-1">
                   {editingNickname ? (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <input
-                          value={nicknameInput}
-                          onChange={(e) => setNicknameInput(e.target.value)}
-                          className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[200px] text-[var(--text-primary)] py-0.5"
-                          style={{ borderColor: 'var(--accent-orange)' }}
-                          autoFocus
-                          maxLength={50}
-                        />
-                        <button onClick={handleSaveNickname} className="text-[12px] font-semibold px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
-                        <button onClick={() => setEditingNickname(false)} className="text-[12px] font-semibold px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
-                      </div>
-                      {nicknameError && <p className="text-red-500 text-[11px] mt-1">{nicknameError}</p>}
-                    </>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        value={nicknameInput}
+                        onChange={(e) => setNicknameInput(e.target.value)}
+                        className="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] border-b-2 outline-none bg-transparent w-full max-w-[280px] text-[var(--text-primary)] py-0.5"
+                        style={{ borderColor: 'var(--accent-orange)' }}
+                        autoFocus
+                        maxLength={50}
+                      />
+                      <button onClick={handleSaveNickname} className="text-[12px] font-semibold px-3 py-1 rounded-full text-white" style={{ background: 'var(--accent-orange)' }}>{t('common.save')}</button>
+                      <button onClick={() => setEditingNickname(false)} className="text-[12px] font-semibold px-3 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--text-secondary)]">{t('common.cancel')}</button>
+                      {nicknameError && <p className="text-red-500 text-[11px] mt-1 w-full">{nicknameError}</p>}
+                    </div>
                   ) : (
-                    <>
-                      <h1
-                        className="font-extrabold tracking-[-0.025em] truncate flex items-center gap-2.5"
-                        style={{ fontSize: 28, color: 'var(--stg-gray-900)' }}
-                      >
-                        {user?.nickname ?? 'ユーザー'}
-                        {isVerified && (
-                          <span
-                            aria-label="認証済み"
-                            className="inline-grid place-items-center flex-shrink-0"
-                            style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                          </span>
-                        )}
-                      </h1>
-                      <div
-                        className="flex items-center gap-2.5 truncate"
-                        style={{ fontSize: 14, color: 'var(--stg-gray-600)', marginTop: 4 }}
-                      >
-                        <span>@{user?.nickname ?? ''}</span>
-                        <span style={{ color: 'var(--stg-gray-300)' }}>·</span>
-                        <span className="truncate">{user?.email}</span>
-                      </div>
-                      {/* Bio + chips（将来 user.bio をバックエンドに保存する想定。今は固定文 + 動的 chip） */}
-                      <p
-                        className="leading-[1.6] max-w-[540px] mt-2"
-                        style={{ fontSize: 14, color: 'var(--stg-gray-700)' }}
-                      >
-                        {(user as { bio?: string } | null | undefined)?.bio
-                          ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
-                      </p>
-                      {/* design 準拠の 3 chip：好きなジャンル / 住んでる地域 / 利用開始月。
-                          バックエンドにまだ favoriteGenre / region フィールドが無いので、
-                          localStorage キャッシュ → 無ければデフォルト値、で乗り切る。 */}
-                      {(() => {
-                        const favGenre = (typeof localStorage !== 'undefined'
-                          ? localStorage.getItem('cache:favoriteGenre')
-                          : null) || 'グルメ';
-                        const region = (typeof localStorage !== 'undefined'
-                          ? localStorage.getItem('cache:region')
-                          : null) || '日本';
-                        // 利用開始月：もっとも古い stockedAt（無ければ今月）
-                        let joinedLabel = '';
-                        try {
-                          const dates = safeStocks
-                            .map((s) => (s as { stockedAt?: string; createdAt?: string }).stockedAt
-                              ?? (s as { stockedAt?: string; createdAt?: string }).createdAt
-                              ?? '')
-                            .filter(Boolean)
-                            .map((d) => new Date(d).getTime())
-                            .filter((n) => Number.isFinite(n));
-                          const earliest = dates.length ? Math.min(...dates) : Date.now();
-                          const dt = new Date(earliest);
-                          joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
-                        } catch { joinedLabel = '利用中'; }
-                        const chipStyle: React.CSSProperties = {
-                          fontSize: 12,
-                          padding: '6px 14px',
-                          borderRadius: 999,
-                          background: 'var(--stg-cream-200)',
-                          color: 'var(--stg-orange-700)',
-                          border: '1px solid rgba(254,141,40,0.20)',
-                        };
-                        return (
-                          <div className="flex gap-2 mt-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                              🍜 {favGenre}好き
-                            </span>
-                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                              📍 {region}
-                            </span>
-                            <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                              🕐 {joinedLabel}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </>
+                    <h1
+                      className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
+                      style={{ fontSize: 28, color: 'var(--stg-gray-900)', lineHeight: 1.15 }}
+                    >
+                      <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
+                      {isVerified && (
+                        <span
+                          aria-label="認証済み"
+                          className="inline-grid place-items-center flex-shrink-0"
+                          style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </span>
+                      )}
+                    </h1>
                   )}
                 </div>
               </div>
 
-              {/* Action buttons */}
+              {/* Action buttons — 上の行（avatar + name と同じ row）の右端 */}
               {!editingNickname && (
                 <div className="flex flex-wrap gap-2 sm:pb-1.5">
                   <button
@@ -536,6 +472,70 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 </div>
               )}
             </div>
+
+            {/* ─── 下の行：@handle · email + bio + chips（hero card の全幅）─── */}
+            {!editingNickname && (
+              <div className="mt-4">
+                <div
+                  className="flex items-center gap-2.5 flex-wrap"
+                  style={{ fontSize: 14, color: 'var(--stg-gray-600)' }}
+                >
+                  <span className="font-medium" style={{ color: 'var(--stg-gray-900)' }}>@{user?.nickname ?? ''}</span>
+                  <span style={{ color: 'var(--stg-gray-300)' }}>·</span>
+                  <span className="truncate">{user?.email}</span>
+                </div>
+                <p
+                  className="leading-[1.6] max-w-[640px] mt-2"
+                  style={{ fontSize: 14, color: 'var(--stg-gray-700)' }}
+                >
+                  {(user as { bio?: string } | null | undefined)?.bio
+                    ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
+                </p>
+                {/* design 準拠の 3 chip：好きジャンル / 住んでる地域 / 利用開始月。 */}
+                {(() => {
+                  const favGenre = (typeof localStorage !== 'undefined'
+                    ? localStorage.getItem('cache:favoriteGenre')
+                    : null) || 'グルメ';
+                  const region = (typeof localStorage !== 'undefined'
+                    ? localStorage.getItem('cache:region')
+                    : null) || '日本';
+                  let joinedLabel = '';
+                  try {
+                    const dates = safeStocks
+                      .map((s) => (s as { stockedAt?: string; createdAt?: string }).stockedAt
+                        ?? (s as { stockedAt?: string; createdAt?: string }).createdAt
+                        ?? '')
+                      .filter(Boolean)
+                      .map((d) => new Date(d).getTime())
+                      .filter((n) => Number.isFinite(n));
+                    const earliest = dates.length ? Math.min(...dates) : Date.now();
+                    const dt = new Date(earliest);
+                    joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
+                  } catch { joinedLabel = '利用中'; }
+                  const chipStyle: React.CSSProperties = {
+                    fontSize: 12,
+                    padding: '6px 14px',
+                    borderRadius: 999,
+                    background: 'var(--stg-cream-200)',
+                    color: 'var(--stg-orange-700)',
+                    border: '1px solid rgba(254,141,40,0.20)',
+                  };
+                  return (
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                        🍜 {favGenre}好き
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                        📍 {region}
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
+                        🕐 {joinedLabel}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
           </div>
           {/* Stats row — Claude Design: 4 セル、間に縦罫、hover で薄いクリーム */}
