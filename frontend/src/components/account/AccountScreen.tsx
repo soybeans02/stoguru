@@ -462,46 +462,46 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   {(user as { bio?: string } | null | undefined)?.bio
                     ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
                 </p>
-                {/* design 準拠の 3 chip：好きジャンル / 住んでる地域 / 利用開始月。 */}
+                {/* タグ表示：ユーザーが設定した値だけハッシュタグ風に並べる。
+                    未設定（cache:favoriteGenre / cache:region が空）の時は
+                    そもそも何も出さない（旧版の "グルメ好き" / "日本" のような
+                    デフォルト値は全部廃止）。利用開始月は実際に保存があるときだけ出す。 */}
                 {(() => {
                   const favGenre = (typeof localStorage !== 'undefined'
-                    ? localStorage.getItem('cache:favoriteGenre')
-                    : null) || 'グルメ';
+                    ? localStorage.getItem('cache:favoriteGenre')?.trim()
+                    : '') ?? '';
                   const region = (typeof localStorage !== 'undefined'
-                    ? localStorage.getItem('cache:region')
-                    : null) || '日本';
+                    ? localStorage.getItem('cache:region')?.trim()
+                    : '') ?? '';
                   let joinedLabel = '';
-                  try {
-                    const dates = safeStocks
-                      .map((s) => (s as { stockedAt?: string; createdAt?: string }).stockedAt
-                        ?? (s as { stockedAt?: string; createdAt?: string }).createdAt
-                        ?? '')
-                      .filter(Boolean)
-                      .map((d) => new Date(d).getTime())
-                      .filter((n) => Number.isFinite(n));
-                    const earliest = dates.length ? Math.min(...dates) : Date.now();
-                    const dt = new Date(earliest);
-                    joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
-                  } catch { joinedLabel = '利用中'; }
-                  const chipStyle: React.CSSProperties = {
-                    fontSize: 12,
-                    padding: '6px 14px',
-                    borderRadius: 999,
-                    background: 'var(--stg-cream-200)',
-                    color: 'var(--stg-orange-700)',
-                    border: '1px solid rgba(254,141,40,0.20)',
-                  };
+                  if (safeStocks.length > 0) {
+                    try {
+                      const dates = safeStocks
+                        .map((s) => (s as { stockedAt?: string; createdAt?: string }).stockedAt
+                          ?? (s as { stockedAt?: string; createdAt?: string }).createdAt
+                          ?? '')
+                        .filter(Boolean)
+                        .map((d) => new Date(d).getTime())
+                        .filter((n) => Number.isFinite(n));
+                      if (dates.length) {
+                        const dt = new Date(Math.min(...dates));
+                        joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
+                      }
+                    } catch { /* noop — 表示しない */ }
+                  }
+                  const tags: string[] = [];
+                  if (favGenre) tags.push(`#${favGenre}`);
+                  if (region) tags.push(`#${region}`);
+                  if (joinedLabel) tags.push(`#${joinedLabel}`);
+                  if (tags.length === 0) return null;
                   return (
-                    <div className="flex gap-2 mt-3 flex-wrap">
-                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                        🍜 {favGenre}好き
-                      </span>
-                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                        📍 {region}
-                      </span>
-                      <span className="inline-flex items-center gap-1 font-semibold" style={chipStyle}>
-                        🕐 {joinedLabel}
-                      </span>
+                    <div
+                      className="flex gap-x-2.5 gap-y-1 mt-3 flex-wrap"
+                      style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}
+                    >
+                      {tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
                     </div>
                   );
                 })()}
