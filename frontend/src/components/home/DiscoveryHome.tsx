@@ -2435,14 +2435,21 @@ export function RestaurantPreviewModal({
         >
           {/* ── 写真エリア（× を右上 / 保存する を右下 / 複数枚なら左右タップで切替）── */}
           <div className="relative" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
-            <img
-              key={photos[photoIdx]}
-              loading="lazy"
-              src={photos[photoIdx]}
-              alt={restaurant.name}
-              className="absolute inset-0 w-full h-full object-cover object-center"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre }); }}
-            />
+            {/* 全 photo を absolute で重ねて opacity で切替。`key` 変えで img を
+                再マウントすると一瞬白くなる（loading 中の placeholder 表示）ので、
+                ロードはまとめて行い表示だけ切り替える。 */}
+            {photos.map((p, i) => (
+              <img
+                key={p + ':' + i}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                src={p}
+                alt={i === photoIdx ? restaurant.name : ''}
+                aria-hidden={i !== photoIdx}
+                className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-200"
+                style={{ opacity: i === photoIdx ? 1 : 0 }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre }); }}
+              />
+            ))}
             {/* 左右タップゾーン（複数枚あるときだけ） */}
             {hasMultiplePhotos && (
               <>
@@ -2596,34 +2603,31 @@ export function RestaurantPreviewModal({
                 マップで見る
               </button>
               {(() => {
-                // 「公式サイトを開く」: videoUrl があればそれを開く（TikTok / Instagram /
-                // YouTube / 公式サイトリンクを restaurant が videoUrl に詰めて持つ）。
-                // 無ければ Google マップに店名 + 住所で飛ばすフォールバック。
-                const officialUrl = restaurant.videoUrl
-                  || (restaurant.name
-                        ? `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + ' ' + (restaurant.address ?? ''))}`
-                        : '');
+                // 「動画を見る」: TikTok / Instagram / YouTube などの videoUrl を
+                // 新タブで開く。存在しない時は disabled 風（クリックは無効）にして
+                // ボタン自体は出しっぱなしで「マップで見る」と並びを揃える。
+                const videoUrl = restaurant.videoUrl ?? '';
                 return (
                   <a
-                    href={officialUrl || '#'}
+                    href={videoUrl || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!officialUrl) e.preventDefault();
+                      if (!videoUrl) e.preventDefault();
                     }}
-                    aria-disabled={!officialUrl}
+                    aria-disabled={!videoUrl}
                     className="inline-flex items-center justify-center gap-1.5 h-11 rounded-full font-semibold text-white shadow-[0_8px_20px_rgba(254,141,40,0.35)] hover:-translate-y-0.5 transition-transform"
                     style={{
                       fontSize: 13,
                       background: 'var(--accent-orange)',
                       textDecoration: 'none',
-                      opacity: officialUrl ? 1 : 0.4,
-                      pointerEvents: officialUrl ? 'auto' : 'none',
+                      opacity: videoUrl ? 1 : 0.4,
+                      pointerEvents: videoUrl ? 'auto' : 'none',
                     }}
                   >
-                    公式サイトを開く
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    動画を見る
                   </a>
                 );
               })()}
