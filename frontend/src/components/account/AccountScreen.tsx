@@ -453,14 +453,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                     </span>
                   )}
                 </h1>
+                {/* @handle 行は削除（ニックネームと完全に同じ表記しか出ないので
+                    冗長というフィードバック）。email を直下に出す。 */}
                 <div
                   className="truncate mt-0.5"
-                  style={{ fontSize: 14, color: 'var(--text-secondary)' }}
-                >
-                  @{user?.nickname ?? ''}
-                </div>
-                <div
-                  className="truncate mt-1"
                   style={{ fontSize: 13, color: 'var(--text-tertiary)' }}
                 >
                   {user?.email}
