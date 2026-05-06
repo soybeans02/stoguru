@@ -2195,17 +2195,13 @@ function AppDownloadBanner() {
             <PlayStoreBadge href={PLAY_STORE_URL} t={t} />
           </div>
         </div>
-        {/* 右側：新しい LogoMark を装飾的に大きく表示（旧 /app-icon.png から差し替え） */}
-        <div className="hidden lg:flex items-center justify-center">
-          <div
-            className="w-[200px] rounded-[18px] p-4 flex flex-col items-center"
-            style={{ background: 'white', color: 'var(--stg-gray-900)' }}
-          >
-            <LogoMark size={168} radius={36} />
-            <p className="text-[11px] mt-3 text-center" style={{ color: 'var(--stg-gray-600)' }}>
-              {t('home.appBadgeComingSoon')}
-            </p>
-          </div>
+        {/* 右側：LogoMark を装飾的に大きく表示。
+            白い枠カードは外して LogoMark + テキストだけ直置き。 */}
+        <div className="hidden lg:flex flex-col items-center justify-center">
+          <LogoMark size={168} radius={36} />
+          <p className="text-[11px] mt-3 text-center" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            {t('home.appBadgeComingSoon')}
+          </p>
         </div>
       </div>
     </section>
