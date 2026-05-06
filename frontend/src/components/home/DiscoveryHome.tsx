@@ -900,13 +900,13 @@ function HeroDeck({
   // ユーザーデータと無関係の「見本」カードを使う。
   const cards = HERO_SAMPLE_CARDS;
 
-  // 背景だけ viewport edge まで広げる：section に -mx-4 lg:mx-0 を付け、
-  // 内側 grid に px-4 lg:px-0 を付けてテキストの位置は据え置き。
-  // 右側の glow gradient は前回削除済みなので、section を広げても
-  // 右側に余計な glow が viewport 端に張り付く心配は無い。
+  // 背景は「左だけ」viewport edge まで延ばす。
+  // section に -ml-4 lg:-ml-8 を付けて親の左 padding を打ち消し、左側のみ
+  // full-bleed。右側は親の padding 内に収まったまま（右めり込み回避）。
+  // 内側 grid に pl-4 lg:pl-8 を付けてテキストの位置は据え置き。
   return (
-    <section className="relative py-12 sm:py-16 lg:py-20 overflow-hidden -mx-4 lg:mx-0">
-      {/* 背景グラデ — 左上にだけ暖色グロー（section と一緒に full-bleed）*/}
+    <section className="relative py-12 sm:py-16 lg:py-20 overflow-hidden -ml-4 lg:-ml-8">
+      {/* 背景グラデ — 左上にだけ暖色グロー（section と一緒に左 full-bleed）*/}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -915,7 +915,7 @@ function HeroDeck({
         }}
       />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center px-4 lg:px-0">
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,580px)] gap-12 items-center pl-4 lg:pl-8">
         <div>
           {/* eyebrow */}
           <div
