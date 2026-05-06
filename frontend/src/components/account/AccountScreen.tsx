@@ -624,43 +624,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         {/* PRO アップグレードカードは design に無いので削除（将来の有料プラン
             機能を実装するときに再導入する）。 */}
 
-        {/* ─── 連携アカウント（プレースホルダ：将来の OAuth 連携機能向け） ─── */}
-        <SectionLabel>連携アカウント</SectionLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
-          {[
-            { name: 'TikTok', sub: '未接続', bg: 'linear-gradient(135deg, #FF0050, #00F2EA)', svg: <path fill="currentColor" stroke="none" d="M19.6 6.3a4.9 4.9 0 0 1-3-1.7 4.9 4.9 0 0 1-1-2.6h-3.3v13.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.5a6 6 0 1 0 5.1 5.9V8.7a8 8 0 0 0 4 1.3V6.7c-.1 0-.6 0-1-.4Z"/> },
-            { name: 'Instagram', sub: '未接続', bg: 'linear-gradient(135deg, #FEDA77, #F58529, #DD2A7B, #8134AF)', svg: <><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></> },
-            { name: 'YouTube', sub: '未接続', bg: '#FF0000', svg: <><rect x="2" y="6" width="20" height="12" rx="3"/><path fill="currentColor" stroke="none" d="m10 9 5 3-5 3z"/></> },
-          ].map((c) => (
-            <div
-              key={c.name}
-              className="flex items-center gap-3 px-4 py-3.5"
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
-            >
-              <div
-                className="w-[38px] h-[38px] grid place-items-center flex-shrink-0 text-white"
-                style={{ background: c.bg, borderRadius: 10 }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{c.svg}</svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{c.name}</div>
-                <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-gray-400)' }} />
-                  {c.sub}
-                </div>
-              </div>
-              <button
-                disabled
-                className="text-[12px] font-semibold px-3 py-1 cursor-not-allowed opacity-60"
-                style={{ background: 'var(--stg-gray-100)', color: 'var(--text-secondary)', borderRadius: 8, border: 'none' }}
-                title="OAuth 連携は近日対応予定"
-              >
-                準備中
-              </button>
-            </div>
-          ))}
-        </div>
+        {/* 連携アカウント (TikTok / Instagram / YouTube) のプレースホルダ
+            タイルは削除。OAuth 連携を実装したら戻す。 */}
 
         {/* ─── 設定 ─── */}
         <SectionLabel>{t('account.settings')}</SectionLabel>
