@@ -210,6 +210,7 @@ export const en: TranslationKeys = {
     applyToPost: 'Apply to post',
     pendingReview: 'Pending review',
     applicationRejected: 'Application rejected',
+    reapply: 'Reapply',
     profileShareCopied: 'Link copied',
   },
   feedback: {

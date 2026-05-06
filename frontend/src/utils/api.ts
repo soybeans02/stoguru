@@ -511,7 +511,60 @@ export async function adminRejectUploadApplication(token: string, userId: string
   if (!res.ok) throw new Error('Failed to reject');
 }
 
-// 投稿申請フロー (UploadApplicationStatus / getUploadApplication /
-// submitUploadApplication) は撤廃済み。アプリに登録すれば誰でも投稿可。
-// admin 用の AdminUploadApplication は履歴表示のため残す。
+// ─── 投稿申請（multi-step ウィザード版） ───
+// 旧フローを撤廃した後、management+申請フォームを再導入。
+// `payload` は UploadApplicationWizard で集めた内容を丸ごと送る。
+
+export type UploadApplicationStatus = 'none' | 'pending' | 'approved' | 'rejected';
+
+export interface UploadApplicationDetail {
+  reason?: string;
+  regions?: string[];
+  genres?: string[];
+  sampleUrls?: string[];
+  agreedAt?: number;
+}
+
+export interface UploadApplication {
+  status: UploadApplicationStatus;
+  application?: UploadApplicationDetail | null;
+  appliedAt?: number | null;
+}
+
+export interface UploadApplicationPayload {
+  reason: string;
+  regions: string[];
+  genres: string[];
+  sampleUrls: string[];
+  agreed: true;
+}
+
+export async function getUploadApplication(): Promise<UploadApplication> {
+  const res = await fetchWithRetry(`${BASE}/influencer/upload-application`, { headers: headers() });
+  if (!res.ok) return { status: 'none', application: null, appliedAt: null };
+  const data = await res.json().catch(() => ({}));
+  const status = (data?.status as UploadApplicationStatus | undefined) ?? 'none';
+  return {
+    status,
+    application: (data?.application ?? null) as UploadApplicationDetail | null,
+    appliedAt: typeof data?.appliedAt === 'number' ? data.appliedAt : null,
+  };
+}
+
+export async function submitUploadApplication(payload: UploadApplicationPayload): Promise<UploadApplication> {
+  const res = await fetchWithRetry(`${BASE}/influencer/upload-application`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && data.error) ? String(data.error) : '投稿申請の送信に失敗しました');
+  }
+  return {
+    status: (data?.status as UploadApplicationStatus) ?? 'pending',
+    application: (data?.application ?? null) as UploadApplicationDetail | null,
+    appliedAt: typeof data?.appliedAt === 'number' ? data.appliedAt : null,
+  };
+}
 

@@ -6,8 +6,9 @@ import {
   putRestaurantV2, getRestaurantV2, queryRestaurantsByPostedBy,
   updateRestaurantV2Visibility,
   invalidateSearchCache,
+  getUserSettings, putUserSettings,
 } from '../services/dynamo';
-import { validate, influencerProfileSchema, influencerRestaurantSchema } from '../validators';
+import { validate, influencerProfileSchema, influencerRestaurantSchema, uploadApplicationSchema } from '../validators';
 
 const router = Router();
 
@@ -70,10 +71,25 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
 
 // ─── レストラン追加/更新（V2: Restaurants_v2に直接書き込み） ───
 
-// インフルエンサー登録 / 管理者承認のゲートは撤廃。
-// アプリに登録済み (= requireAuth を通る) ユーザーは誰でも投稿できる。
+// 投稿許可チェック（multi-step ウィザード経由で申請 → 管理者承認の必要あり）
+async function ensureUploadApproved(userId: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  try {
+    const settings = await getUserSettings(userId);
+    const status = settings?.uploadStatus ?? 'none';
+    if (status === 'approved') return { ok: true };
+    if (status === 'pending') return { ok: false, status: 403, error: '投稿申請を確認中です。承認をお待ちください。' };
+    if (status === 'rejected') return { ok: false, status: 403, error: '投稿申請が却下されています。' };
+    return { ok: false, status: 403, error: '投稿には事前申請と管理者の承認が必要です。' };
+  } catch {
+    return { ok: false, status: 500, error: '投稿権限の確認に失敗しました' };
+  }
+}
+
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
+  const approval = await ensureUploadApproved(userId);
+  if (!approval.ok) { res.status(approval.status).json({ error: approval.error }); return; }
+
   const restaurantId = req.params.id as string;
   const v = validate(influencerRestaurantSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
@@ -148,6 +164,44 @@ router.patch('/restaurants/:id/visibility', requireAuth, async (req: AuthRequest
 
   await updateRestaurantV2Visibility(restaurantId, visibility);
   res.json({ ok: true });
+});
+
+// ─── 投稿申請（4 ステップウィザードからリッチに submit）───
+
+// 申請の現状を返す。フロントは status と前回入力値の echo back に使う。
+router.get('/upload-application', requireAuth, async (req: AuthRequest, res: Response) => {
+  const settings = await getUserSettings(req.user!.userId);
+  res.json({
+    status: settings.uploadStatus ?? 'none',
+    application: settings.uploadApplication ?? null,
+    appliedAt: settings.uploadAppliedAt ?? null,
+  });
+});
+
+// 新規申請 / 再申請。approved な人が再送信しても何も起きない。
+router.post('/upload-application', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const settings = await getUserSettings(userId);
+  if (settings.uploadStatus === 'approved') {
+    res.json({ status: 'approved' });
+    return;
+  }
+  const v = validate(uploadApplicationSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const now = Date.now();
+  await putUserSettings(userId, {
+    ...settings,
+    uploadStatus: 'pending',
+    uploadAppliedAt: now,
+    uploadApplication: {
+      reason: v.data.reason,
+      regions: v.data.regions,
+      genres: v.data.genres,
+      sampleUrls: v.data.sampleUrls,
+      agreedAt: now,
+    },
+  });
+  res.json({ status: 'pending' });
 });
 
 // ─── レストラン削除 ───

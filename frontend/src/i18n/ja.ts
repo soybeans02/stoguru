@@ -216,8 +216,9 @@ export const ja = {
     changeEmail: 'メールアドレス変更',
     other: 'その他',
     applyToPost: '投稿を申請',
-    pendingReview: '申請中',
+    pendingReview: '審査中',
     applicationRejected: '申請が却下されました',
+    reapply: '再申請する',
     profileShareCopied: '共有リンクをコピーしました',
   },
   // フィードバック

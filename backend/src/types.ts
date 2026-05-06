@@ -89,6 +89,15 @@ export interface UserSettings {
   /// 'none' = 申請未提出 / 'pending' = 申請中 / 'approved' = 承認済 / 'rejected' = 却下
   uploadStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   uploadAppliedAt?: number;
+  /// 申請フォームの内容（管理者が審査時に見る）。複数ステップで集めた情報を
+  /// 1 オブジェクトに格納。詳細は POST /influencer/upload-application のスキーマ参照。
+  uploadApplication?: {
+    reason?: string;            // 投稿したい動機・自己紹介
+    regions?: string[];         // 活動エリア（最大 5）
+    genres?: string[];          // 得意ジャンル（最大 5）
+    sampleUrls?: string[];      // SNS / 動画サンプル URL（最大 5）
+    agreedAt?: number;          // ガイドライン同意タイムスタンプ
+  };
   profilePhotoUrl?: string;
   updatedAt?: number;
 }

@@ -210,6 +210,16 @@ export const feedbackSchema = z.object({
   ]).optional().transform(v => v ?? undefined),
 });
 
+// ─── 投稿申請（multi-step ウィザードから来るリッチ申請データ）───
+
+export const uploadApplicationSchema = z.object({
+  reason: z.string().min(20, '投稿したい理由は 20 文字以上で書いてください').max(1000, '長すぎます（1000 文字以内）').trim(),
+  regions: z.array(z.string().min(1).max(40)).min(1, '活動エリアを 1 つ以上選んでください').max(5),
+  genres: z.array(z.string().min(1).max(40)).min(1, '得意ジャンルを 1 つ以上選んでください').max(5),
+  sampleUrls: z.array(httpUrl(500)).max(5).default([]),
+  agreed: z.literal(true, { message: 'ガイドラインへの同意が必要です' }),
+});
+
 // ─── 写真アップロード ───
 
 export const presignSchema = z.object({
