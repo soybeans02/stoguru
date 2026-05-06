@@ -408,3 +408,86 @@
   /* address は 1 行に省略（… で切る）。情報は残しつつ縦潰れだけ防ぐ。 */
   .stock-row__meta-address { max-width: 100%; }
 }
+
+/* ─── 保存ページ専用の dark mode 調整（他ページに影響させない） ─── */
+[data-theme="black"] .stock-card,
+[data-theme="black"] .stock-list {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+[data-theme="black"] .stock-card.is-visited {
+  background: linear-gradient(180deg, var(--card-bg), var(--bg-soft));
+}
+[data-theme="black"] .stock-card__photo,
+[data-theme="black"] .stock-row__photo {
+  background: var(--bg-soft);
+}
+[data-theme="black"] .stock-card__title,
+[data-theme="black"] .stock-row__title {
+  color: var(--text-primary);
+}
+[data-theme="black"] .stock-card__meta,
+[data-theme="black"] .stock-row__meta,
+[data-theme="black"] .stock-card__source,
+[data-theme="black"] .stock-row__date {
+  color: var(--text-secondary);
+}
+[data-theme="black"] .stock-row {
+  border-bottom-color: var(--border);
+}
+[data-theme="black"] .stock-row:hover { background: var(--bg-soft); }
+[data-theme="black"] .stock-row.is-visited { background: var(--bg-soft); }
+[data-theme="black"] .stat-card { background: var(--card-bg); border-color: var(--border); }
+[data-theme="black"] .stat-card__num { color: var(--text-primary); }
+[data-theme="black"] .stat-card__lbl { color: var(--text-secondary); }
+[data-theme="black"] .page-search,
+[data-theme="black"] .toolbar__search,
+[data-theme="black"] .chip-btn,
+[data-theme="black"] .view-toggle {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme="black"] .page-search input,
+[data-theme="black"] .toolbar__search input { color: var(--text-primary); }
+[data-theme="black"] .tab-pills { background: var(--bg-soft); }
+[data-theme="black"] .tab-pill { color: var(--text-secondary); }
+[data-theme="black"] .tab-pill.is-active { background: var(--card-bg); color: var(--text-primary); }
+[data-theme="black"] .view-toggle button.is-active { background: var(--bg-soft); color: var(--text-primary); }
+[data-theme="black"] .stock-card__action {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme="black"] .stock-card__action:hover { background: var(--bg-soft); }
+[data-theme="black"] .stock-row__meta-dot,
+[data-theme="black"] .stock-card__meta-dot { background: var(--text-tertiary); }
+[data-theme="black"] .stock-card__chip,
+[data-theme="black"] .stock-row__chips > * {
+  background: var(--bg-soft); color: var(--text-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .stock-card,
+  [data-theme="auto"] .stock-list { background: var(--card-bg); border-color: var(--border); }
+  [data-theme="auto"] .stock-card.is-visited { background: linear-gradient(180deg, var(--card-bg), var(--bg-soft)); }
+  [data-theme="auto"] .stock-card__photo,
+  [data-theme="auto"] .stock-row__photo { background: var(--bg-soft); }
+  [data-theme="auto"] .stock-card__title,
+  [data-theme="auto"] .stock-row__title { color: var(--text-primary); }
+  [data-theme="auto"] .stock-card__meta,
+  [data-theme="auto"] .stock-row__meta,
+  [data-theme="auto"] .stock-card__source,
+  [data-theme="auto"] .stock-row__date { color: var(--text-secondary); }
+  [data-theme="auto"] .stock-row { border-bottom-color: var(--border); }
+  [data-theme="auto"] .stat-card { background: var(--card-bg); border-color: var(--border); }
+  [data-theme="auto"] .stat-card__num { color: var(--text-primary); }
+  [data-theme="auto"] .stat-card__lbl { color: var(--text-secondary); }
+  [data-theme="auto"] .page-search,
+  [data-theme="auto"] .toolbar__search,
+  [data-theme="auto"] .chip-btn,
+  [data-theme="auto"] .view-toggle { background: var(--card-bg); border-color: var(--border); color: var(--text-primary); }
+  [data-theme="auto"] .tab-pills { background: var(--bg-soft); }
+  [data-theme="auto"] .tab-pill.is-active { background: var(--card-bg); color: var(--text-primary); }
+  [data-theme="auto"] .stock-card__action { background: var(--card-bg); border-color: var(--border); color: var(--text-primary); }
+}

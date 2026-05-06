@@ -1629,12 +1629,13 @@ function SpotRankCard({
       onClick={onClick}
       className="group text-left overflow-hidden cursor-pointer transition-all hover:-translate-y-1"
       style={{
-        background: 'white',
+        /* dark mode でも自然に切り替わるよう card-bg に。 */
+        background: 'var(--card-bg)',
         borderRadius: 18,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px var(--border)',
       }}
     >
-      <div className="relative overflow-hidden" style={{ aspectRatio: '4 / 3', background: 'var(--stg-gray-100)' }}>
+      <div className="relative overflow-hidden" style={{ aspectRatio: '4 / 3', background: 'var(--bg-soft)' }}>
         <img
           loading="lazy"
           src={photo}
@@ -1648,8 +1649,9 @@ function SpotRankCard({
         <div
           className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-extrabold"
           style={{
+            /* 写真上の overlay なので白背景で固定（dark text を 読ませる） */
             background: 'white',
-            color: 'var(--stg-gray-900)',
+            color: 'var(--stg-ink)',
             borderRadius: 999,
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           }}
@@ -1686,14 +1688,14 @@ function SpotRankCard({
       <div className="px-4 pt-3.5 pb-4">
         <div
           className="font-bold tracking-[-0.01em] truncate"
-          style={{ fontSize: 15, color: 'var(--stg-gray-900)' }}
+          style={{ fontSize: 15, color: 'var(--text-primary)' }}
           title={spot.name}
         >
           {spot.name}
         </div>
         <div
           className="flex items-center gap-2 mt-1 flex-wrap"
-          style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}
+          style={{ fontSize: 12, color: 'var(--text-secondary)' }}
         >
           {spot.genres?.[0] && <span>{spot.genres[0]}</span>}
           {spot.genres?.[0] && spot.priceRange && <span className="opacity-50">·</span>}
@@ -1772,8 +1774,8 @@ function RankCard({
       onClick={onClick}
       className="text-left flex flex-col gap-3 transition-all hover:-translate-y-0.5 cursor-pointer"
       style={{
-        background: 'white',
-        border: '1px solid var(--stg-gray-200)',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         padding: 18,
       }}
@@ -1790,23 +1792,23 @@ function RankCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-bold truncate" style={{ fontSize: 14, color: 'var(--stg-gray-900)' }}>
+          <div className="font-bold truncate" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
             {user.nickname}
           </div>
-          <div className="truncate" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+          <div className="truncate" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             @{user.nickname}
           </div>
         </div>
         <span
           className="inline-flex items-center justify-center text-[11px] font-bold px-2.5 py-1 rounded-full"
-          style={{ background: 'var(--stg-gray-100)', color: 'var(--stg-gray-900)' }}
+          style={{ background: 'var(--bg-soft)', color: 'var(--text-primary)' }}
         >
           {rank}位
         </span>
       </div>
-      <div className="flex gap-3.5" style={{ fontSize: 12, color: 'var(--stg-gray-600)' }}>
+      <div className="flex gap-3.5" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
         <div>
-          <b style={{ color: 'var(--stg-gray-900)', fontSize: 14, fontWeight: 700 }}>{user.totalStocks}</b> 回保存
+          <b style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 }}>{user.totalStocks}</b> 回保存
         </div>
       </div>
     </button>
