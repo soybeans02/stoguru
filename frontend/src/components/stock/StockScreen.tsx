@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import './stock-page.css';
 
 function formatDate(iso: string): string {
@@ -40,6 +41,8 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
   const [openId, setOpenId] = useState<string | null>(null);
   // Claude Design: grid / list view 切り替え
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  // カードタップで開くプレビューモーダル（home の RestaurantPreviewModal を流用）
+  const [preview, setPreview] = useState<FeedRestaurant | null>(null);
   const visitedCount = stocks.filter((s) => s.visited).length;
   const todoCount = stocks.length - visitedCount;
   const completionRate = stocks.length > 0 ? Math.round((visitedCount / stocks.length) * 100) : 0;
@@ -226,7 +229,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
               <div
                 key={s.id}
                 className={`stock-card ${s.visited ? 'is-visited' : ''}`}
-                onClick={() => onShowOnMap(s.lat, s.lng, s)}
+                onClick={() => setPreview(s as unknown as FeedRestaurant)}
               >
                 <div className="stock-card__photo">
                   {photo ? <img loading="lazy" src={photo} alt={s.name} /> : null}
@@ -334,7 +337,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
               <div
                 key={s.id}
                 className={`stock-row ${s.visited ? 'is-visited' : ''}`}
-                onClick={() => onShowOnMap(s.lat, s.lng, s)}
+                onClick={() => setPreview(s as unknown as FeedRestaurant)}
               >
                 <div className="stock-row__photo">
                   {photo && <img loading="lazy" src={photo} alt={s.name} />}
@@ -394,6 +397,26 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
             );
           })}
         </div>
+      )}
+
+      {/* カード/行 タップで開くプレビューモーダル。
+          home の RestaurantPreviewModal と同一 UI。保存ページ専用に
+          「マップで見る」ボタンを追加（onShowOnMap 経由）。 */}
+      {preview && (
+        <RestaurantPreviewModal
+          restaurant={preview}
+          userPosition={userPosition}
+          bookmarked={true /* 保存ページなので必ず保存済み */}
+          onBookmark={() => {
+            // 保存ページから 保存済み を押した = 解除
+            if (window.confirm(`「${preview.name}」を保存から削除する？`)) {
+              onRemoveStock(preview.id);
+              setPreview(null);
+            }
+          }}
+          onClose={() => setPreview(null)}
+          onShowOnMap={() => onShowOnMap(preview.lat, preview.lng, preview as unknown as StockedRestaurant)}
+        />
       )}
     </div>
   );

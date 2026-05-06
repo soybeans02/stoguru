@@ -276,7 +276,13 @@
 .stock-card__source-dot.ig { background: linear-gradient(135deg, #FEDA77, #F58529, #DD2A7B, #8134AF); }
 .stock-card__source-dot.yt { background: #FF0000; }
 .stock-card__chips {
-  display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap;
+  display: flex; gap: 5px; flex-wrap: wrap;
+  /* min-height でカード間の chip 行の高さを揃える（chip 無しカードでも
+     スペースを確保）。bottom 余白で actions の border-top と離す。 */
+  min-height: 26px;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 6px;
 }
 .stock-card__chip {
   font-size: 11px; font-weight: 500;

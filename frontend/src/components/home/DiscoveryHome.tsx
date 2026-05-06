@@ -40,7 +40,7 @@ interface ThemeConfig {
   featureSlug?: string;
 }
 
-interface FeedRestaurant extends SwipeRestaurant {
+export interface FeedRestaurant extends SwipeRestaurant {
   // optional API extras
   photoUrls?: string[];
   influencerHandle?: string;
@@ -2339,18 +2339,26 @@ function PlayStoreBadge({ href, t }: { href: string | null; t: (k: string) => st
    Restaurant preview modal — フィードのカードをタップした時に
    スワイプ画面と同じ大きいカードを一時的に表示
    ───────────────────────────────────── */
-function RestaurantPreviewModal({
+/**
+ * 店舗プレビューモーダル。
+ * Home（保存ランキング / おすすめ）と Stock 画面の両方から開くため export 化。
+ * `onShowOnMap` を渡すと「マップで見る」ボタンが追加で表示され、
+ * 押下でモーダルを閉じてから渡されたコールバックを呼ぶ（保存画面用）。
+ */
+export function RestaurantPreviewModal({
   restaurant,
   userPosition,
   bookmarked,
   onBookmark,
   onClose,
+  onShowOnMap,
 }: {
   restaurant: FeedRestaurant;
   userPosition: GPSPosition | null;
   bookmarked: boolean;
   onBookmark: () => void;
   onClose: () => void;
+  onShowOnMap?: () => void;
 }) {
   const distance = userPosition
     ? formatDistance(
@@ -2377,28 +2385,44 @@ function RestaurantPreviewModal({
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onBookmark(); }}
-            aria-label={bookmarked ? 'Unsave' : 'Save'}
-            className={`flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] backdrop-blur-md transition-colors ${
-              bookmarked
-                ? 'text-white'
-                : 'bg-white/10 text-white hover:bg-white/20'
-            }`}
-            style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill={bookmarked ? 'white' : 'none'}
-              stroke="white"
-              strokeWidth="2"
+          <div className="flex items-center gap-2">
+            {/* 保存ページから開いた場合だけ「マップで見る」を出す */}
+            {onShowOnMap && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onClose(); onShowOnMap(); }}
+                aria-label="マップで見る"
+                className="flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] bg-white/10 text-white hover:bg-white/20 backdrop-blur-md transition-colors"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                マップ
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onBookmark(); }}
+              aria-label={bookmarked ? 'Unsave' : 'Save'}
+              className={`flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-[13px] backdrop-blur-md transition-colors ${
+                bookmarked
+                  ? 'text-white'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+              style={bookmarked ? { background: 'var(--accent-orange)' } : undefined}
             >
-              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            {bookmarked ? '保存済み' : '保存'}
-          </button>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill={bookmarked ? 'white' : 'none'}
+                stroke="white"
+                strokeWidth="2"
+              >
+                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+              {bookmarked ? '保存済み' : '保存'}
+            </button>
+          </div>
         </div>
 
         {/* カード本体。固定 px だと小型端末（iPhone SE/8）で
