@@ -411,8 +411,10 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
           </div>
         ) : (
           <>
-            {/* 高さは固定 px だと iPhone SE/8 などの小型端末でヘッダー + 下部タブを引いた残りに収まらないので min(目標, svh-余白) で逃がす */}
-            <div className="relative w-full max-w-[380px] md:max-w-[440px] lg:max-w-[500px] h-[min(560px,calc(100svh-180px))] md:h-[min(620px,calc(100svh-180px))] lg:h-[min(680px,calc(100svh-180px))] flex-shrink-0">
+            {/* 高さは固定 px だと iPhone SE/8 などの小型端末でヘッダー + 下部タブを
+                引いた残りに収まらないので min(目標, svh-余白) で逃がす。
+                PC ではサイドバー込みでも視野内に収まる範囲で大きめに振る。 */}
+            <div className="relative w-full max-w-[380px] md:max-w-[460px] lg:max-w-[560px] xl:max-w-[640px] 2xl:max-w-[720px] h-[min(560px,calc(100svh-180px))] md:h-[min(640px,calc(100svh-160px))] lg:h-[min(780px,calc(100svh-140px))] xl:h-[min(860px,calc(100svh-130px))] 2xl:h-[min(940px,calc(100svh-120px))] flex-shrink-0">
               {next && (
                 <SwipeCard
                   key={`next-${next.id}`}
