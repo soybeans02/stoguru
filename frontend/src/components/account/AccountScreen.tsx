@@ -41,8 +41,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<api.UploadApplicationStatus>('none');
-  const [uploadStatusLoading, setUploadStatusLoading] = useState(false);
-  const [applyingUpload, setApplyingUpload] = useState(false);
+  // 投稿申請バナーを UI から外したので uploadStatusLoading / applyingUpload は不要。
   // 通知設定（バックエンド未実装なのでクライアント側 localStorage 永続）
   const [pushNotif, setPushNotif] = useState(() => localStorage.getItem('cache:pushNotif') !== '0');
   const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('cache:emailNotif') === '1');
@@ -111,25 +110,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       }));
       setFollowersList(withNicks);
     }).catch(() => {});
-    setUploadStatusLoading(true);
     api.getUploadApplication()
       .then((r) => setUploadStatus(r.status))
-      .catch(() => setUploadStatus('none'))
-      .finally(() => setUploadStatusLoading(false));
+      .catch(() => setUploadStatus('none'));
   }, []);
-
-  async function handleApplyToPost() {
-    if (applyingUpload) return;
-    setApplyingUpload(true);
-    try {
-      const r = await api.submitUploadApplication();
-      setUploadStatus(r.status);
-    } catch {
-      // 失敗しても UI は維持
-    } finally {
-      setApplyingUpload(false);
-    }
-  }
 
   async function handleSaveNickname() {
     if (!nicknameInput.trim()) return;
@@ -581,61 +565,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </div>
         </div>
 
-        {/* ─── Apply / Edit spots banner ─── */}
-        <div className="mb-6">
-          {uploadStatusLoading ? (
-            <div className="rounded-[var(--radius-xl)] px-5 py-4 bg-[var(--bg-soft)] flex items-center justify-center">
-              <span className="text-[13px] text-[var(--text-tertiary)]">…</span>
-            </div>
-          ) : uploadStatus === 'approved' ? (
-            <button
-              onClick={() => setShowInfluencerDashboard(true)}
-              className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between text-white shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-all"
-              style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-                </span>
-                <span className="text-[14px] font-bold">{t('account.editSpots')}</span>
-              </div>
-              <span className="text-white/60 text-lg">›</span>
-            </button>
-          ) : uploadStatus === 'pending' ? (
-            <div className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between bg-[var(--bg-soft)] border border-[var(--border)]">
-              <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-full grid place-items-center" style={{ background: 'var(--accent-orange)', opacity: 0.15 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-orange)' }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </span>
-                <span className="text-[14px] font-bold text-[var(--text-secondary)]">{t('account.pendingReview')}</span>
-              </div>
-            </div>
-          ) : uploadStatus === 'rejected' ? (
-            <div className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
-              <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-full bg-red-500/15 grid place-items-center text-red-500">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                </span>
-                <span className="text-[14px] font-bold text-red-500">{t('account.applicationRejected')}</span>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={handleApplyToPost}
-              disabled={applyingUpload}
-              className="w-full rounded-[var(--radius-xl)] px-5 py-4 flex items-center justify-between text-white shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-all disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                </span>
-                <span className="text-[14px] font-bold">{applyingUpload ? '…' : t('account.applyToPost')}</span>
-              </div>
-              <span className="text-white/60 text-lg">›</span>
-            </button>
-          )}
-        </div>
+        {/* Apply / Edit spots banner（投稿申請フロー）は design に無いので削除済。
+            投稿は誰でもできる前提に切り替える plan に従い、UI から外す。
+            uploadStatus の state や InfluencerDashboard は残しておくが、
+            本パネルからはアクセスしない。 */}
 
         {/* ─── ストリークバナー（7 日連続保存 + 炎ゲージ） ─── */}
         {safeStocks.length > 0 && (
@@ -709,56 +642,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           </div>
         )}
 
-        {/* ─── PRO カード（プレースホルダ：将来の有料プラン） ─── */}
-        <div
-          className="relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5 mb-7"
-          style={{
-            background: 'linear-gradient(135deg, #18181B 0%, #27272A 100%)',
-            color: 'white',
-            borderRadius: 16,
-          }}
-        >
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              top: -40, right: -40, width: 200, height: 200,
-              background: 'radial-gradient(circle, rgba(254,141,40,0.30), transparent 70%)',
-            }}
-          />
-          <div className="relative flex-1 min-w-0">
-            <span
-              className="inline-block font-bold uppercase tracking-[0.08em]"
-              style={{
-                fontSize: 11,
-                padding: '4px 10px',
-                background: 'linear-gradient(135deg, #FBBF24, var(--stg-orange-500))',
-                color: '#1F1F1F',
-                borderRadius: 6,
-                marginBottom: 8,
-              }}
-            >
-              PRO
-            </span>
-            <div className="font-bold mb-1" style={{ fontSize: 18 }}>stoguru Pro にアップグレード</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
-              無制限の保存・複数 SNS 連携・グループプラン作成
-            </div>
-          </div>
-          <button
-            className="relative ml-auto px-4 py-2.5 font-bold flex-shrink-0"
-            style={{
-              fontSize: 13,
-              background: 'linear-gradient(135deg, #FBBF24, var(--stg-orange-500))',
-              color: '#1F1F1F',
-              border: 'none',
-              borderRadius: 10,
-              cursor: 'pointer',
-            }}
-            onClick={() => alert('Pro プランは近日対応予定')}
-          >
-            月¥480 で試す →
-          </button>
-        </div>
+        {/* PRO アップグレードカードは design に無いので削除（将来の有料プラン
+            機能を実装するときに再導入する）。 */}
 
         {/* ─── 連携アカウント（プレースホルダ：将来の OAuth 連携機能向け） ─── */}
         <SectionLabel>連携アカウント</SectionLabel>
