@@ -314,8 +314,12 @@ function MainApp() {
     setTab('map');
   }, []);
 
-  // 左下ユーザー表示で使うプロフィール画像（AccountScreen と同じ localStorage キャッシュを参照）
-  const profileImage = (typeof localStorage !== 'undefined' ? localStorage.getItem('cache:profileImage') : null) ?? undefined;
+  // 左下ユーザー表示で使うプロフィール画像。
+  // user が居ない（ゲスト）ときは前回ユーザーの localStorage キャッシュが
+  // 残っていても見せない。ログアウト時に key を消し損ねたケースの保険でもある。
+  const profileImage = user
+    ? (typeof localStorage !== 'undefined' ? localStorage.getItem('cache:profileImage') : null) ?? undefined
+    : undefined;
 
   return (
     <div className="flex h-svh bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden">

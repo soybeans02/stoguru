@@ -155,6 +155,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    // 前ユーザーの個人情報キャッシュも全部消す。
+    // これを忘れるとゲストに戻ったあとも左下サイドバーに前ユーザーの
+    // プロフィール写真等が出てしまう。
+    [
+      'cache:profileImage',
+      'cache:profileIcon',
+      'cache:coverImage',
+      'cache:userRole',
+      'cache:isPrivate',
+      'cache:followingCount',
+      'cache:followersCount',
+      'cache:pushNotif',
+      'cache:emailNotif',
+      'cache:favoriteGenre',
+      'cache:region',
+    ].forEach((k) => localStorage.removeItem(k));
     setToken(null);
     setUser(null);
   }
