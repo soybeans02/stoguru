@@ -60,10 +60,13 @@ function IconUser({ size = 18 }: { active?: boolean; size?: number }) {
 }
 /* Brand mark — Claude Design の <a className="brand"> 内 SVG と同一 */
 function BrandMark() {
+  // ピン本体は currentColor（sidebar.css で white に塗ってる）。中央のドットを
+  // オレンジ（#FE8D28）にすることで「白いピンに位置情報マーカーが乗っている」
+  // ような見た目にする。LogoMark / favicon も同じ色構成。
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2c-4 0-7 3-7 7 0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7Z"/>
-      <circle cx="12" cy="9" r="3" fill="white"/>
+      <circle cx="12" cy="9" r="3" fill="#FE8D28"/>
     </svg>
   );
 }
