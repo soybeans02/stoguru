@@ -194,7 +194,8 @@
   box-shadow: 0 16px 28px -12px rgba(0,0,0,0.14);
   border-color: var(--stg-gray-300);
 }
-.stock-card.is-visited { background: linear-gradient(180deg, white, var(--stg-cream-100)); }
+/* visited 状態でカード bg を変色させる演出は削除（写真上の緑 ✓ バッジで十分）。
+   .stock-card.is-visited { background: linear-gradient(180deg, white, var(--stg-cream-100)); } */
 .stock-card__photo {
   position: relative;
   aspect-ratio: 16/9;
@@ -339,7 +340,8 @@
 }
 .stock-row:last-child { border-bottom: none; }
 .stock-row:hover { background: var(--stg-gray-50); }
-.stock-row.is-visited { background: var(--stg-cream-50); }
+/* row も同じく visited 変色を解除 */
+/* .stock-row.is-visited { background: var(--stg-cream-50); } */
 .stock-row__photo {
   width: 80px; height: 64px;
   border-radius: 10px; overflow: hidden;
@@ -437,9 +439,7 @@
   background: var(--card-bg);
   border-color: var(--border);
 }
-[data-theme="black"] .stock-card.is-visited {
-  background: linear-gradient(180deg, var(--card-bg), var(--bg-soft));
-}
+/* visited 変色は削除済（緑の ✓ バッジで識別） */
 [data-theme="black"] .stock-card__photo,
 [data-theme="black"] .stock-row__photo {
   background: var(--bg-soft);
@@ -458,7 +458,7 @@
   border-bottom-color: var(--border);
 }
 [data-theme="black"] .stock-row:hover { background: var(--bg-soft); }
-[data-theme="black"] .stock-row.is-visited { background: var(--bg-soft); }
+/* row も visited 変色を解除 */
 [data-theme="black"] .stat-card { background: var(--card-bg); border-color: var(--border); }
 [data-theme="black"] .stat-card__num { color: var(--text-primary); }
 [data-theme="black"] .stat-card__lbl { color: var(--text-secondary); }
@@ -492,7 +492,7 @@
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] .stock-card,
   [data-theme="auto"] .stock-list { background: var(--card-bg); border-color: var(--border); }
-  [data-theme="auto"] .stock-card.is-visited { background: linear-gradient(180deg, var(--card-bg), var(--bg-soft)); }
+  /* visited 変色は削除済（緑の ✓ バッジで識別） */
   [data-theme="auto"] .stock-card__photo,
   [data-theme="auto"] .stock-row__photo { background: var(--bg-soft); }
   [data-theme="auto"] .stock-card__title,
