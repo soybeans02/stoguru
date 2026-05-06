@@ -775,7 +775,8 @@ export function DiscoveryHome({
                 { label: t('home.footerHowToUse'), href: '/p/how-to' },
                 { label: t('home.footerFeatures'), href: '/p/features' },
                 { label: t('home.footerPricing'), href: '/p/pricing' },
-                { label: t('home.footerDownload'), href: '/p/features' },
+                // 「アプリをダウンロード」は出すアプリがまだ無いので外す。
+                // i18n の `home.footerDownload` キーは将来復活時のために残置。
               ]}
             />
             <FooterCol
