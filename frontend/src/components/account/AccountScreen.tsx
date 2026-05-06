@@ -418,21 +418,31 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                       {nicknameError && <p className="text-red-500 text-[11px] mt-1 w-full">{nicknameError}</p>}
                     </div>
                   ) : (
-                    <h1
-                      className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
-                      style={{ fontSize: 28, color: 'var(--text-primary)', lineHeight: 1.15 }}
-                    >
-                      <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
-                      {isVerified && (
-                        <span
-                          aria-label="認証済み"
-                          className="inline-grid place-items-center flex-shrink-0"
-                          style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                        </span>
-                      )}
-                    </h1>
+                    <>
+                      <h1
+                        className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
+                        style={{ fontSize: 28, color: 'var(--text-primary)', lineHeight: 1.15 }}
+                      >
+                        <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
+                        {isVerified && (
+                          <span
+                            aria-label="認証済み"
+                            className="inline-grid place-items-center flex-shrink-0"
+                            style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                          </span>
+                        )}
+                      </h1>
+                      {/* twitter 風：名前の直下に @handle。
+                          email は下の行（bio の前）に小さく表示。 */}
+                      <div
+                        className="truncate mt-0.5"
+                        style={{ fontSize: 14, color: 'var(--text-secondary)' }}
+                      >
+                        @{user?.nickname ?? ''}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -475,16 +485,15 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               )}
             </div>
 
-            {/* ─── 下の行：@handle · email + bio + chips（hero card の全幅）─── */}
+            {/* ─── 下の行：email + bio + chips（hero card の全幅） ───
+                @handle は H1 直下（名前のすぐ下）に移動済なのでここでは出さない。 */}
             {!editingNickname && (
               <div className="mt-4">
                 <div
-                  className="flex items-center gap-2.5 flex-wrap"
-                  style={{ fontSize: 14, color: 'var(--text-secondary)' }}
+                  className="truncate"
+                  style={{ fontSize: 13, color: 'var(--text-tertiary)' }}
                 >
-                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>@{user?.nickname ?? ''}</span>
-                  <span style={{ color: 'var(--stg-gray-300)' }}>·</span>
-                  <span className="truncate">{user?.email}</span>
+                  {user?.email}
                 </div>
                 <p
                   className="leading-[1.6] max-w-[640px] mt-2"
