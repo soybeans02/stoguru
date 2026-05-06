@@ -1,8 +1,13 @@
+// 他の import より前に env を読み込む。
+// routes/admin.ts などは module load 時に process.env.* を参照するので、
+// ここで dotenv を「side-effect import」で先に走らせないと
+// ADMIN_SECRET 等が undefined のまま落ちる。
+import 'dotenv/config';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import authRouter from './routes/auth';
 import dataRouter from './routes/data';
@@ -16,8 +21,6 @@ import { saveStats, loadStats, saveActivity, loadActivity } from './services/dyn
 import { stats, userActivity } from './state';
 import { peekVerifiedUserId } from './middleware/auth';
 // rate limiter uses `any` for keyGenerator to avoid Express type conflicts
-
-dotenv.config({ override: true });
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
