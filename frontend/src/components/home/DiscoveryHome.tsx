@@ -981,19 +981,25 @@ function HeroDeck({
             </button>
           </div>
 
+          {/*
+            stats row：gap-9 (36px) + max-w-[480px] だと narrow viewport で
+            「68,000+」(保存数) がはみ出てた。gap を詰めて、それぞれの cell
+            に min-width を持たせず flex-1 で均等分配する形にする。
+            最後の保存数だけ食い込んでた現象もこれで解消。
+          */}
           <div
-            className="flex gap-9 pt-7 max-w-[480px]"
-            style={{ borderTop: '1px solid var(--stg-gray-200)' }}
+            className="flex gap-x-5 gap-y-3 flex-wrap pt-7"
+            style={{ borderTop: '1px solid var(--stg-gray-200)', maxWidth: 480 }}
           >
             {[
               { num: '12,400', label: tStatRestaurants },
               { num: '4,200', label: tStatUsers },
               { num: '68,000', label: tStatSaves },
             ].map((s, i) => (
-              <div key={i}>
+              <div key={i} className="min-w-0 flex-shrink-0">
                 <div
-                  className="font-extrabold tabular-nums leading-none"
-                  style={{ fontSize: 28, letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
+                  className="font-extrabold tabular-nums leading-none whitespace-nowrap"
+                  style={{ fontSize: 26, letterSpacing: '-0.03em', color: 'var(--stg-gray-900)' }}
                 >
                   {s.num}
                   <span style={{ color: 'var(--stg-orange-500)' }}>+</span>
