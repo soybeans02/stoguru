@@ -339,12 +339,11 @@ export function DiscoveryHome({
 
       {/*
         max-w + mx-auto を外して main エリアいっぱいに広げる。
-        以前は wide screen (>1540px) で sidebar 右側に白の隙間ができて、
-        サイドバーとコンテンツの境目が「切れて」見える問題があった。
-        各セクションは内部 grid で自前にレスポンシブするので、外側で
-        中央寄せする必要は無い。左右 padding は維持して読みやすさ確保。
+        mobile/tablet では左右の padding を詰めて edge に寄せる
+        (px-3 = 12px)。「左の空きが切れて見える」フィードバック対応。
+        lg 以上だけ ゆとり (px-8 = 32px)。
       */}
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div className="px-3 lg:px-8">
         {/* ─── Hero（Claude Design 風スタックデッキ） ─── */}
         <HeroDeck
           isAnonymous={isAnonymous}
@@ -1422,10 +1421,10 @@ function DiscoveryTopBar({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
       style={{ background: 'color-mix(in srgb, var(--header-bg) 85%, transparent)' }}
     >
-      {/* topbar も hero / themes / genres と同じ full-width 揃えに（max-w + mx-auto を外す）。
-          これでサイドバー右端から topbar / 各セクション全部が同じ左ライン
-          (px-4 sm:px-6 lg:px-8) で揃って、左端の「切れ」が消える。 */}
-      <div className="px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
+      {/* topbar も hero / themes / genres と同じ full-width 揃え。
+          mobile/tablet では左右の余白を詰めて edge 寄りに（左端の余白が
+          「切れて見える」というフィードバックに対応）。lg 以上だけ ゆとり。 */}
+      <div className="px-3 lg:px-8 py-2.5 flex items-center gap-3 sm:gap-4">
         {/* PC では左サイドバーに「ストグル」ロゴがあるため、二重化を避けて lg 以上では非表示。
             タップでホームを再読み込み（おすすめを再生成） */}
         <button
