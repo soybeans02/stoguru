@@ -28,6 +28,13 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [profileIcon, setProfileIcon] = useState(() => localStorage.getItem('cache:profileIcon') || '🍕');
   const [profileImage, setProfileImage] = useState(() => localStorage.getItem('cache:profileImage') || '');
   const [coverImage, setCoverImage] = useState(() => localStorage.getItem('cache:coverImage') || '');
+  // bio / favoriteGenre / region は currently localStorage cache のみ
+  // （バックエンドに専用カラム未実装）。EditProfilePanel から保存された
+  // 値を即時反映するため state に持たせる。旧版は user.bio (サーバー値) を
+  // 直接読んでいたため cache:bio の更新が反映されなかった。
+  const [bio, setBio] = useState(() => localStorage.getItem('cache:bio') || '');
+  const [favoriteGenre, setFavoriteGenre] = useState(() => localStorage.getItem('cache:favoriteGenre') || '');
+  const [region, setRegion] = useState(() => localStorage.getItem('cache:region') || '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -499,20 +506,17 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   className="leading-[1.6] max-w-[640px] mt-3"
                   style={{ fontSize: 14, color: 'var(--text-secondary)' }}
                 >
-                  {(user as { bio?: string } | null | undefined)?.bio
-                    ?? 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
+                  {/* bio は cache:bio からの state を見る。空ならデフォルト文。 */}
+                  {bio || 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
                 </p>
                 {/* タグ表示：ユーザーが設定した値だけハッシュタグ風に並べる。
                     未設定（cache:favoriteGenre / cache:region が空）の時は
                     そもそも何も出さない（旧版の "グルメ好き" / "日本" のような
                     デフォルト値は全部廃止）。利用開始月は実際に保存があるときだけ出す。 */}
                 {(() => {
-                  const favGenre = (typeof localStorage !== 'undefined'
-                    ? localStorage.getItem('cache:favoriteGenre')?.trim()
-                    : '') ?? '';
-                  const region = (typeof localStorage !== 'undefined'
-                    ? localStorage.getItem('cache:region')?.trim()
-                    : '') ?? '';
+                  // favoriteGenre / region は state から（EditProfilePanel 保存後即反映）
+                  const favGenre = favoriteGenre.trim();
+                  const regionTrimmed = region.trim();
                   let joinedLabel = '';
                   if (safeStocks.length > 0) {
                     try {
@@ -531,7 +535,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   }
                   const tags: string[] = [];
                   if (favGenre) tags.push(`#${favGenre}`);
-                  if (region) tags.push(`#${region}`);
+                  if (regionTrimmed) tags.push(`#${regionTrimmed}`);
                   if (joinedLabel) tags.push(`#${joinedLabel}`);
                   if (tags.length === 0) return null;
                   return (
@@ -878,6 +882,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {panel === 'editProfile' && (
         <EditProfilePanel
           currentNickname={user?.nickname ?? ''}
+          currentBio={bio}
+          currentFavoriteGenre={favoriteGenre}
+          currentRegion={region}
           onSave={async (next) => {
             // ニックネームだけサーバー側に反映、bio / 好きジャンル / 地域は
             // 現状 cache（バックエンドに専用カラムがまだ無い）。
@@ -889,12 +896,21 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               alert(e instanceof Error ? e.message : 'ニックネームの更新に失敗しました');
               return;
             }
+            // localStorage 更新 + state 反映で即座に画面に反映する
+            // （旧版は localStorage しか更新せず、表示が user.bio (サーバー値)
+            // を見ていたため再読み込みするまで反映されなかった）
             if (next.favoriteGenre) localStorage.setItem('cache:favoriteGenre', next.favoriteGenre);
             else localStorage.removeItem('cache:favoriteGenre');
+            setFavoriteGenre(next.favoriteGenre);
+
             if (next.region) localStorage.setItem('cache:region', next.region);
             else localStorage.removeItem('cache:region');
+            setRegion(next.region);
+
             if (next.bio) localStorage.setItem('cache:bio', next.bio);
             else localStorage.removeItem('cache:bio');
+            setBio(next.bio);
+
             setPanel(null);
           }}
           onClose={() => setPanel(null)}
@@ -1152,17 +1168,24 @@ function StaticTextSheet({ onClose, title, body }: { onClose: () => void; title:
    カラムがまだ無いため）。 */
 function EditProfilePanel({
   currentNickname,
+  currentBio,
+  currentFavoriteGenre,
+  currentRegion,
   onSave,
   onClose,
 }: {
   currentNickname: string;
+  currentBio?: string;
+  currentFavoriteGenre?: string;
+  currentRegion?: string;
   onSave: (next: { nickname: string; bio: string; favoriteGenre: string; region: string }) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [nickname, setNickname] = useState(currentNickname);
-  const [bio, setBio] = useState(() => localStorage.getItem('cache:bio') ?? '');
-  const [favoriteGenre, setFavoriteGenre] = useState(() => localStorage.getItem('cache:favoriteGenre') ?? '');
-  const [region, setRegion] = useState(() => localStorage.getItem('cache:region') ?? '');
+  // 親から渡された現在値で初期化（無ければ localStorage から）。
+  const [bio, setBio] = useState(currentBio ?? (localStorage.getItem('cache:bio') ?? ''));
+  const [favoriteGenre, setFavoriteGenre] = useState(currentFavoriteGenre ?? (localStorage.getItem('cache:favoriteGenre') ?? ''));
+  const [region, setRegion] = useState(currentRegion ?? (localStorage.getItem('cache:region') ?? ''));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
