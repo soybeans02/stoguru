@@ -1319,6 +1319,7 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
   const nickname = user?.nickname ?? '';
   const [step, setStep] = useState<DeleteStep>('warning');
   const [typedNickname, setTypedNickname] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -1326,10 +1327,15 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
   const nicknameMatches = typedNickname.trim() === nickname.trim() && nickname.trim().length > 0;
 
   async function handleDelete() {
+    if (!password) {
+      setError(t('deleteAccount.passwordRequired', '現在のパスワードを入力してください'));
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      await api.deleteAccount();
+      // バックエンド側で signIn ベースの再認証 → パスワード一致時のみ削除実行
+      await api.deleteAccount(password);
       onDeleted();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -1430,6 +1436,15 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-200 text-center leading-relaxed">{t('deleteAccount.step3Description')}</p>
           </div>
+          {/* セキュリティ強化: トークン盗難で即削除されないよう
+              現在のパスワード再入力を必須にする */}
+          <FormInput
+            label={t('account.currentPassword', '現在のパスワード')}
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+          />
           {error && <p className="text-red-500 text-xs text-center">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button
@@ -1441,8 +1456,8 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
             </button>
             <button
               onClick={handleDelete}
-              disabled={loading}
-              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+              disabled={loading || !password}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '...' : t('deleteAccount.step3Delete')}
             </button>

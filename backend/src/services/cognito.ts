@@ -38,10 +38,13 @@ export async function signUp(email: string, password: string, nickname: string) 
   });
   const result = await client.send(command);
 
-  // 開発環境のみ: メール確認をスキップして自動確認
-  // 本番で誤ってスキップしないよう、明示的な環境変数でも制御
+  // 開発環境のみ: メール確認をスキップして自動確認。
+  // NODE_ENV が unset (誤設定された staging 等) の時に
+  // 「production じゃない && 明示 false でない = skip 」となって
+  // 本番相当環境で確認スキップしてしまう旧版バグを修正:
+  // SKIP_EMAIL_VERIFICATION === 'true' の **明示オプトイン** を必須に変更。
   const skipVerification = process.env.NODE_ENV !== 'production'
-    && process.env.SKIP_EMAIL_VERIFICATION !== 'false';
+    && process.env.SKIP_EMAIL_VERIFICATION === 'true';
   if (skipVerification) {
     await client.send(new AdminConfirmSignUpCommand({
       UserPoolId: getUserPoolId(),

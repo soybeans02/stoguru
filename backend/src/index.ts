@@ -84,6 +84,27 @@ const authLimit = rateLimit({
   message: { error: '認証リクエストが多すぎます。少し待ってください。' },
 });
 
+// パスワード再認証を伴うセンシティブ操作 (change-email / delete-account /
+// change-password): 1 時間に 5 回まで。これらは内部で signIn() を呼ぶので
+// 失敗が Cognito のロックアウトカウンタを汚染し、攻撃者が他人のアカウントを
+// 連続失敗で施錠 → DoA できるリスクがある。authLimit (10/min = 600/hour) より
+// 大幅に絞る。
+const sensitiveAuthLimit = rateLimit({
+  ...rateLimitBase,
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'パスワード確認リクエストが多すぎます。1 時間待ってください。' },
+});
+
+// フィードバック投稿: 1 ユーザー 1 時間に 5 件まで。
+// admin の受信箱を spam で埋めるのを防ぐ。
+const feedbackLimit = rateLimit({
+  ...rateLimitBase,
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'フィードバック送信が多すぎます。少し待ってからお試しください。' },
+});
+
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
@@ -167,6 +188,11 @@ app.use('/api', globalLimit, hourlyLimit);
 
 // 認証系に追加制限
 app.use('/api/auth', authLimit);
+// パスワード再認証を含む操作 (change-email / delete-account / change-password)
+// は authLimit よりさらに厳しい sensitiveAuthLimit (5 / 時間) で守る。
+app.use('/api/auth/email', sensitiveAuthLimit);
+app.use('/api/auth/account', sensitiveAuthLimit);
+app.use('/api/auth/password', sensitiveAuthLimit);
 app.use('/api/auth', authRouter);
 
 // 書き込み系エンドポイントに追加制限（PUT/POST/DELETE）
@@ -177,6 +203,7 @@ app.use('/api', (req, _res, next) => {
 app.use('/api', dataRouter);
 app.use('/api', uploadRouter);
 app.use('/api/influencer', influencerRouter);
+app.use('/api/feedback', feedbackLimit);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);

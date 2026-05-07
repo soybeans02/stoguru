@@ -65,6 +65,12 @@ export const verifyEmailSchema = z.object({
   code: z.string().min(1, '確認コードは必須です').max(20).trim(),
 });
 
+// アカウント削除前の現在パスワード再確認 (cookie / token を盗まれた攻撃者が
+// 一気にアカウントごと消せる事故を防ぐ)。
+export const deleteAccountSchema = z.object({
+  currentPassword: z.string().min(1, '現在のパスワードは必須です').max(128),
+});
+
 // ─── レストラン ───
 
 export const restaurantSchema = z.object({

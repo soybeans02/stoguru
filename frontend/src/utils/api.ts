@@ -168,11 +168,15 @@ export async function changePassword(oldPassword: string, newPassword: string) {
 
 // ─── アカウント削除 ───
 
-export async function deleteAccount() {
+export async function deleteAccount(currentPassword: string) {
   const res = await fetch(`${BASE}/auth/account`, {
     method: 'DELETE', headers: headers(),
+    body: JSON.stringify({ currentPassword }),
   });
-  if (!res.ok) throw new Error('Failed to delete account');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to delete account');
+  }
 }
 
 // ─── プライバシー設定 ───
@@ -270,6 +274,15 @@ export async function markNotificationsRead() {
 
 // ─── 写真アップロード ───
 
+/** 全ての写真アップロードに共通の上限 (8 MB)。
+ *  各 caller (AccountScreen / PhotoUpload) でも個別に検証しているが、
+ *  ここで最終ガードを張って presigned URL に巨大ファイルが流れないようにする。
+ *  本格的にはバックエンドの presigned URL に content-length-range を
+ *  仕込みたいが、PutObjectCommand 形式では難しいため将来 createPresignedPost
+ *  への移行で対応予定。 */
+const MAX_UPLOAD_SIZE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_UPLOAD_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 export async function getPresignedUploadUrl(contentType: string, filename: string): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
   const res = await fetchWithRetry(`${BASE}/upload/presign`, {
     method: 'POST', headers: headers(),
@@ -280,6 +293,15 @@ export async function getPresignedUploadUrl(contentType: string, filename: strin
 }
 
 export async function uploadPhoto(file: File): Promise<string> {
+  // クライアント側の最終防衛ライン:
+  // - サイズ上限超過は presign する前に拒否 (presigned URL の悪用防止)
+  // - MIME も WL チェック (拡張子偽装で .exe を image/jpeg として弾くため)
+  if (!ALLOWED_UPLOAD_MIMES.has(file.type)) {
+    throw new Error('JPEG / PNG / WebP のみアップロードできます');
+  }
+  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error(`ファイルサイズは ${Math.floor(MAX_UPLOAD_SIZE_BYTES / 1024 / 1024)}MB までです`);
+  }
   const { uploadUrl, publicUrl } = await getPresignedUploadUrl(file.type, file.name);
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',

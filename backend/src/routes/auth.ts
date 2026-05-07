@@ -3,7 +3,7 @@ import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAcces
 import { requireAuth, AuthRequest, ACCESS_TOKEN_COOKIE } from '../middleware/auth';
 import { deleteAllUserData } from '../services/dynamo';
 import { deleteAllUserPhotos } from '../services/s3';
-import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema, changeEmailSchema, verifyEmailSchema } from '../validators';
+import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema, changeEmailSchema, verifyEmailSchema, deleteAccountSchema } from '../validators';
 
 const router = Router();
 
@@ -216,6 +216,12 @@ router.post('/change-password', requireAuth, async (req: AuthRequest, res: Respo
 });
 
 router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) => {
+  // アカウント削除は不可逆 + 写真 / プロフィール / Cognito ユーザーを完全消去
+  // するので、currentPassword を必須にして「トークン盗難 → 即削除」を防ぐ。
+  // changeEmail と同等のガードレベル。
+  const v = validate(deleteAccountSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+
   try {
     const userId = req.user!.userId;
     // Cognito DeleteUser には access token が必要。Bearer または cookie の
@@ -227,6 +233,13 @@ router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) =
       : cookies?.[ACCESS_TOKEN_COOKIE];
     if (!accessToken) { res.status(401).json({ error: '認証情報がありません' }); return; }
 
+    // 0. 現在のパスワードで再認証 (失敗 = 401, Cognito の lockout は通常運用通り)
+    try {
+      await signIn(req.user!.email, v.data.currentPassword);
+    } catch {
+      res.status(401).json({ error: 'パスワードが正しくありません' });
+      return;
+    }
     // 1. DynamoDB のデータを全削除（プロフィール匿名化含む）
     await deleteAllUserData(userId);
     // 2. S3 上のユーザーアップロード写真を全削除
