@@ -1788,14 +1788,15 @@ function SpotRankCard({
   );
 }
 
-/* RankedSpot を FeedRestaurant に変換してプレビューモーダルに渡す */
+/* RankedSpot を FeedRestaurant に変換してプレビューモーダルに渡す。
+   lat/lng は backend が返してるので拾う（無ければ 0 で「マップで見る」disabled）。 */
 function spotToFeedRestaurant(s: api.RankedSpot): FeedRestaurant {
   return {
     id: s.restaurantId,
     name: s.name,
     address: s.address ?? '',
-    lat: 0,
-    lng: 0,
+    lat: typeof s.lat === 'number' ? s.lat : 0,
+    lng: typeof s.lng === 'number' ? s.lng : 0,
     genre: s.genres?.[0] ?? '',
     scene: [],
     priceRange: s.priceRange ?? '',

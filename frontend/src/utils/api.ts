@@ -325,6 +325,10 @@ export interface RankedSpot {
   priceRange?: string;
   address?: string;
   postedBy?: string;
+  // backend は RestaurantV2 をそのまま返してるので lat/lng も実は来てる。
+  // モーダル「マップで見る」に必要なので型に追加。
+  lat?: number;
+  lng?: number;
 }
 
 export async function getSpotRanking(): Promise<RankedSpot[]> {
