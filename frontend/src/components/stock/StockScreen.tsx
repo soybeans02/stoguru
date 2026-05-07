@@ -324,7 +324,12 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                     }}
                     aria-label="削除"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    {/* X を 2 本の独立 path に分けて strokeLinejoin の影響を排除。
+                        歪んで見えてた事故対策。サイズも 13→15 でくっきりさせる。 */}
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18" />
+                      <path d="M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
                 <div className="stock-card__body">

@@ -234,18 +234,23 @@
 }
 .stock-card__pin svg { width: 13px; height: 13px; }
 /* × ボタンは左上に移動 + 常時表示。タッチ端末では hover が無いので
-   旧 hover-only だと押せなかった事故を回避。 */
+   旧 hover-only だと押せなかった事故を回避。
+   SVG サイズは JSX で width/height を直接指定するように変更（CSS の
+   width/height override で歪んで見えていた事故対策）。padding も 0 にして
+   line-height などの混入を防ぐ。 */
 .stock-card__remove {
   position: absolute; top: 10px; left: 10px;
   width: 28px; height: 28px; border-radius: 50%;
   background: rgba(0,0,0,0.55); color: white; border: none; cursor: pointer;
-  display: grid; place-items: center;
+  padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   transition: background 120ms var(--stg-ease);
   z-index: 2;
+  line-height: 1;
 }
 .stock-card__remove:hover { background: rgba(0,0,0,0.75); }
-.stock-card__remove svg { width: 13px; height: 13px; }
+.stock-card__remove svg { display: block; }
 .stock-card__visited-badge {
   position: absolute; bottom: 10px; left: 10px;
   background: var(--stg-green); color: white;

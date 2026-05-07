@@ -323,16 +323,15 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Focus-visible: keyboard 操作時のみ薄いオレンジリングを出す。
-   旧版は `outline` + `border-radius: 4px` で focus 時の見た目をすべて
-   4px 角丸に強制 + 4px 厚 box-shadow で「オレンジ枠で囲まれた箱」のような
-   見た目になる事故があった。さらに Safari は click でも focus-visible を
-   発火させるクセがあるので、リング自体を細く透明感のあるものに弱める。 */
+/* Focus-visible: keyboard 操作時のみ控えめなグレーリングを出す。
+   旧版はオレンジで、Safari の click でも focus-visible が発火する
+   挙動と相まって「マップ topbar がオレンジで囲まれた箱」のように
+   見える事故が連発した。色をニュートラルに振って原因を完全排除。 */
 :where(button, [role="button"], a, select, [tabindex]):focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(254, 141, 40, 0.55);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
 }
-/* マウス click 由来のフォーカスでは絶対に出さない（Safari 互換のため明示） */
+/* マウス click 由来のフォーカスは出さない */
 :where(button, [role="button"], a, select, [tabindex]):focus:not(:focus-visible) {
   outline: none;
   box-shadow: none;
