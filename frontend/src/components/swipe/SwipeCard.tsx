@@ -130,12 +130,15 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   let transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
 
   if (exiting) {
+    // 大きめに動かして画面外まで運ぶ。opacity は 1 のまま保つ。
+    // 旧版は opacity を 0 に落としていたので 0.3s の transition 中ずっと
+    // 「半透明にディムされたカード」が見えてダサかった（特にボタン swipe）。
     transform = exiting === 'up'
-      ? 'translateY(-120%)'
+      ? 'translateY(-140%)'
       : exiting === 'right'
-        ? 'translateX(120%) rotate(15deg)'
-        : 'translateX(-120%) rotate(-15deg)';
-    opacity = 0;
+        ? 'translateX(140%) rotate(18deg)'
+        : 'translateX(-140%) rotate(-18deg)';
+    opacity = 1;
   } else if (preview) {
     // プレビューモード：完全に不透明、変形なし
     transform = 'none';
