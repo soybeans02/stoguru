@@ -517,9 +517,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             )}
 
           </div>
-          {/* Stats row — Claude Design: 4 セル、間に縦罫、hover で薄いクリーム */}
+          {/* Stats row — 3 セル等幅、間に縦罫、hover で薄いクリーム。
+              「保存」カウント撤廃に合わせて grid-cols-4 → 3 に変更。 */}
           <div
-            className="grid grid-cols-4"
+            className="grid grid-cols-3"
             style={{ borderTop: '1px solid var(--border)' }}
           >
             {stats.map((s, i) => (
