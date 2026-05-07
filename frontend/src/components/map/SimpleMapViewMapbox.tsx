@@ -1498,33 +1498,34 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </>
       )}
 
-      {/* 100m banner — search bar (.map-top, top:18px + 高さ 約 50px) と
-          被って「オレンジで囲まれた検索バー」事故を起こしていたので、
-          上端を 80px に下げて完全に search bar の下に配置する。 */}
+      {/* 100m nearby banner — コンパクトな pill 風。中央寄せ、内容に応じた幅。
+          ピン📍 + 店名 + ▶（タップで飛ぶサイン）+ × 閉じる。 */}
       {nearbyStock && !nearbyDismissed && (
         <div
-          className="absolute top-20 left-4 right-4 z-10 bg-[var(--accent-orange)] text-white rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2"
+          className="absolute top-20 left-1/2 -translate-x-1/2 z-10 max-w-[calc(100%-32px)] flex items-center gap-1 bg-[var(--accent-orange)] text-white rounded-full shadow-lg pl-3 pr-1.5 py-1.5"
           role="status"
           aria-live="polite"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-            <circle cx="12" cy="10" r="3"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 -ml-0.5">
+            <path d="M12 2a7 7 0 0 0-7 7c0 5.5 7 13 7 13s7-7.5 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
           </svg>
           <button
             onClick={handleFocusNearby}
-            className="flex-1 text-left min-w-0"
+            className="min-w-0 inline-flex items-center gap-1 text-[12px] font-semibold truncate hover:opacity-90"
             aria-label={`${t('map.nearby100m')} ${nearbyStock.name}`}
           >
-            <p className="text-[11px] font-medium opacity-90 truncate">{t('map.nearby100m')}</p>
-            <p className="text-[13px] font-bold truncate">{nearbyStock.name}</p>
+            <span className="truncate">{nearbyStock.name}</span>
+            {/* ▶ 矢印：タップで該当ピンに飛ぶサイン */}
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-90">
+              <path d="m9 6 6 6-6 6"/>
+            </svg>
           </button>
           <button
             onClick={() => setNearbyDismissed(true)}
             aria-label={t('common.close')}
-            className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center"
+            className="flex-shrink-0 w-5 h-5 rounded-full hover:bg-white/25 flex items-center justify-center ml-0.5"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
       )}
