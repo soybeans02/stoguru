@@ -113,6 +113,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(10000);
   const [buttonFlyOut, setButtonFlyOut] = useState<'left' | 'right' | 'up' | null>(null);
@@ -226,6 +227,14 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
     if (selectedGenres.length > 0) {
       filtered = filtered.filter((r) => selectedGenres.includes(r.genre));
     }
+    if (selectedAreas.length > 0) {
+      // 住所の先頭が選択された都道府県名のいずれかと一致するかで絞り込み。
+      // 旧データに 都道府県 prefix が無い住所が混じる場合はマッチしないが
+      // 投稿フォームから入った住所は 通常 都道府県 から始まるのでこの単純判定で OK。
+      filtered = filtered.filter((r) =>
+        selectedAreas.some((p) => r.address?.startsWith(p)),
+      );
+    }
     if (priceMin > 0 || priceMax < 10000) {
       filtered = filtered.filter((r) => {
         const price = parseInt(r.priceRange.replace(/[^0-9]/g, '')) || 0;
@@ -235,7 +244,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
     setCards(filtered);
     setCurrentIndex(0);
     return filtered;
-  }, [allRestaurants, stockedIds, nopedMap, selectedScenes, selectedGenres, priceMin, priceMax]);
+  }, [allRestaurants, stockedIds, nopedMap, selectedScenes, selectedGenres, selectedAreas, priceMin, priceMax]);
 
   // 「この条件で探す」ボタンから呼ばれる
   const applyFilter = useCallback(() => {
@@ -321,7 +330,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
   const isFinished = currentIndex >= cards.length;
 
   const priceActive = priceMin > 0 || priceMax < 10000 ? 1 : 0;
-  const filterCount = selectedScenes.length + selectedGenres.length + priceActive;
+  const filterCount = selectedScenes.length + selectedGenres.length + selectedAreas.length + priceActive;
 
   return (
     <div className="flex-1 flex flex-col items-center relative bg-white dark:bg-gray-900">
@@ -478,10 +487,12 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
         <FilterOverlay
           selectedScenes={selectedScenes}
           selectedGenres={selectedGenres}
+          selectedAreas={selectedAreas}
           priceMin={priceMin}
           priceMax={priceMax}
           onScenesChange={setSelectedScenes}
           onGenresChange={setSelectedGenres}
+          onAreasChange={setSelectedAreas}
           onPriceChange={(min, max) => { setPriceMin(min); setPriceMax(max); }}
           onClose={() => setFilterOpen(false)}
           onApply={applyFilter}

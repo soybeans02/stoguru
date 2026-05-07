@@ -1,12 +1,14 @@
-import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
+import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS, PREFECTURES } from '../../data/mockRestaurants';
 
 interface Props {
   selectedScenes: string[];
   selectedGenres: string[];
+  selectedAreas?: string[];
   priceMin?: number;
   priceMax?: number;
   onScenesChange: (scenes: string[]) => void;
   onGenresChange: (genres: string[]) => void;
+  onAreasChange?: (areas: string[]) => void;
   onPriceChange?: (min: number, max: number) => void;
   onClose: () => void;
   onApply?: () => void;
@@ -15,10 +17,12 @@ interface Props {
 export function FilterOverlay({
   selectedScenes,
   selectedGenres,
+  selectedAreas = [],
   priceMin = 0,
   priceMax = 10000,
   onScenesChange,
   onGenresChange,
+  onAreasChange,
   onPriceChange,
   onClose,
   onApply,
@@ -43,6 +47,15 @@ export function FilterOverlay({
     );
   }
 
+  function toggleArea(p: string) {
+    if (!onAreasChange) return;
+    onAreasChange(
+      selectedAreas.includes(p)
+        ? selectedAreas.filter((x) => x !== p)
+        : [...selectedAreas, p],
+    );
+  }
+
   /** 数字以外の入力を防ぐ */
   function blockNonNumeric(e: React.KeyboardEvent<HTMLInputElement>) {
     if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
@@ -63,6 +76,7 @@ export function FilterOverlay({
   function clearAll() {
     onScenesChange([]);
     onGenresChange([]);
+    onAreasChange?.([]);
     onPriceChange?.(0, 10000);
   }
 
@@ -118,6 +132,37 @@ export function FilterOverlay({
             );
           })}
         </div>
+
+        {/* Area — 47 都道府県をフラットなテキストチップで一覧。複数選択 OK。
+            住所が選んだ都道府県名で始まるレストランだけ表示する単純実装。 */}
+        {onAreasChange && (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">エリア</h3>
+              {selectedAreas.length > 0 && (
+                <span className="text-[11px] font-semibold text-orange-500">{selectedAreas.length} 選択中</span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-8">
+              {PREFECTURES.map((p) => {
+                const active = selectedAreas.includes(p);
+                return (
+                  <button
+                    key={p}
+                    onClick={() => toggleArea(p)}
+                    className={`px-3 py-2.5 rounded-xl text-[12px] font-medium text-center transition-colors ${
+                      active
+                        ? 'bg-orange-500 text-white border border-orange-500'
+                        : 'bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-orange-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Genre — home の GenreListModal と同じレイアウトに揃える。
             人気 8 を写真タイル（2 列 16:10）、残りはテキストチップで。 */}
