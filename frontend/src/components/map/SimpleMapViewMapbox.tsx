@@ -923,14 +923,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         };
         map.once('moveend', showPopup);
       }
-      // 12 秒後に金ピン + パルスを自動消去（一時的な案内なので長居させない）。
-      // ユーザーが popup 閉じてマップ操作した後はもう不要。
-      window.setTimeout(() => {
-        const m = mapRef.current;
-        if (!m) return;
-        const ps = m.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
-        if (ps) ps.setData({ type: 'FeatureCollection', features: [] });
-      }, 12000);
+      // 金ピン + パルスはユーザーが別ページに切り替えるまで表示し続ける。
+      // 自動消去はせず、map コンポーネントの unmount (map.remove()) で
+      // 自然に消えるのに任せる。
       onPanComplete();
     };
 
@@ -1037,9 +1032,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     // と、ズーム変更後に黒丸が突然復活して見える。user の操作で外すまでは
     // updateData は no-op にして、handleOpenFollowingPicker(戻る) で明示的に呼ぶ。
     if (selectedFollowUserRef.current) return;
-    // 一時ピンをクリア
-    const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
-    if (panSrc) panSrc.setData({ type: 'FeatureCollection', features: [] });
+    // panTo の金ピンは GPS 更新やフィルタ操作で消さない（ユーザーが明示的に
+    // ページを離れるまで残す方針）。クリアはコンポーネント unmount で
+    // 自動的に map.remove() が呼ばれた時点で消える。
 
     // 自分の投稿レストランを必要なら取得
     if (!myPostedLoaded.current && !myPostedLoading.current) {
