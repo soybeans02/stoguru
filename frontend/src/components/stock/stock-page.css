@@ -143,6 +143,14 @@
 .chip-btn:hover { border-color: var(--stg-gray-300); }
 .chip-btn svg { color: var(--stg-gray-600); }
 .chip-btn.is-active { border-color: var(--stg-orange-500); color: var(--stg-orange-700); background: var(--stg-cream-100); }
+.chip-btn__count {
+  font-size: 11px; font-weight: 700;
+  min-width: 18px; height: 18px;
+  padding: 0 6px; border-radius: 999px;
+  background: var(--stg-orange-500); color: white;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 2px;
+}
 .view-toggle { display: flex; background: white; border: 1px solid var(--stg-gray-200); border-radius: 10px; padding: 3px; }
 .view-toggle button {
   border: none; background: transparent; padding: 6px 9px;

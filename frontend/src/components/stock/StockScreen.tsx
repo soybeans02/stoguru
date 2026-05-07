@@ -3,6 +3,7 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
+import { FilterOverlay } from '../swipe/FilterOverlay';
 import './stock-page.css';
 
 /** 保存日を「今日 / 昨日 / 3日前 / 2週間前 / 5ヶ月前 / 1年前」のような
@@ -44,8 +45,14 @@ interface Props {
 export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveStock, onTogglePin, onShowOnMap, userPosition }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
-  const [genreOpen, setGenreOpen] = useState(false);
+  // 旧: 単一ジャンル循環選択 → 新: マップ/スワイプ画面と同じ FilterOverlay
+  // を開いて、複数ジャンル + シーン + エリア + 価格帯を絞り込む。
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(10000);
   const [sortMode, setSortMode] = useState<SortMode>('added');
   const [openId, setOpenId] = useState<string | null>(null);
   // Claude Design: grid / list view 切り替え
@@ -56,11 +63,12 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
   const todoCount = stocks.length - visitedCount;
   const completionRate = stocks.length > 0 ? Math.round((visitedCount / stocks.length) * 100) : 0;
 
-  // ストック内のジャンル一覧
-  const genres = useMemo(() => {
-    const set = new Set(stocks.map((s) => s.genre).filter(Boolean));
-    return [...set].sort();
-  }, [stocks]);
+  // 絞り込み条件のアクティブ件数（バッジに使う）
+  const activeFilterCount =
+    selectedScenes.length +
+    selectedGenres.length +
+    selectedAreas.length +
+    (priceMin > 0 || priceMax < 10000 ? 1 : 0);
 
   const filtered = useMemo(() => stocks
     .filter((s) => {
@@ -75,7 +83,27 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       }
       return true;
     })
-    .filter((s) => !selectedGenre || s.genre === selectedGenre)
+    // シーン (OR 一致：いずれかのシーンが含まれていれば通す)
+    .filter((s) => {
+      if (selectedScenes.length === 0) return true;
+      return s.scene?.some((sc) => selectedScenes.includes(sc)) ?? false;
+    })
+    // ジャンル (OR 一致)
+    .filter((s) => {
+      if (selectedGenres.length === 0) return true;
+      return selectedGenres.includes(s.genre);
+    })
+    // エリア (住所が選んだ都道府県 prefix のいずれかで始まる)
+    .filter((s) => {
+      if (selectedAreas.length === 0) return true;
+      return selectedAreas.some((p) => s.address?.startsWith(p));
+    })
+    // 価格帯 (priceRange の数字部分でレンジ判定)
+    .filter((s) => {
+      if (priceMin <= 0 && priceMax >= 10000) return true;
+      const price = parseInt((s.priceRange ?? '').replace(/[^0-9]/g, '')) || 0;
+      return price >= priceMin && price <= priceMax;
+    })
     .sort((a, b) => {
       // ピン留め優先
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -86,7 +114,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       }
       // 追加順（デフォルト）: stockedAtの降順（新しい順）
       return new Date(b.stockedAt).getTime() - new Date(a.stockedAt).getTime();
-    }), [stocks, filter, search, selectedGenre, sortMode, userPosition]);
+    }), [stocks, filter, search, selectedScenes, selectedGenres, selectedAreas, priceMin, priceMax, sortMode, userPosition]);
 
   // 投稿者ハンドル → ソースタイプ判定（IG/TT/YT）
   const sourceTypeOf = (s: StockedRestaurant): 'tt' | 'ig' | 'yt' => {
@@ -101,7 +129,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     return 'ig';
   };
   // openId / SwipeableCard は使わなくなるので suppress 警告
-  void openId; void setOpenId; void genreOpen; void setGenreOpen;
+  void openId; void setOpenId;
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-none stg-main">
@@ -172,18 +200,14 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <button className={`tab-pill ${filter === 'visited' ? 'is-active' : ''}`} onClick={() => setFilter('visited')}>行った<span className="tab-pill__count">{visitedCount}</span></button>
         </div>
         <button
-          className={`chip-btn ${selectedGenre ? 'is-active' : ''}`}
-          onClick={() => {
-            // ジャンルフィルタ：循環選択（クリックで次のジャンル / 全部一周したら null）
-            if (genres.length === 0) return;
-            const idx = selectedGenre ? genres.indexOf(selectedGenre) : -1;
-            const next = idx + 1 < genres.length ? genres[idx + 1] : null;
-            setSelectedGenre(next);
-          }}
+          className={`chip-btn ${activeFilterCount > 0 ? 'is-active' : ''}`}
+          onClick={() => setFilterOpen(true)}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3Z"/></svg>
-          {selectedGenre ?? '絞り込み'}
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          絞り込み
+          {activeFilterCount > 0 && (
+            <span className="chip-btn__count">{activeFilterCount}</span>
+          )}
         </button>
         <button className="chip-btn" onClick={() => setSortMode(sortMode === 'added' ? 'distance' : 'added')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
@@ -200,15 +224,53 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
         </div>
       </div>
 
-      {selectedGenre && (
+      {(activeFilterCount > 0 || search) && (
         <div className="active-filters">
-          <span className="active-filter">
-            {selectedGenre}
-            <button onClick={() => setSelectedGenre(null)} aria-label="clear">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </span>
-          <button className="clear-all" onClick={() => { setSelectedGenre(null); setSearch(''); }}>すべてクリア</button>
+          {selectedScenes.map((sc) => (
+            <span key={`sc:${sc}`} className="active-filter">
+              {sc}
+              <button onClick={() => setSelectedScenes((prev) => prev.filter((x) => x !== sc))} aria-label="clear">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </span>
+          ))}
+          {selectedGenres.map((g) => (
+            <span key={`g:${g}`} className="active-filter">
+              {g}
+              <button onClick={() => setSelectedGenres((prev) => prev.filter((x) => x !== g))} aria-label="clear">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </span>
+          ))}
+          {selectedAreas.map((a) => (
+            <span key={`a:${a}`} className="active-filter">
+              {a}
+              <button onClick={() => setSelectedAreas((prev) => prev.filter((x) => x !== a))} aria-label="clear">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </span>
+          ))}
+          {(priceMin > 0 || priceMax < 10000) && (
+            <span className="active-filter">
+              ¥{priceMin}〜{priceMax >= 10000 ? '' : `¥${priceMax}`}
+              <button onClick={() => { setPriceMin(0); setPriceMax(10000); }} aria-label="clear">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </span>
+          )}
+          <button
+            className="clear-all"
+            onClick={() => {
+              setSelectedScenes([]);
+              setSelectedGenres([]);
+              setSelectedAreas([]);
+              setPriceMin(0);
+              setPriceMax(10000);
+              setSearch('');
+            }}
+          >
+            すべてクリア
+          </button>
         </div>
       )}
 
@@ -425,6 +487,24 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           }}
           onClose={() => setPreview(null)}
           onShowOnMap={() => onShowOnMap(preview.lat, preview.lng, preview as unknown as StockedRestaurant)}
+        />
+      )}
+
+      {/* マップ / スワイプ画面と同じ FilterOverlay を流用。
+          シーン / ジャンル / エリア / 価格帯 を複数選択で絞り込み。 */}
+      {filterOpen && (
+        <FilterOverlay
+          selectedScenes={selectedScenes}
+          selectedGenres={selectedGenres}
+          selectedAreas={selectedAreas}
+          priceMin={priceMin}
+          priceMax={priceMax}
+          onScenesChange={setSelectedScenes}
+          onGenresChange={setSelectedGenres}
+          onAreasChange={setSelectedAreas}
+          onPriceChange={(min, max) => { setPriceMin(min); setPriceMax(max); }}
+          onClose={() => setFilterOpen(false)}
+          onApply={() => setFilterOpen(false)}
         />
       )}
     </div>
