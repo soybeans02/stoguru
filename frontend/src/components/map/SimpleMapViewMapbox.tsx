@@ -1498,10 +1498,12 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </>
       )}
 
-      {/* 100m banner */}
+      {/* 100m banner — search bar (.map-top, top:18px + 高さ 約 50px) と
+          被って「オレンジで囲まれた検索バー」事故を起こしていたので、
+          上端を 80px に下げて完全に search bar の下に配置する。 */}
       {nearbyStock && !nearbyDismissed && (
         <div
-          className="absolute top-4 left-4 right-16 z-10 bg-[var(--accent-orange)] text-white rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2"
+          className="absolute top-20 left-4 right-4 z-10 bg-[var(--accent-orange)] text-white rounded-xl px-3 py-2.5 shadow-lg flex items-center gap-2"
           role="status"
           aria-live="polite"
         >
