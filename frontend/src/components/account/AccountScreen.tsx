@@ -11,6 +11,7 @@ import { Toggle } from '../ui/Toggle';
 import { Input } from '../ui/Input';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { LegalSheet } from '../legal/LegalDocs';
+import { navigate } from '../../utils/navigate';
 
 interface Props {
   stocks: StockedRestaurant[];
@@ -44,9 +45,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [panel, setPanel] = useState<Panel>(null);
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
-  const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string }[]>([]);
+  const [followingList, setFollowingList] = useState<{ followeeId: string; nickname?: string; profilePhotoUrl?: string | null }[]>([]);
   const [followersCount, setFollowersCount] = useState(() => Number(localStorage.getItem('cache:followersCount')) || 0);
-  const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
+  const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string; profilePhotoUrl?: string | null }[]>([]);
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
   // 投稿ゲート（旧 uploadApp ＋ 4 ステップ申請ウィザード）は完全撤廃。
@@ -87,25 +88,25 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     api.getFollowing().then(async (f) => {
       setFollowingCount(f.length);
       localStorage.setItem('cache:followingCount', String(f.length));
-      // ニックネームを解決
-      const withNicks = await Promise.all(f.map(async (item) => {
+      // ニックネーム + プロフィール画像を解決（リスト UI でアバター表示するため）
+      const withProfiles = await Promise.all(f.map(async (item) => {
         try {
           const p = await api.getUserProfile(item.followeeId);
-          return { ...item, nickname: p.nickname };
+          return { ...item, nickname: p.nickname, profilePhotoUrl: p.profilePhotoUrl ?? null };
         } catch { return item; }
       }));
-      setFollowingList(withNicks);
+      setFollowingList(withProfiles);
     }).catch(() => {});
     api.getFollowers().then(async (f) => {
       setFollowersCount(f.length);
       localStorage.setItem('cache:followersCount', String(f.length));
-      const withNicks = await Promise.all(f.map(async (item) => {
+      const withProfiles = await Promise.all(f.map(async (item) => {
         try {
           const p = await api.getUserProfile(item.followerId);
-          return { ...item, nickname: p.nickname };
+          return { ...item, nickname: p.nickname, profilePhotoUrl: p.profilePhotoUrl ?? null };
         } catch { return item; }
       }));
-      setFollowersList(withNicks);
+      setFollowersList(withProfiles);
     }).catch(() => {});
   }, []);
 
@@ -863,14 +864,17 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {listPanel === 'following' && (
         <Overlay title={t('account.following')} onClose={() => setListPanel(null)}>
           {followingList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">{t('search.noFollowingYet')}</p>
+            <p className="text-sm text-gray-400 text-center py-8">{t('search.noFollowingYet')}</p>
           ) : (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="-mx-1.5 max-h-[55vh] overflow-y-auto">
               {followingList.map(f => (
-                <div key={f.followeeId} className="flex items-center gap-3 py-2 border-b border-gray-50">
-                  <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</span>
-                  <p className="text-sm text-gray-900">{f.nickname ?? f.followeeId}</p>
-                </div>
+                <FollowListRow
+                  key={f.followeeId}
+                  userId={f.followeeId}
+                  nickname={f.nickname}
+                  profilePhotoUrl={f.profilePhotoUrl}
+                  onOpen={() => { setListPanel(null); navigate(`/u/${f.followeeId}`); }}
+                />
               ))}
             </div>
           )}
@@ -879,14 +883,17 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {listPanel === 'followers' && (
         <Overlay title={t('account.followers')} onClose={() => setListPanel(null)}>
           {followersList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">{t('search.noFollowersYet')}</p>
+            <p className="text-sm text-gray-400 text-center py-8">{t('search.noFollowersYet')}</p>
           ) : (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="-mx-1.5 max-h-[55vh] overflow-y-auto">
               {followersList.map(f => (
-                <div key={f.followerId} className="flex items-center gap-3 py-2 border-b border-gray-50">
-                  <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</span>
-                  <p className="text-sm text-gray-900">{f.nickname ?? f.followerId}</p>
-                </div>
+                <FollowListRow
+                  key={f.followerId}
+                  userId={f.followerId}
+                  nickname={f.nickname}
+                  profilePhotoUrl={f.profilePhotoUrl}
+                  onOpen={() => { setListPanel(null); navigate(`/u/${f.followerId}`); }}
+                />
               ))}
             </div>
           )}
@@ -1480,6 +1487,61 @@ function Overlay({ title, onClose, children }: { title: string; onClose: () => v
         {children}
       </div>
     </div>
+  );
+}
+
+/* ─── フォロー / フォロワー リスト行 ─── */
+/* 旧 UI は 👤 emoji + 生 nickname の 1 行で、ニックネーム未設定だと
+   生 UUID が出るほど素っ気なかった。Twitter / Instagram 風に
+   アバター + 名前 + @ハンドル + chevron に作り直して、行クリックで
+   公開プロフィール（/u/:userId）に飛ばす。 */
+function FollowListRow({
+  userId,
+  nickname,
+  profilePhotoUrl,
+  onOpen,
+}: {
+  userId: string;
+  nickname?: string;
+  profilePhotoUrl?: string | null;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  const safeName = nickname?.trim() || t('account.userFallback');
+  // ニックネーム未設定時は UUID 先頭 8 文字を fake handle にして "生 UUID 全部" よりはマシに。
+  const handle = nickname?.trim() || `u_${userId.slice(0, 8)}`;
+  const initial = safeName.charAt(0).toUpperCase();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-left"
+    >
+      <div
+        className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold text-[15px] flex-shrink-0"
+        style={{
+          background: 'linear-gradient(135deg, var(--stg-cream-100, #FFF1E0), var(--stg-orange-100, #FFE4C7))',
+          color: 'var(--stg-orange-600, #C2410C)',
+        }}
+      >
+        {profilePhotoUrl ? (
+          <img src={profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          initial
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-semibold text-gray-900 dark:text-white truncate">
+          {safeName}
+        </p>
+        <p className="text-[12px] text-gray-400 truncate">@{handle}</p>
+      </div>
+      <span className="text-gray-300 flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </span>
+    </button>
   );
 }
 
