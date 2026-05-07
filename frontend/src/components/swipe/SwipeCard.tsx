@@ -31,12 +31,17 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
   const photoCount = Math.max(photos.length, 1);
 
   useEffect(() => {
-    if (flyOut && !exiting) {
+    // 依存配列に `exiting` を入れると、ここで setExiting() した直後に
+    // この effect が再実行されて cleanup が走り、scheduleTimeout の
+    // タイマーがクリアされてしまう（→ handleSwipeComplete が呼ばれず
+    // カードが画面途中で止まる）。flyOut の変化のみを契機にしたい。
+    if (flyOut) {
       setExiting(flyOut);
       flyOutTimer.current = setTimeout(() => onSwipeRef.current(flyOut), 300);
     }
-    return () => { if (flyOutTimer.current) clearTimeout(flyOutTimer.current); };
-  }, [flyOut, exiting]);
+    return () => { if (flyOutTimer.current) { clearTimeout(flyOutTimer.current); flyOutTimer.current = null; } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyOut]);
 
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
