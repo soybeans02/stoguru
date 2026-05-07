@@ -3,6 +3,7 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
+import { priceRangeMatches } from '../../utils/price';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import './stock-page.css';
@@ -98,12 +99,10 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
     // 旧 startsWith は「〒530-... 大阪府...」のような postal-code prefix で
     // 外れていたので matchesAnyPrefecture (include ベース) に置き換え。
     .filter((s) => matchesAnyPrefecture(s.address, selectedAreas))
-    // 価格帯 (priceRange の数字部分でレンジ判定)
-    .filter((s) => {
-      if (priceMin <= 0 && priceMax >= 10000) return true;
-      const price = parseInt((s.priceRange ?? '').replace(/[^0-9]/g, '')) || 0;
-      return price >= priceMin && price <= priceMax;
-    })
+    // 価格帯 — 店レンジとフィルタレンジの「重なり」で判定。
+    // 旧版は priceRange の全数字を結合して 1 整数化していたため
+    // "¥1,000〜¥2,000" が 10,002,000 円扱いで全部弾かれる事故があった。
+    .filter((s) => priceRangeMatches(s.priceRange, priceMin, priceMax))
     .sort((a, b) => {
       // ピン留め優先
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;

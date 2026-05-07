@@ -6,6 +6,7 @@ import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
+import { priceRangeMatches, PRICE_NO_MAX } from '../../utils/price';
 import { fetchRestaurantFeed, getNotifications } from '../../utils/api';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
@@ -234,11 +235,11 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
       // include ベースの matchesAnyPrefecture で正規化してから判定。
       filtered = filtered.filter((r) => matchesAnyPrefecture(r.address, selectedAreas));
     }
-    if (priceMin > 0 || priceMax < 10000) {
-      filtered = filtered.filter((r) => {
-        const price = parseInt(r.priceRange.replace(/[^0-9]/g, '')) || 0;
-        return price >= priceMin && price <= priceMax;
-      });
+    // 価格帯 — 店レンジとフィルタレンジの「重なり」で判定。
+    // 旧版は priceRange の全数字を結合して 1 整数化していたため
+    // "¥1,000〜¥2,000" が 10,002,000 円扱いで全部弾かれる事故があった。
+    if (priceMin > 0 || priceMax < PRICE_NO_MAX) {
+      filtered = filtered.filter((r) => priceRangeMatches(r.priceRange, priceMin, priceMax));
     }
     setCards(filtered);
     setCurrentIndex(0);

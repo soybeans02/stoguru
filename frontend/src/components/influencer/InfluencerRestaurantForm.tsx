@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import * as api from '../../utils/api';
 import { PhotoUpload } from '../ui/PhotoUpload';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
+import { parsePriceRange, PRICE_NO_MAX } from '../../utils/price';
 
 interface InfluencerRestaurant {
   influencerId: string;
@@ -63,17 +64,13 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   const [lng, setLng] = useState<number | undefined>(editing?.lng);
   const [placeId, setPlaceId] = useState(editing?.placeId ?? '');
   const [genres, setGenres] = useState<string[]>(editing?.genres ?? []);
-  const [priceMin, setPriceMin] = useState(() => {
-    const p = editing?.priceRange ?? '';
-    const nums = p.match(/\d[\d,]*/g)?.map(s => parseInt(s.replace(/,/g, ''))) ?? [];
-    return nums[0] || 0;
-  });
-  const [priceMax, setPriceMax] = useState(() => {
-    const p = editing?.priceRange ?? '';
-    const nums = p.match(/\d[\d,]*/g)?.map(s => parseInt(s.replace(/,/g, ''))) ?? [];
-    if (p.includes('~') && nums.length === 1 && !p.startsWith('~')) return 10000;
-    return nums[1] || nums[0] || 10000;
-  });
+  // 旧版は priceMin / priceMax を別々の useState 初期化関数で
+  // priceRange 文字列を 2 回パースしており、しかも全角 '〜' を見落として
+  // 「上限なし」(¥1,000〜) を再編集すると上限 = 下限になるバグがあった。
+  // 共通 util parsePriceRange に統一して 1 度だけ分解する。
+  const initialPrice = parsePriceRange(editing?.priceRange) ?? { min: 0, max: PRICE_NO_MAX };
+  const [priceMin, setPriceMin] = useState(initialPrice.min);
+  const [priceMax, setPriceMax] = useState(initialPrice.max);
   const [photoUrls, setPhotoUrls] = useState<string[]>(editing?.photoUrls ?? []);
   const [urls, setUrls] = useState<string[]>(() => {
     if (editing?.urls?.length) return editing.urls;
@@ -200,9 +197,9 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
     if (lat !== undefined) data.lat = lat;
     if (lng !== undefined) data.lng = lng;
     if (placeId) data.placeId = placeId;
-    if (priceMin > 0 || priceMax < 10000) {
+    if (priceMin > 0 || priceMax < PRICE_NO_MAX) {
       const minStr = priceMin > 0 ? `¥${priceMin.toLocaleString()}` : '';
-      const maxStr = priceMax < 10000 ? `¥${priceMax.toLocaleString()}` : '';
+      const maxStr = priceMax < PRICE_NO_MAX ? `¥${priceMax.toLocaleString()}` : '';
       data.priceRange = minStr && maxStr ? `${minStr}〜${maxStr}` : minStr ? `${minStr}〜` : `〜${maxStr}`;
     }
     const filteredUrls = urls.map(u => u.trim()).filter(Boolean);
@@ -354,8 +351,8 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
                   <input
                     type="text"
                     inputMode="numeric"
-                    value={priceMax >= 10000 ? '' : priceMax || ''}
-                    onChange={(e) => setPriceMax(parseInt(e.target.value) || 10000)}
+                    value={priceMax >= PRICE_NO_MAX ? '' : priceMax || ''}
+                    onChange={(e) => setPriceMax(parseInt(e.target.value) || PRICE_NO_MAX)}
                     onKeyDown={(e) => {
                       if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) e.preventDefault();
                     }}
