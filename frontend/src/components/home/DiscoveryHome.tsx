@@ -481,33 +481,41 @@ export function DiscoveryHome({
                   onClick={(e) => { e.preventDefault(); navigate(`/themes/${g.id}`); }}
                   className="flex flex-col items-center gap-2 no-underline group cursor-pointer"
                 >
-                  <div
-                    className="relative w-full overflow-hidden transition-all duration-300"
-                    style={{
-                      aspectRatio: '1 / 1',
-                      borderRadius: '50%',
-                      boxShadow: '0 8px 16px -8px rgba(0,0,0,0.20), 0 0 0 1px rgba(0,0,0,0.04)',
-                    }}
-                  >
-                    <img
-                      loading="lazy"
-                      src={g.image}
-                      alt={g.label}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.1]"
-                    />
-                    {/* hover 時の orange リング（Tailwind variant が CSS 変数効かないので疑似要素 + CSS) */}
-                    <span
-                      className="absolute inset-0 rounded-full pointer-events-none transition-all"
+                  {/* 円形画像 + バッジ。バッジは円の overflow:hidden に
+                      切られないよう、画像クリップ用 inner div の外に出す。 */}
+                  <div className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
+                    <div
+                      className="absolute inset-0 overflow-hidden transition-all duration-300"
                       style={{
-                        boxShadow: '0 0 0 0 var(--stg-orange-500)',
+                        borderRadius: '50%',
+                        boxShadow: '0 8px 16px -8px rgba(0,0,0,0.20), 0 0 0 1px rgba(0,0,0,0.04)',
                       }}
-                    />
-                    {/* 投稿件数バッジ（右下、白丸 + オレンジ数字）。0 件のときは出さない。 */}
+                    >
+                      <img
+                        loading="lazy"
+                        src={g.image}
+                        alt={g.label}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.1]"
+                      />
+                      {/* hover 時の orange リング（Tailwind variant が CSS 変数効かないので疑似要素 + CSS) */}
+                      <span
+                        className="absolute inset-0 rounded-full pointer-events-none transition-all"
+                        style={{
+                          boxShadow: '0 0 0 0 var(--stg-orange-500)',
+                        }}
+                      />
+                    </div>
+                    {/* 投稿件数バッジ（右下、白丸 + オレンジ数字）。
+                        円の clipping を回避するため inner の外で絶対配置。
+                        bottom-right を 6% offset にして円の縁に半分だけ重なる
+                        ような Apple Maps 風の見た目に。 */}
                     {count > 0 && (
                       <span
-                        className="absolute bottom-1 right-1 inline-flex items-center justify-center font-bold"
+                        className="absolute inline-flex items-center justify-center font-bold"
                         style={{
-                          minWidth: 28,
+                          right: '4%',
+                          bottom: '4%',
+                          minWidth: 26,
                           height: 22,
                           padding: '0 7px',
                           borderRadius: 999,
@@ -515,7 +523,7 @@ export function DiscoveryHome({
                           color: 'var(--stg-orange-700)',
                           fontSize: 11,
                           letterSpacing: '-0.01em',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.18), 0 0 0 1.5px rgba(0,0,0,0.04)',
                         }}
                       >
                         {count}
