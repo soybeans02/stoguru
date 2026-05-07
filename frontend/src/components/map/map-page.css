@@ -421,14 +421,25 @@
   .map-top { gap: 8px; }
   .map-pill,
   .map-list-toggle { padding: 9px 11px; font-size: 12px; }
-  /* small screen では list panel が画面いっぱいになるので legend を
-     bottom-left に戻し、layer switcher の上に積む（非常に窮屈なら
-     2 行にしてもいい）。 */
+  /* mobile: legend と 3D/2D を 1 行に並べ、上下に積まずに視覚的にスッキリ。
+     どちらも bottom:22px で同じ row。legend の余白・文字を圧縮して
+     右の layers (3D/2D/衛星) と被らない幅に収める。両者 height ~32px に揃える。 */
   .map-legend {
     left: 18px;
-    bottom: 70px;
-    max-width: calc(100% - 36px);
+    bottom: 22px;
+    /* layers は ~140px 想定 (3btn x 38min + padding3 + gap4)。間に 12px 余白。 */
+    max-width: calc(100% - 18px - 18px - 12px - 140px);
+    padding: 7px 10px;
+    gap: 8px;
+    font-size: 11px;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
+  .map-legend__item { gap: 4px; flex-shrink: 0; }
+  .map-legend__dot { width: 9px; height: 9px; }
+  /* mobile では layers の padding を下げて legend と高さを揃える */
+  .map-layers { padding: 3px; }
+  .map-layers button { padding: 5px 9px; font-size: 11px; min-width: 38px; }
   /* 右の control stack (zoom +/- / 現在地 / フォロー) は top:80px だと
      pill が wrap して 2 行になった時に重なる。mobile では下げる。 */
   .map-right {
@@ -436,10 +447,16 @@
   }
 }
 
-/* さらに狭い iPhone (≤420px) は pill が更に折り返すので余裕を持たせる */
+/* さらに狭い iPhone (≤420px) — legend と layers を更に小さくして 1 行に */
 @media (max-width: 420px) {
   .map-right {
     top: 200px;
+  }
+  /* legend は文字を消してドットだけにして極限まで圧縮 */
+  .map-legend {
+    padding: 6px 8px;
+    gap: 6px;
+    font-size: 10px;
   }
 }
 
