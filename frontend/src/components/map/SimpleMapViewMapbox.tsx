@@ -632,6 +632,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       if (!map.hasImage('pin-green')) map.addImage('pin-green', createPinImage('#4ade80', 40));
       if (!map.hasImage('pin-purple')) map.addImage('pin-purple', createPinImage('#a855f7', 40));
       if (!map.hasImage('pin-logo')) map.addImage('pin-logo', createLogoPinImage(48));
+      // panTo (スワイプ画面/保存リストから飛んだ時) 用の金色ピン。
+      // 通常の赤/緑/紫より目立つ amber gold (#FBBF24)。
+      if (!map.hasImage('pin-gold')) map.addImage('pin-gold', createPinImage('#FBBF24', 44));
 
       // 空のGeoJSONソースとレイヤーを事前追加
       // stocks に「自分の保存」も「自分の投稿」も両方入れる（旧 my-posted ソースは廃止）。
@@ -681,13 +684,14 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
       // panTo 一時ピン（スワイプ/保存カードからマップに飛んだ時用）。
-      // 周りに同じくらいの大きさのピンが密集してると「どれが目的の店か」が
-      // 分からなくなるので、ロゴピンの真下にオレンジのパルス halo を 2 重で
-      // アニメーション表示 + ピン本体も他より一回り大きくして強調する。
+      // 「ピンがどこか分からない」事故を防ぐため、目立つ金色ピン + 同色の
+      // パルス halo を 2 重でアニメーション表示する。既に保存/行った/投稿
+      // で別色ピンが立っている店でも、より大きな金ピンが上に重なるので
+      // 視覚的に金色化したように見える。
       map.addLayer({ id: 'panTo-pulse-outer', type: 'circle', source: 'panTo-pin',
         paint: {
           'circle-radius': 0,
-          'circle-color': '#FE8D28',  // var(--accent-orange)
+          'circle-color': '#FBBF24',  // gold
           'circle-opacity': 0.0,
           'circle-stroke-width': 0,
           'circle-pitch-alignment': 'map',
@@ -695,16 +699,16 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       map.addLayer({ id: 'panTo-pulse-inner', type: 'circle', source: 'panTo-pin',
         paint: {
           'circle-radius': 0,
-          'circle-color': '#FE8D28',
+          'circle-color': '#FBBF24',
           'circle-opacity': 0.0,
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#FE8D28',
+          'circle-stroke-color': '#FBBF24',
           'circle-stroke-opacity': 0.0,
           'circle-pitch-alignment': 'map',
         } });
       map.addLayer({ id: 'panTo-pin-icon', type: 'symbol', source: 'panTo-pin',
-        layout: { 'icon-image': 'pin-logo',
-          // 周辺ピン (zoom 18 で 1.0) より一回り大きく見えるよう 0.85 -> 1.4
+        layout: { 'icon-image': 'pin-gold',
+          // 周辺ピン (zoom 18 で 1.0) より一回り大きく見えるよう 1.4 倍
           'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 15, 1.0, 18, 1.4],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true,
           'icon-ignore-placement': true } });
@@ -919,6 +923,14 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         };
         map.once('moveend', showPopup);
       }
+      // 12 秒後に金ピン + パルスを自動消去（一時的な案内なので長居させない）。
+      // ユーザーが popup 閉じてマップ操作した後はもう不要。
+      window.setTimeout(() => {
+        const m = mapRef.current;
+        if (!m) return;
+        const ps = m.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
+        if (ps) ps.setData({ type: 'FeatureCollection', features: [] });
+      }, 12000);
       onPanComplete();
     };
 
