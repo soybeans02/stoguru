@@ -81,7 +81,11 @@ export function FilterOverlay({
   }
 
   return (
-    <div className="absolute inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
+    // position: fixed + inset:0 で viewport 全体を覆う。旧版の absolute inset-0
+     // だと親 (main) 内にしか広がらず、モバイルの bottom tab bar (ホーム/マップ/
+     // 保存/アカウント) と Footer の クリア / 適用 ボタンが重なって見えてしまった。
+     // z-index は bottom-tab より十分高く設定。
+    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
         <h2 className="text-base font-bold text-gray-900 dark:text-white">絞り込み</h2>
@@ -279,8 +283,11 @@ export function FilterOverlay({
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+      {/* Footer — iPhone のホームバー (safe-area-inset-bottom) を逃がす padding を確保 */}
+      <div
+        className="px-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-3"
+        style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
+      >
         <button
           onClick={clearAll}
           className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium"
