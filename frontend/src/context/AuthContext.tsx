@@ -37,25 +37,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //      JS から見えないので XSS でも盗めない）
   //   2. localStorage（旧フロー / iOS WebView 等の互換用 fallback）
   // どちらも /me が 200 なら認証済み扱い。
+  // 401 が返ってきた場合は refreshToken で再発行を試みる。
+  // 旧版は 401 即 logout していたため、accessToken の TTL（Cognito 既定 1h）が
+  // 切れてからリロードすると毎回ログアウトされる事故が起きていた。
   useEffect(() => {
     let cancelled = false;
+    const tryFetchMe = async (bearer: string | null): Promise<Response> => {
+      return fetch(`${API}/me`, {
+        credentials: 'include',
+        headers: bearer ? { Authorization: `Bearer ${bearer}` } : undefined,
+      });
+    };
+    const tryRefresh = async (): Promise<string | null> => {
+      const rt = localStorage.getItem('refreshToken');
+      if (!rt) return null;
+      try {
+        const r = await fetch(`${API}/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (!r.ok) return null;
+        const data = await r.json().catch(() => null) as { accessToken?: string } | null;
+        if (data?.accessToken) {
+          localStorage.setItem('accessToken', data.accessToken);
+          return data.accessToken;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
     (async () => {
       try {
-        // credentials: 'include' で cookie を必ず送る。token が localStorage に
-        // あれば Bearer ヘッダーも併送して二重に通す（cookie 期限切れ等のため）。
-        const res = await fetch(`${API}/me`, {
-          credentials: 'include',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        let res = await tryFetchMe(token);
         if (cancelled) return;
+        if (!res.ok && res.status === 401) {
+          // accessToken 期限切れの可能性 → refresh を試行
+          const newToken = await tryRefresh();
+          if (cancelled) return;
+          if (newToken) {
+            res = await tryFetchMe(newToken);
+            if (cancelled) return;
+            if (res.ok) {
+              const u = await res.json();
+              setUser(u);
+              setToken(newToken); // 後続 fetch のためにも反映
+              return;
+            }
+          }
+          // refresh も無理 → ログアウト扱い
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          setToken(null);
+          return;
+        }
         if (res.ok) {
           const u = await res.json();
           setUser(u);
         } else {
-          // 認証無効 → localStorage の旧トークンも掃除
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          setToken(null);
+          // 5xx 等 → token は触らずネットワークエラー扱い
         }
       } catch {
         // ネットワークエラーは tolerable（再試行は次回マウント時）
@@ -64,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   async function signUp(email: string, password: string, nickname: string) {
