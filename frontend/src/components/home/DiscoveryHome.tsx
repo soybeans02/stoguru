@@ -14,6 +14,7 @@ import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 // `GENRE_PHOTOS` はこのファイル下方で genre keyword → 写真の解決用 const として
 // 別途定義しているので、衝突を避けるために import 側は alias で受ける。
 import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
+import { localizeGenre as localizeGenreFn } from '../../utils/labelI18n';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -467,8 +468,8 @@ export function DiscoveryHome({
         <section className="py-10">
           <SectionHead
             title={t('home.categoriesTitle')}
-            subtitle="食べたいジャンルから一気に絞り込む"
-            link="すべて見る ↗"
+            subtitle={t('home.categoriesSubtitle')}
+            link={t('home.viewAll')}
             onLinkClick={() => setShowAllGenres(true)}
           />
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 mt-2">
@@ -551,7 +552,7 @@ export function DiscoveryHome({
             <SectionHead
               title="特集"
               subtitle="編集部が書いてる、読み物寄りのお店紹介"
-              link={themeConfigs.length > 3 ? 'すべて見る →' : undefined}
+              link={themeConfigs.length > 3 ? t('home.feedViewAll') : undefined}
               onLinkClick={() => setShowThemes(true)}
             />
             <div
@@ -675,9 +676,9 @@ export function DiscoveryHome({
               >
                 <PlateIcon size={28} />
               </div>
-              <p className="text-[15px] font-bold mb-1.5">近くにお店が見つかりませんでした</p>
+              <p className="text-[15px] font-bold mb-1.5">{t('home.feedEmptyTitle')}</p>
               <p className="text-[12.5px] text-[var(--text-secondary)] mb-5 max-w-[360px] mx-auto">
-                エリアを変えるか、スワイプで新しいお店を探してみて。
+                {t('home.feedEmptyHint')}
               </p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <button
@@ -685,7 +686,7 @@ export function DiscoveryHome({
                   className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all"
                   style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
                 >
-                  スワイプで探す →
+                  {t('home.feedEmptyCta')}
                 </button>
               </div>
             </div>
@@ -1540,7 +1541,7 @@ function DiscoveryTopBar({
         <button
           type="button"
           onClick={() => onLogoClick?.()}
-          aria-label="ホームを再読み込み"
+          aria-label={t('home.homeReloadAria')}
           className="text-[22px] font-extrabold tracking-[-0.02em] hidden sm:block lg:hidden flex-shrink-0 hover:opacity-80 transition-opacity"
           style={{
             background:
@@ -1594,7 +1595,7 @@ function DiscoveryTopBar({
           <button
             type="button"
             onClick={onOpenSwipe}
-            aria-label="スワイプで探す"
+            aria-label={t('home.swipeShortcutAria')}
             className="flex-shrink-0 w-10 h-10 rounded-full grid place-items-center transition-all hover:-translate-y-0.5 text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"
             style={{
               background:
@@ -2737,6 +2738,7 @@ function GenreListModal({
   onClose: () => void;
   onSelectGenre: (genre: string) => void;
 }) {
+  const { t, language } = useTranslation();
   const restGenres = GENRES.filter((g) => !(POPULAR_GENRES as readonly string[]).includes(g));
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto animate-fade-in" onClick={onClose}>
@@ -2751,15 +2753,15 @@ function GenreListModal({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em]">
-              ジャンルからさがす
+              {t('home.genreModalTitle')}
             </h2>
             <p className="text-[13px] text-[var(--text-tertiary)] mt-1">
-              食べたい料理ジャンルを選んでお店をしぼりこみ
+              {t('home.genreModalSubtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
             className="w-10 h-10 grid place-items-center rounded-full bg-[var(--card-bg)] border border-[var(--border)] hover:bg-[var(--bg-soft)] shadow-[var(--shadow-sm)]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -2771,7 +2773,7 @@ function GenreListModal({
         {/* 人気 8（写真タイル） */}
         <div className="mb-7">
           <div className="text-[11px] uppercase tracking-[0.04em] font-bold text-[var(--text-tertiary)] mb-3">
-            人気ジャンル
+            {t('home.genreSectionPopular')}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {POPULAR_GENRES.map((g) => (
@@ -2792,7 +2794,7 @@ function GenreListModal({
                   style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))' }}
                 />
                 <div className="absolute bottom-2 left-3 right-3 text-white">
-                  <div className="font-extrabold text-[15px] drop-shadow">{g}</div>
+                  <div className="font-extrabold text-[15px] drop-shadow">{localizeGenreFn(g, language)}</div>
                 </div>
               </button>
             ))}
@@ -2802,7 +2804,7 @@ function GenreListModal({
         {/* 全件フラット（チップ 2 列） */}
         <div>
           <div className="text-[11px] uppercase tracking-[0.04em] font-bold text-[var(--text-tertiary)] mb-3">
-            すべてのジャンル
+            {t('home.genreSectionAll')}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {restGenres.map((g) => (
@@ -2816,7 +2818,7 @@ function GenreListModal({
                   color: 'var(--text-primary)',
                 }}
               >
-                {g}
+                {localizeGenreFn(g, language)}
               </button>
             ))}
           </div>

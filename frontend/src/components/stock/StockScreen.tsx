@@ -4,6 +4,8 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { priceRangeMatches } from '../../utils/price';
+import { useTranslation } from '../../context/LanguageContext';
+import { localizeGenre, localizeScene, localizePrefecture } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import './stock-page.css';
@@ -45,6 +47,7 @@ interface Props {
 
 
 export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveStock, onTogglePin, onShowOnMap, userPosition }: Props) {
+  const { t, language } = useTranslation();
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   // 旧: 単一ジャンル循環選択 → 新: マップ/スワイプ画面と同じ FilterOverlay
@@ -136,7 +139,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       <div className="page-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input
-          placeholder="店名・ジャンル・エリアで検索"
+          placeholder={t('stock.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -144,7 +147,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <button
             type="button"
             onClick={() => setSearch('')}
-            aria-label="検索クリア"
+            aria-label={t('common.clear')}
             className="page-search__clear"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -154,11 +157,11 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
 
       <header className="page-head">
         <div>
-          <h1>保存</h1>
+          <h1>{t('stock.title')}</h1>
           <div className="page-head__sub">
-            <span><b>{stocks.length}</b>件</span>
-            <span>うち <b>{visitedCount}</b>件 行った</span>
-            <span>達成率 <b>{completionRate}%</b></span>
+            <span><b>{stocks.length}</b></span>
+            <span>{t('stock.summaryVisitedTemplate').replace('{n}', String(visitedCount))}</span>
+            <span>{completionRate}%</span>
           </div>
         </div>
         <div className="page-head__actions"></div>
@@ -169,48 +172,48 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           <div className="stat-card__icon ic-saved">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg>
           </div>
-          <div><div className="stat-card__num">{stocks.length}</div><div className="stat-card__lbl">保存数</div></div>
+          <div><div className="stat-card__num">{stocks.length}</div><div className="stat-card__lbl">{t('account.saved')}</div></div>
         </div>
         <div className="stat-card">
           <div className="stat-card__icon ic-visited">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </div>
-          <div><div className="stat-card__num">{visitedCount}</div><div className="stat-card__lbl">行った</div></div>
+          <div><div className="stat-card__num">{visitedCount}</div><div className="stat-card__lbl">{t('stock.visited')}</div></div>
         </div>
         <div className="stat-card">
           <div className="stat-card__icon ic-todo">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <div><div className="stat-card__num">{todoCount}</div><div className="stat-card__lbl">まだ行ってない</div></div>
+          <div><div className="stat-card__num">{todoCount}</div><div className="stat-card__lbl">{t('stock.notVisitedLong')}</div></div>
         </div>
         <div className="stat-card">
           <div className="stat-card__icon ic-rate">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
           </div>
-          <div><div className="stat-card__num">{completionRate}%</div><div className="stat-card__lbl">達成率</div></div>
+          <div><div className="stat-card__num">{completionRate}%</div><div className="stat-card__lbl">{language === 'ja' ? '達成率' : 'Completion'}</div></div>
         </div>
       </div>
 
       <div className="toolbar">
         {/* 検索窓は最上段の .page-search に移動済み（design 準拠） */}
         <div className="tab-pills">
-          <button className={`tab-pill ${filter === 'all' ? 'is-active' : ''}`} onClick={() => setFilter('all')}>すべて<span className="tab-pill__count">{stocks.length}</span></button>
-          <button className={`tab-pill ${filter === 'unvisited' ? 'is-active' : ''}`} onClick={() => setFilter('unvisited')}>まだ<span className="tab-pill__count">{todoCount}</span></button>
-          <button className={`tab-pill ${filter === 'visited' ? 'is-active' : ''}`} onClick={() => setFilter('visited')}>行った<span className="tab-pill__count">{visitedCount}</span></button>
+          <button className={`tab-pill ${filter === 'all' ? 'is-active' : ''}`} onClick={() => setFilter('all')}>{t('map.all')}<span className="tab-pill__count">{stocks.length}</span></button>
+          <button className={`tab-pill ${filter === 'unvisited' ? 'is-active' : ''}`} onClick={() => setFilter('unvisited')}>{t('stock.notVisited')}<span className="tab-pill__count">{todoCount}</span></button>
+          <button className={`tab-pill ${filter === 'visited' ? 'is-active' : ''}`} onClick={() => setFilter('visited')}>{t('stock.visited')}<span className="tab-pill__count">{visitedCount}</span></button>
         </div>
         <button
           className={`chip-btn ${activeFilterCount > 0 ? 'is-active' : ''}`}
           onClick={() => setFilterOpen(true)}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3Z"/></svg>
-          絞り込み
+          {t('filter.title')}
           {activeFilterCount > 0 && (
             <span className="chip-btn__count">{activeFilterCount}</span>
           )}
         </button>
         <button className="chip-btn" onClick={() => setSortMode(sortMode === 'added' ? 'distance' : 'added')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
-          {sortMode === 'added' ? '追加順' : '距離順'}
+          {sortMode === 'added' ? t('stock.addOrder') : t('stock.distanceOrder')}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div className="view-toggle">
@@ -227,24 +230,24 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
         <div className="active-filters">
           {selectedScenes.map((sc) => (
             <span key={`sc:${sc}`} className="active-filter">
-              {sc}
-              <button onClick={() => setSelectedScenes((prev) => prev.filter((x) => x !== sc))} aria-label="clear">
+              {localizeScene(sc, language)}
+              <button onClick={() => setSelectedScenes((prev) => prev.filter((x) => x !== sc))} aria-label={t('common.clear')}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </span>
           ))}
           {selectedGenres.map((g) => (
             <span key={`g:${g}`} className="active-filter">
-              {g}
-              <button onClick={() => setSelectedGenres((prev) => prev.filter((x) => x !== g))} aria-label="clear">
+              {localizeGenre(g, language)}
+              <button onClick={() => setSelectedGenres((prev) => prev.filter((x) => x !== g))} aria-label={t('common.clear')}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </span>
           ))}
           {selectedAreas.map((a) => (
             <span key={`a:${a}`} className="active-filter">
-              {a}
-              <button onClick={() => setSelectedAreas((prev) => prev.filter((x) => x !== a))} aria-label="clear">
+              {localizePrefecture(a, language)}
+              <button onClick={() => setSelectedAreas((prev) => prev.filter((x) => x !== a))} aria-label={t('common.clear')}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </span>
@@ -268,7 +271,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
               setSearch('');
             }}
           >
-            すべてクリア
+            {t('common.clear')}
           </button>
         </div>
       )}
@@ -276,14 +279,14 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       {stocks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '64px 20px', color: 'var(--stg-gray-600)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--stg-gray-900)', marginBottom: 6 }}>まだ保存がないよ</div>
-          <div style={{ fontSize: 13 }}>ホームで気になる店をスワイプしよう</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--stg-gray-900)', marginBottom: 6 }}>{t('stock.emptyTitle')}</div>
+          <div style={{ fontSize: 13 }}>{t('stock.swipeHint')}</div>
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '64px 20px', color: 'var(--stg-gray-600)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--stg-gray-900)', marginBottom: 6 }}>該当するお店がありません</div>
-          <div style={{ fontSize: 13 }}>条件を変えて、もう一度試してみてください</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--stg-gray-900)', marginBottom: 6 }}>{t('stock.noFilterResultsTitle')}</div>
+          <div style={{ fontSize: 13 }}>{t('stock.noFilterResultsHint')}</div>
         </div>
       ) : view === 'grid' ? (
         <div className="stock-grid">
@@ -304,7 +307,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                 <div className="stock-card__photo">
                   {photo ? <img loading="lazy" src={photo} alt={s.name} /> : null}
                   {s.pinned && (
-                    <button className="stock-card__pin" onClick={(e) => { e.stopPropagation(); onTogglePin(s.id); }} aria-label="ピン解除">
+                    <button className="stock-card__pin" onClick={(e) => { e.stopPropagation(); onTogglePin(s.id); }} aria-label={t('stock.unpinTooltip')}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.5 7 13 7 13s7-7.5 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
                     </button>
                   )}
@@ -312,16 +315,16 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   {s.visited && (
                     <div className="stock-card__visited-badge">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      行った
+                      {t('stock.visited')}
                     </div>
                   )}
                   <button
                     className="stock-card__remove"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`「${s.name}」を保存から削除する？`)) onRemoveStock(s.id);
+                      if (window.confirm(t('stock.deleteConfirmTemplate').replace('{name}', s.name))) onRemoveStock(s.id);
                     }}
-                    aria-label="削除"
+                    aria-label={t('stock.deleteAria')}
                   >
                     {/* X を 2 本の独立 path に分けて strokeLinejoin の影響を排除。
                         ボタン 24x24 に対して SVG 12x12 で控えめに。 */}
@@ -335,19 +338,19 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   <h3 className="stock-card__title">{s.name}</h3>
                   <div className="stock-card__meta">
                     {dist && <><span>{dist}</span><span className="stock-card__meta-dot"></span></>}
-                    {s.genre && <><span>{s.genre}</span></>}
+                    {s.genre && <><span>{localizeGenre(s.genre, language)}</span></>}
                     {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}
                   </div>
                   {handle && (
                     <div className="stock-card__source">
                       <span className={`stock-card__source-dot ${src}`}>{src.toUpperCase()}</span>
-                      {handle.startsWith('@') ? handle : `@${handle}`} で発見
+                      {t('stock.sourceFoundTemplate').replace('{handle}', handle.startsWith('@') ? handle : `@${handle}`)}
                     </div>
                   )}
                   {chips.length > 0 && (
                     <div className="stock-card__chips">
                       {chips.map((c, i) => (
-                        <span key={i} className="stock-card__chip">{c}</span>
+                        <span key={i} className="stock-card__chip">{localizeGenre(c, language)}</span>
                       ))}
                     </div>
                   )}
@@ -357,7 +360,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                       onClick={(e) => { e.stopPropagation(); onShowOnMap(s.lat, s.lng, s); }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6v15l6-3 6 3 6-3V3l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg>
-                      マップ
+                      {t('stock.cardActionMap')}
                     </button>
                     {s.videoUrl ? (
                       <a
@@ -369,12 +372,12 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                         style={{ textDecoration: 'none' }}
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>
-                        動画
+                        {t('stock.cardActionVideo')}
                       </a>
                     ) : (
                       <button className="stock-card__action" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>
-                        動画
+                        {t('stock.cardActionVideo')}
                       </button>
                     )}
                     {s.visited ? (
@@ -383,7 +386,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                         onClick={(e) => { e.stopPropagation(); onUnmarkVisited(s.id); }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                        行った
+                        {t('stock.visited')}
                       </button>
                     ) : (
                       <button
@@ -391,7 +394,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                         onClick={(e) => { e.stopPropagation(); onMarkVisited(s.id); }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                        行った
+                        {t('stock.visited')}
                       </button>
                     )}
                   </div>
@@ -423,7 +426,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                     <span className={`stock-card__source-dot ${src}`}>{src.toUpperCase()}</span>
                     {s.address && <span className="stock-row__meta-address">{s.address}</span>}
                     {dist && <><span className="stock-card__meta-dot"></span><span>{dist}</span></>}
-                    {s.genre && <><span className="stock-card__meta-dot"></span><span>{s.genre}</span></>}
+                    {s.genre && <><span className="stock-card__meta-dot"></span><span>{localizeGenre(s.genre, language)}</span></>}
                     {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}
                   </div>
                 </div>
@@ -435,7 +438,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                     onClick={(e) => { e.stopPropagation(); onShowOnMap(s.lat, s.lng, s); }}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6v15l6-3 6 3 6-3V3l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg>
-                    マップ
+                    {t('stock.cardActionMap')}
                   </button>
                   {s.visited ? (
                     <button
@@ -444,7 +447,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                       onClick={(e) => { e.stopPropagation(); onUnmarkVisited(s.id); }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      行った
+                      {t('stock.visited')}
                     </button>
                   ) : (
                     <button
@@ -453,7 +456,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                       onClick={(e) => { e.stopPropagation(); onMarkVisited(s.id); }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      行った
+                      {t('stock.visited')}
                     </button>
                   )}
                 </div>
@@ -462,9 +465,9 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   style={{ flex: 'none', padding: '7px 10px', border: 'none' }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm(`「${s.name}」を保存から削除する？`)) onRemoveStock(s.id);
+                    if (window.confirm(t('stock.deleteConfirmTemplate').replace('{name}', s.name))) onRemoveStock(s.id);
                   }}
-                  aria-label="削除"
+                  aria-label={t('stock.deleteAria')}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
@@ -484,7 +487,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
           bookmarked={true /* 保存ページなので必ず保存済み */}
           onBookmark={() => {
             // 保存ページから 保存済み を押した = 解除
-            if (window.confirm(`「${preview.name}」を保存から削除する？`)) {
+            if (window.confirm(t('stock.deleteConfirmTemplate').replace('{name}', preview.name))) {
               onRemoveStock(preview.id);
               setPreview(null);
             }

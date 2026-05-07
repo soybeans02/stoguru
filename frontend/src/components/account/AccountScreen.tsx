@@ -127,12 +127,12 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      alert('JPEG / PNG / WebP のみアップロードできます');
+      alert(t('upload.onlyImageTypes'));
       e.target.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('ファイルサイズは 5MB までです');
+      alert(t('upload.sizeLimit').replace('{mb}', '5'));
       e.target.value = '';
       return;
     }
@@ -144,7 +144,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       await api.putSettings({ profileImage: url });
     } catch (err) {
       console.error('Profile photo upload failed:', err);
-      alert('アップロードに失敗しました。もう一度お試しください。');
+      alert(t('upload.failed'));
     } finally { setUploadingPhoto(false); }
     e.target.value = '';
   }
@@ -153,12 +153,12 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      alert('JPEG / PNG / WebP のみアップロードできます');
+      alert(t('upload.onlyImageTypes'));
       e.target.value = '';
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      alert('ファイルサイズは 8MB までです');
+      alert(t('upload.sizeLimit').replace('{mb}', '8'));
       e.target.value = '';
       return;
     }
@@ -170,7 +170,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       await api.putSettings({ coverImage: url });
     } catch (err) {
       console.error('Cover photo upload failed:', err);
-      alert('アップロードに失敗しました。もう一度お試しください。');
+      alert(t('upload.failed'));
     } finally { setUploadingCover(false); }
     e.target.value = '';
   }
@@ -470,7 +470,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   style={{ fontSize: 14, color: 'var(--text-secondary)' }}
                 >
                   {/* bio は cache:bio からの state を見る。空ならデフォルト文。 */}
-                  {bio || 'お気に入りのお店をスワイプで集めて、行きたい時にすぐ思い出すための私だけのリスト。'}
+                  {bio || t('account.bioFallback')}
                 </p>
                 {/* タグ表示：ユーザーが設定した値だけハッシュタグ風に並べる。
                     未設定（cache:favoriteGenre / cache:region が空）の時は
@@ -492,7 +492,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                         .filter((n) => Number.isFinite(n));
                       if (dates.length) {
                         const dt = new Date(Math.min(...dates));
-                        joinedLabel = `${dt.getFullYear()}年${dt.getMonth() + 1}月から利用`;
+                        joinedLabel = t('account.joinedSinceTemplate')
+                          .replace('{year}', String(dt.getFullYear()))
+                          .replace('{month}', String(dt.getMonth() + 1));
                       }
                     } catch { /* noop — 表示しない */ }
                   }
@@ -882,9 +884,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       {/* List panels — 旧「保存」カウントは stats から撤廃したので
           listPanel === 'stocks' のオーバーレイも削除済み。 */}
       {listPanel === 'visited' && (
-        <Overlay title="行った" onClose={() => setListPanel(null)}>
+        <Overlay title={t('account.visited')} onClose={() => setListPanel(null)}>
           {safeStocks.filter(s => s.visited).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">まだ行ったお店がないよ</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('search.notVisitedYet')}</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {safeStocks.filter(s => s.visited).map(s => (
@@ -901,9 +903,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </Overlay>
       )}
       {listPanel === 'following' && (
-        <Overlay title="フォロー" onClose={() => setListPanel(null)}>
+        <Overlay title={t('account.following')} onClose={() => setListPanel(null)}>
           {followingList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">まだフォローしてないよ</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('search.noFollowingYet')}</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {followingList.map(f => (
@@ -917,9 +919,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </Overlay>
       )}
       {listPanel === 'followers' && (
-        <Overlay title="フォロワー" onClose={() => setListPanel(null)}>
+        <Overlay title={t('account.followers')} onClose={() => setListPanel(null)}>
           {followersList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">まだフォロワーがいないよ</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('search.noFollowersYet')}</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {followersList.map(f => (
@@ -1108,6 +1110,7 @@ function EditProfilePanel({
   onSave: (next: { nickname: string; bio: string; favoriteGenre: string; region: string }) => void | Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [nickname, setNickname] = useState(currentNickname);
   // 親から渡された現在値で初期化（無ければ localStorage から）。
   const [bio, setBio] = useState(currentBio ?? (localStorage.getItem('cache:bio') ?? ''));
@@ -1119,8 +1122,8 @@ function EditProfilePanel({
   async function handleSave() {
     setError('');
     const trimmed = nickname.trim();
-    if (!trimmed) { setError('ニックネームを入力してください'); return; }
-    if (trimmed.length > 50) { setError('ニックネームは 50 文字以内で入力してください'); return; }
+    if (!trimmed) { setError(t('account.nicknameRequired')); return; }
+    if (trimmed.length > 50) { setError(t('account.nicknameTooLong')); return; }
     setSaving(true);
     try {
       await onSave({
@@ -1135,24 +1138,24 @@ function EditProfilePanel({
   }
 
   return (
-    <Sheet isOpen onClose={onClose} title="プロフィール編集" maxWidth="lg">
+    <Sheet isOpen onClose={onClose} title={t('account.editTitle')} maxWidth="lg">
       <div className="flex flex-col gap-4">
         <Input
-          label="ニックネーム"
+          label={t('auth.nickname')}
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           maxLength={50}
-          placeholder="表示名"
+          placeholder={t('account.nicknamePlaceholder')}
         />
         <div>
           <label className="block text-[12px] font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            自己紹介（{bio.length}/200）
+            {t('account.bioLabel')} ({bio.length}/200)
           </label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 200))}
             rows={3}
-            placeholder="お気に入りのジャンル、住んでる地域、好きな店の傾向など"
+            placeholder={t('account.bioPlaceholder')}
             className="w-full px-3 py-2 rounded-[10px] resize-none outline-none transition-colors"
             style={{
               fontSize: 14,
@@ -1163,18 +1166,18 @@ function EditProfilePanel({
           />
         </div>
         <Input
-          label="好きなジャンル"
+          label={t('account.favoriteGenreLabel')}
           value={favoriteGenre}
           onChange={(e) => setFavoriteGenre(e.target.value)}
           maxLength={20}
-          placeholder="ラーメン / カフェ / 焼肉 など"
+          placeholder={t('account.favoriteGenrePlaceholder')}
         />
         <Input
-          label="住んでる地域"
+          label={t('account.regionLabel')}
           value={region}
           onChange={(e) => setRegion(e.target.value)}
           maxLength={30}
-          placeholder="大阪 / 渋谷 / 京都 など"
+          placeholder={t('account.regionPlaceholder')}
         />
         {error && <p className="text-red-500 text-[12px]">{error}</p>}
         <div className="flex gap-2 mt-2">
@@ -1187,7 +1190,7 @@ function EditProfilePanel({
               border: '1px solid var(--border)',
             }}
           >
-            キャンセル
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -1195,7 +1198,7 @@ function EditProfilePanel({
             className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
             style={{ background: 'var(--accent-orange)' }}
           >
-            {saving ? '保存中…' : '保存'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>
@@ -1328,7 +1331,7 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
 
   async function handleDelete() {
     if (!password) {
-      setError(t('deleteAccount.passwordRequired', '現在のパスワードを入力してください'));
+      setError(t('account.passwordRequiredHint'));
       return;
     }
     setLoading(true);
@@ -1439,7 +1442,7 @@ function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDel
           {/* セキュリティ強化: トークン盗難で即削除されないよう
               現在のパスワード再入力を必須にする */}
           <FormInput
-            label={t('account.currentPassword', '現在のパスワード')}
+            label={t('account.currentPassword')}
             type="password"
             value={password}
             onChange={setPassword}

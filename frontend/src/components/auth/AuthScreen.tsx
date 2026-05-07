@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { LogoMark } from '../ui/LogoMark';
@@ -14,6 +15,7 @@ interface AuthScreenProps {
 
 export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenProps = {}) {
   const { user, signUp, login, forgotPassword, resetPassword } = useAuth();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>(initialMode ?? 'login');
 
   // ログイン成功で自動で閉じる（モーダル用途）
@@ -58,10 +60,10 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
   }
 
   const modeLabel: Record<Mode, string> = {
-    login: 'ログイン',
-    signup: 'アカウント作成',
-    forgot: 'パスワード再設定',
-    reset: '新しいパスワード設定',
+    login: t('auth.logIn'),
+    signup: t('auth.signUp'),
+    forgot: t('auth.forgotPassword').replace('?', '').replace('？', ''),
+    reset: t('auth.newPasswordLabel'),
   };
 
   return (
@@ -87,7 +89,7 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
         <div className="relative z-10 text-center text-white px-12">
           <span className="block mb-6"><LogoMark size={80} radius={20} /></span>
           <h2 className="text-4xl font-extrabold mb-3 tracking-[-0.02em]">stoguru</h2>
-          <p className="text-lg text-white/80">SNSで見つけたお店を、ストックして、行こう。</p>
+          <p className="text-lg text-white/80">{t('auth.tagline')}</p>
         </div>
       </div>
 
@@ -117,17 +119,17 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
             {modeLabel[mode]}
           </p>
           <p className="hidden md:block text-center text-gray-400 text-sm mb-8">
-            アカウントにログインして始めましょう
+            {t('auth.subtitleLogin')}
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === 'forgot' ? (
             <>
               <p className="text-sm text-gray-600 text-center">
-                登録済みのメールアドレスを入力してください
+                {t('auth.forgotEmailHint')}
               </p>
               <Input
-                label="メールアドレス"
+                label={t('auth.email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -138,36 +140,37 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
           ) : mode === 'reset' ? (
             <>
               <p className="text-sm text-gray-600 text-center">
-                <span className="font-medium">{email}</span> に確認コードを送信しました
+                {t('auth.resetCodeSentTemplate').replace('{email}', '')}
+                <span className="font-medium">{email}</span>
               </p>
               <Input
-                label="確認コード"
+                label={t('auth.codeInputLabel')}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="6桁のコード"
+                placeholder={t('auth.codePlaceholder')}
                 autoFocus
               />
               <Input
-                label="新しいパスワード"
+                label={t('auth.newPasswordLabel')}
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="8文字以上"
+                placeholder={t('auth.passwordPlaceholder')}
               />
             </>
           ) : (
             <>
               {mode === 'signup' && (
                 <Input
-                  label="ニックネーム"
+                  label={t('auth.nickname')}
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="表示名"
+                  placeholder={t('auth.nicknameDisplayPlaceholder')}
                   autoFocus
                 />
               )}
               <Input
-                label="メールアドレス"
+                label={t('auth.email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -175,11 +178,11 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
                 autoFocus={mode === 'login'}
               />
               <Input
-                label="パスワード"
+                label={t('auth.password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="8文字以上"
+                placeholder={t('auth.passwordPlaceholder')}
               />
             </>
           )}
@@ -187,7 +190,12 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           <Button type="submit" variant="primary" disabled={loading} className="w-full">
-            {loading ? '...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? '登録' : mode === 'forgot' ? '送信' : '再設定'}
+            {loading
+              ? '...'
+              : mode === 'login' ? t('auth.submitLogin')
+              : mode === 'signup' ? t('auth.submitSignup')
+              : mode === 'forgot' ? t('auth.submitForgot')
+              : t('auth.submitReset')}
           </Button>
         </form>
 
@@ -196,29 +204,29 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
             <>
               <p>
                 <button onClick={() => { setMode('forgot'); setError(''); }} className="text-gray-400 hover:text-gray-600">
-                  パスワードを忘れた？
+                  {t('auth.forgotPassword')}
                 </button>
               </p>
               <p>
-                アカウントがない？{' '}
+                {t('auth.noAccount')}{' '}
                 <button onClick={() => { setMode('signup'); setError(''); }} className="text-orange-500 font-medium">
-                  新規登録
+                  {t('auth.signUp')}
                 </button>
               </p>
             </>
           )}
           {mode === 'signup' && (
             <p>
-              アカウントがある？{' '}
+              {t('auth.haveAccount')}{' '}
               <button onClick={() => { setMode('login'); setError(''); }} className="text-orange-500 font-medium">
-                ログイン
+                {t('auth.logIn')}
               </button>
             </p>
           )}
           {(mode === 'forgot' || mode === 'reset') && (
             <p>
               <button onClick={() => { setMode('login'); setError(''); setCode(''); setNewPassword(''); }} className="text-orange-500 font-medium">
-                ログインに戻る
+                {t('auth.backToLogin')}
               </button>
             </p>
           )}
