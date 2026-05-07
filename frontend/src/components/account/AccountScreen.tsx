@@ -281,8 +281,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
   ];
 
+  // 「保存」カウントは行った含む総件数で意味が薄いという判断で撤廃。
+  // 行った / フォロー / フォロワー の 3 列構成に。
   const stats = [
-    { count: safeStocks.length, label: t('account.saved'), onClick: () => setListPanel('stocks') },
     { count: visitedCount, label: t('account.visited'), onClick: () => setListPanel('visited') },
     { count: followingCount, label: t('account.following'), onClick: () => setListPanel('following') },
     { count: followersCount, label: t('account.followers'), onClick: () => setListPanel('followers') },
