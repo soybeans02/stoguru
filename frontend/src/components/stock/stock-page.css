@@ -240,7 +240,7 @@
    line-height などの混入を防ぐ。 */
 .stock-card__remove {
   position: absolute; top: 10px; left: 10px;
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 24px; height: 24px; border-radius: 50%;
   background: rgba(0,0,0,0.55); color: white; border: none; cursor: pointer;
   padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
