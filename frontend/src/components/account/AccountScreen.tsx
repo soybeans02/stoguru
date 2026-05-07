@@ -53,8 +53,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   // 認証済みユーザーは「お店を編集」ボタンから直接 InfluencerDashboard に入って
   // 投稿・編集できる。バックエンドも申請状態を見ずに requireAuth のみで通す。
   // 通知設定（バックエンド未実装なのでクライアント側 localStorage 永続）
+  // メール通知は UI から外したので state も削除。
   const [pushNotif, setPushNotif] = useState(() => localStorage.getItem('cache:pushNotif') !== '0');
-  const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('cache:emailNotif') === '1');
 
   const safeStocks = stocks ?? [];
   const visitedCount = safeStocks.filter((s) => s.visited).length;
@@ -687,26 +687,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               onChange={(next) => { setPushNotif(next); localStorage.setItem('cache:pushNotif', next ? '1' : '0'); }}
             />
           </div>
-          <div
-            className="flex items-center gap-3.5 px-4 py-3.5 sm:col-span-2"
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
-          >
-            <div
-              className="w-[38px] h-[38px] grid place-items-center flex-shrink-0"
-              style={{ background: 'rgba(0,122,255,0.12)', color: 'var(--stg-blue)', borderRadius: 10 }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('account.emailNotifications')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.emailNotificationsSub')}</div>
-            </div>
-            <Toggle
-              checked={emailNotif}
-              ariaLabel={t('account.emailNotifications')}
-              onChange={(next) => { setEmailNotif(next); localStorage.setItem('cache:emailNotif', next ? '1' : '0'); }}
-            />
-          </div>
+          {/* メール通知は実装入るまで UI から外す（旧 cache:emailNotif の
+              localStorage は無害なので残置）。 */}
         </div>
 
         {/* ─── データとプライバシー ─── */}
