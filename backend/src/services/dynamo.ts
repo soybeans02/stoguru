@@ -1176,18 +1176,8 @@ export async function deleteShare(userId: string, createdAt: number) {
   }));
 }
 
-// =============================================
-// 投稿申請
-// =============================================
-
-export async function listPendingUploadApplications(): Promise<Array<{ userId: string; uploadAppliedAt?: number }>> {
-  const result = await db.send(new ScanCommand({
-    TableName: TABLE.settings,
-    FilterExpression: 'uploadStatus = :p',
-    ExpressionAttributeValues: { ':p': 'pending' },
-  }));
-  return (result.Items ?? []) as Array<{ userId: string; uploadAppliedAt?: number }>;
-}
+// 旧「投稿申請」関連クエリ（listPendingUploadApplications 等）は撤廃済み。
+// インフルエンサー登録ゲート自体が無くなった。
 
 // =============================================
 // フィードバック

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Shield, LogOut, Users, BarChart3, Database, Key, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2, MessageSquare, Bug, Lightbulb, MessageCircle, Mail, MailOpen, Upload, X as XIcon } from 'lucide-react';
+import { Shield, LogOut, Users, BarChart3, Database, Key, MapPin, Activity, Ban, CheckCircle, KeyRound, Trash2, MessageSquare, Bug, Lightbulb, MessageCircle, Mail, MailOpen } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api') + '/admin';
 
@@ -259,138 +259,9 @@ function SupportSection({ token }: { token: string }) {
   );
 }
 
-// ─── 投稿申請セクション ─────────────────────────────────────
-
-interface UploadApplicationItem {
-  userId: string;
-  email?: string;
-  nickname?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt?: number;
-}
-
-function UploadApplicationsSection({ token }: { token: string }) {
-  const [items, setItems] = useState<UploadApplicationItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`${API}/upload-applications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        // backend may not yet be available — soft-fail
-        setItems([]);
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-      const list = (data.items ?? data ?? []) as UploadApplicationItem[];
-      // 申請中のみ表示 (バックエンドがフィルタしてくれる場合もあるが、念のため)
-      setItems(list.filter((i) => (i.status ?? 'pending') === 'pending'));
-    } catch {
-      setError('読み込みに失敗しました');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const action = async (userId: string, kind: 'approve' | 'reject') => {
-    setActionLoading(`${userId}-${kind}`);
-    try {
-      const res = await fetch(`${API}/upload-applications/${userId}/${kind}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error ?? '操作に失敗しました');
-        return;
-      }
-      // 成功したらリストから削除
-      setItems((prev) => prev.filter((i) => i.userId !== userId));
-    } catch {
-      alert('操作に失敗しました');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Upload size={18} />
-        <h2 className="text-lg font-semibold">投稿申請</h2>
-        {items.length > 0 && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">
-            {items.length}件未処理
-          </span>
-        )}
-        <button
-          onClick={load}
-          className="ml-auto text-xs text-gray-400 hover:text-white"
-        >
-          {loading ? '読込中…' : '更新'}
-        </button>
-      </div>
-
-      {error && (
-        <p className="text-xs text-red-400 mb-2">{error}</p>
-      )}
-
-      {items.length === 0 ? (
-        <p className="text-gray-500 text-center py-8 text-sm">
-          {loading ? '読込中…' : '未処理の投稿申請はありません'}
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((it) => (
-            <div key={it.userId} className="bg-gray-800 rounded-xl p-4 space-y-2 border border-orange-500/40">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-900/30 text-orange-300 font-medium">
-                  <Upload size={11} /> 申請中
-                </span>
-                {it.createdAt && (
-                  <span className="text-xs text-gray-500 ml-auto">
-                    {new Date(it.createdAt).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-gray-200">{it.nickname ?? '(未設定)'}</span>
-                {it.email && <span className="text-xs text-gray-400">{it.email}</span>}
-                <span className="text-[10px] text-gray-500 break-all">UserId: {it.userId}</span>
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-gray-700">
-                <button
-                  onClick={() => action(it.userId, 'approve')}
-                  disabled={actionLoading === `${it.userId}-approve`}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-green-900/50 text-green-300 hover:bg-green-900 disabled:opacity-50"
-                >
-                  <CheckCircle size={12} /> 承認
-                </button>
-                <button
-                  onClick={() => action(it.userId, 'reject')}
-                  disabled={actionLoading === `${it.userId}-reject`}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-red-900/50 text-red-300 hover:bg-red-900 disabled:opacity-50"
-                >
-                  <XIcon size={12} /> 却下
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// 旧「投稿申請セクション」は撤廃済み — 認証済みユーザー全員が投稿可能に
+// なったので承認ワークフローは不要。バックエンドの /admin/upload-applications
+// 系エンドポイントも削除済み。
 
 function classifyEndpoint(ep: string): 'cognito' | 'dynamodb' {
   if (ep.includes('/auth/')) return 'cognito';
@@ -613,7 +484,6 @@ export function AdminPage() {
       </header>
 
       <div className="p-4 space-y-6 overflow-y-auto flex-1">
-        <UploadApplicationsSection token={token} />
         <SupportSection token={token} />
         <FeedbackSection token={token} />
 

@@ -6,7 +6,6 @@ import type { Language } from '../../i18n';
 import * as api from '../../utils/api';
 import type { StockedRestaurant } from '../stock/StockScreen';
 import { InfluencerDashboard } from '../influencer/InfluencerDashboard';
-import { UploadApplicationWizard } from '../influencer/UploadApplicationWizard';
 import { Sheet } from '../ui/Sheet';
 import { Toggle } from '../ui/Toggle';
 import { Input } from '../ui/Input';
@@ -50,10 +49,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [followersList, setFollowersList] = useState<{ followerId: string; nickname?: string }[]>([]);
   const [isPrivate, setIsPrivate] = useState(() => localStorage.getItem('cache:isPrivate') === '1');
   const [showInfluencerDashboard, setShowInfluencerDashboard] = useState(false);
-  // 投稿申請の状態。none / pending / rejected の時は「お店を編集」を押すと
-  // ウィザードを開く。approved の時だけ InfluencerDashboard に直行する。
-  const [uploadApp, setUploadApp] = useState<api.UploadApplication>({ status: 'none', application: null, appliedAt: null });
-  const [showUploadWizard, setShowUploadWizard] = useState(false);
+  // 投稿ゲート（旧 uploadApp ＋ 4 ステップ申請ウィザード）は完全撤廃。
+  // 認証済みユーザーは「お店を編集」ボタンから直接 InfluencerDashboard に入って
+  // 投稿・編集できる。バックエンドも申請状態を見ずに requireAuth のみで通す。
   // 通知設定（バックエンド未実装なのでクライアント側 localStorage 永続）
   const [pushNotif, setPushNotif] = useState(() => localStorage.getItem('cache:pushNotif') !== '0');
   const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('cache:emailNotif') === '1');
@@ -120,11 +118,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       }));
       setFollowersList(withNicks);
     }).catch(() => {});
-    // 投稿申請のステータス（none / pending / approved / rejected）を読む。
-    // ウィザード prefill 用に application の中身もそのまま受ける。
-    api.getUploadApplication()
-      .then((r) => setUploadApp(r))
-      .catch(() => setUploadApp({ status: 'none', application: null, appliedAt: null }));
   }, []);
 
   // ニックネーム保存は EditProfilePanel 内で updateNickname() を直接呼ぶ
@@ -415,46 +408,16 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   >
                     {t('account.editProfile')}
                   </button>
-                  {/* 投稿申請ステータスに応じてボタンを切り替え。
-                      - approved → 「お店を編集」 → InfluencerDashboard
-                      - pending  → 「審査中」disabled スタイル
-                      - rejected → 「再申請する」 → ウィザード再展開
-                      - none     → 「投稿を申請」 → ウィザード新規 */}
-                  {uploadApp.status === 'approved' ? (
-                    <button
-                      onClick={() => setShowInfluencerDashboard(true)}
-                      className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
-                      style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-                    >
-                      {t('account.editSpots')}
-                    </button>
-                  ) : uploadApp.status === 'pending' ? (
-                    <button
-                      disabled
-                      className="px-4 py-2 rounded-full text-[12.5px] font-semibold cursor-not-allowed"
-                      style={{
-                        background: 'var(--bg-soft)',
-                        color: 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
-                      }}
-                      title={t('account.pendingReview', '審査中')}
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-orange-500)' }} />
-                        {t('account.pendingReview', '審査中')}
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShowUploadWizard(true)}
-                      className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
-                      style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-                    >
-                      {uploadApp.status === 'rejected'
-                        ? t('account.reapply', '再申請する')
-                        : t('account.applyToPost', '投稿を申請')}
-                    </button>
-                  )}
+                  {/* 投稿申請ゲートは撤廃済み — 認証済みなら誰でも投稿できる。
+                      旧 approved/pending/rejected/none 4 分岐は完全に削除し、
+                      常に InfluencerDashboard を直接開く 1 ボタンに統合。 */}
+                  <button
+                    onClick={() => setShowInfluencerDashboard(true)}
+                    className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
+                    style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
+                  >
+                    {t('account.editSpots')}
+                  </button>
                   <button
                     onClick={async () => {
                       const url = `${window.location.origin}/u/${user?.userId ?? ''}`;
@@ -914,13 +877,6 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             setPanel(null);
           }}
           onClose={() => setPanel(null)}
-        />
-      )}
-      {showUploadWizard && (
-        <UploadApplicationWizard
-          initial={uploadApp.application ?? null}
-          onClose={() => setShowUploadWizard(false)}
-          onSubmitted={(next) => { setUploadApp(next); setShowUploadWizard(false); }}
         />
       )}
       {/* List panels */}
