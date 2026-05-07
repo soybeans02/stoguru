@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { distanceMetres } from '../../utils/distance';
+import { useTranslation } from '../../context/LanguageContext';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 
 type SubView = 'main' | 'notifications' | 'following' | 'requests';
@@ -27,6 +28,7 @@ interface Props {
 
 export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome, initialQuery, onInitQueryConsumed, initialGeo, onInitGeoConsumed }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
     if (initialView === 'notifications') return 'notifications';
@@ -385,11 +387,11 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
   if (view === 'requests') {
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
-        <Header title="フォローリクエスト" onBack={() => setView('main')} />
+        <Header title={t('search.followRequests')} onBack={() => setView('main')} />
         <div className="flex-1 overflow-y-auto">
-          {followListLoading && <p className="text-center text-gray-400 text-sm py-8">読み込み中...</p>}
+          {followListLoading && <p className="text-center text-gray-400 text-sm py-8">{t('common.loading')}</p>}
           {!followListLoading && followRequests.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-12">リクエストはありません</p>
+            <p className="text-center text-gray-400 text-sm py-12">{t('search.noRequests')}</p>
           )}
           {followRequests.map(r => (
             <div
@@ -408,13 +410,13 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                   onClick={() => handleApproveRequest(r.requesterId)}
                   className="px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg"
                 >
-                  承認
+                  {t('search.approve')}
                 </button>
                 <button
                   onClick={() => handleRejectRequest(r.requesterId)}
                   className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-lg"
                 >
-                  拒否
+                  {t('search.reject')}
                 </button>
               </div>
             </div>
@@ -432,7 +434,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
     <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
       {/* Header */}
       <div className="px-5 md:px-6 lg:px-8 pt-5 pb-3">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">検索</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('search.title')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-6">
@@ -444,7 +446,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
           <input
             value={searchQuery}
             onChange={e => handleSearchInputChange(e.target.value)}
-            placeholder="ユーザー・お店・URLで検索..."
+            placeholder={t('search.socialPlaceholder')}
             className="w-full bg-gray-100 dark:bg-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
           />
           {searchQuery && (
@@ -458,15 +460,15 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
         </div>
 
         {/* Search results */}
-        {searching && <p className="text-center text-gray-400 text-sm py-4">検索中...</p>}
+        {searching && <p className="text-center text-gray-400 text-sm py-4">{t('common.loading')}</p>}
         {!searching && searchQuery && !searchResults.users.length && !searchResults.restaurants.length && !searchResults.urlMatch && (
-          <p className="text-center text-gray-400 text-sm py-4">見つかりませんでした</p>
+          <p className="text-center text-gray-400 text-sm py-4">{t('search.noResultsGeneric')}</p>
         )}
 
         {/* URL match */}
         {searchResults.urlMatch && (
           <div className="mb-4">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">一致したお店</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('search.matchedStore')}</h3>
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
               <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden shrink-0">
                 {searchResults.urlMatch.photoUrls?.[0] ? (
@@ -482,14 +484,14 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                 )}
               </div>
               {stockSuccess ? (
-                <span className="text-xs text-green-500 font-medium shrink-0">保存済み ✓</span>
+                <span className="text-xs text-green-500 font-medium shrink-0">{t('common.added')} ✓</span>
               ) : (
                 <button
                   onClick={() => handleStockByUrl(searchQuery)}
                   disabled={stockingUrl}
                   className="px-4 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg shrink-0 disabled:opacity-50"
                 >
-                  {stockingUrl ? '...' : '保存する'}
+                  {stockingUrl ? '...' : t('common.add')}
                 </button>
               )}
             </div>
@@ -499,7 +501,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
         {/* Restaurant results - influencer cards */}
         {searchResults.restaurants.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">登録済みのお店</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('search.registeredStores')}</h3>
             <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-3">
               {searchResults.restaurants.map(r => (
                 <div
@@ -531,14 +533,14 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                       </p>
                     </div>
                     {stockedRestaurants.has(r.restaurantId) ? (
-                      <span className="text-xs text-green-500 font-medium shrink-0">追加済み</span>
+                      <span className="text-xs text-green-500 font-medium shrink-0">{t('common.added')}</span>
                     ) : (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleStockRestaurant(r); }}
                         disabled={stockingRestaurant === r.restaurantId}
                         className="px-4 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg shrink-0 disabled:opacity-50"
                       >
-                        {stockingRestaurant === r.restaurantId ? '...' : '追加'}
+                        {stockingRestaurant === r.restaurantId ? '...' : t('common.add')}
                       </button>
                     )}
                   </div>
@@ -551,7 +553,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
         {/* User results */}
         {searchResults.users.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">ユーザー</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('search.users')}</h3>
             {searchResults.users.map(u => (
               <button
                 key={u.userId}
@@ -577,7 +579,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                   icon={<div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
                   </div>}
-                  label="フォローリクエスト"
+                  label={t('search.followRequests')}
                   badge={requestCount}
                   onClick={() => { setView('requests'); loadFollowRequests(); }}
                 />
@@ -586,11 +588,11 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
 
             {/* 保存ランキング — Top 3 のみ表示（合計 3 人固定、4位以降は除外）*/}
             <div className="mt-6">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">保存ランキング Top 3</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">{t('search.rankingTitle')}</h2>
               {rankingLoading ? (
-                <p className="text-center text-gray-400 text-sm py-6">読み込み中...</p>
+                <p className="text-center text-gray-400 text-sm py-6">{t('common.loading')}</p>
               ) : ranking.length === 0 ? (
-                <p className="text-center text-gray-400 text-sm py-6">まだデータがありません</p>
+                <p className="text-center text-gray-400 text-sm py-6">{t('search.noRankingData')}</p>
               ) : (
                 <div className="space-y-1">
                   {ranking.slice(0, 3).map((r, i) => {
@@ -614,7 +616,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                         )}
                       </div>
                       <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white truncate">{r.nickname}</span>
-                      <span className="text-xs text-gray-400">{r.totalStocks} 保存</span>
+                      <span className="text-xs text-gray-400">{r.totalStocks} {t('search.saveCountSuffix')}</span>
                     </button>
                     );
                   })}

@@ -6,6 +6,7 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
+import { localizeGenre, localizeScene } from '../../utils/labelI18n';
 import { GENRE_TAGS } from '../../constants/genre';
 import { POPULAR_GENRES } from '../../data/mockRestaurants';
 import './map-page.css';
@@ -426,7 +427,12 @@ function safeHttpUrl(raw: string | null | undefined): string | null {
 function buildPopupNode(
   p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string },
   userPos: GPSPosition | null,
+  labels?: { video: string; navigate: string; localizeScene?: (s: string) => string; localizeGenre?: (g: string) => string },
 ): HTMLElement {
+  const videoText = labels?.video ?? '▶ 動画';
+  const navText = labels?.navigate ?? 'ナビ';
+  const sceneLoc = labels?.localizeScene ?? ((s: string) => s);
+  const genreLoc = labels?.localizeGenre ?? ((g: string) => g);
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
   const h = new Date().getHours() + new Date().getMinutes() / 60;
   const dark = h < sunTimes.sunrise || h >= sunTimes.sunset;
@@ -479,7 +485,7 @@ function buildPopupNode(
 
   const metaEl = document.createElement('div');
   metaEl.style.cssText = `font-size:10px;color:${metaColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
-  metaEl.textContent = `${dist} · ${p.genre}${p.priceRange ? ' · ' + p.priceRange : ''}`;
+  metaEl.textContent = `${dist} · ${genreLoc(p.genre)}${p.priceRange ? ' · ' + p.priceRange : ''}`;
   textCol.appendChild(metaEl);
 
   // ─── scene tags ───
@@ -490,7 +496,7 @@ function buildPopupNode(
     for (const s of scenes) {
       const tag = document.createElement('span');
       tag.style.cssText = `background:${tagBg};color:${tagColor};font-size:9px;padding:3px 8px;border-radius:6px`;
-      tag.textContent = s;
+      tag.textContent = sceneLoc(s);
       tagWrap.appendChild(tag);
     }
     root.appendChild(tagWrap);
@@ -508,7 +514,7 @@ function buildPopupNode(
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.style.cssText = `flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:${btnVidBg};color:${btnVidColor};text-decoration:none;display:block`;
-    a.textContent = '▶ 動画';
+    a.textContent = videoText;
     btnRow.appendChild(a);
   }
 
@@ -517,14 +523,28 @@ function buildPopupNode(
   navA.target = '_blank';
   navA.rel = 'noopener noreferrer';
   navA.style.cssText = 'flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px 0;border-radius:8px;background:#3b82f6;color:#fff;text-decoration:none;display:block';
-  navA.textContent = 'ナビ';
+  navA.textContent = navText;
   btnRow.appendChild(navA);
 
   return root;
 }
 
 export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  // Popup builder は top-level 関数で t を直接使えないので、現在の言語に
+  // 応じたラベル/ローカライザを ref で渡し、Mapbox 内 click ハンドラから参照する。
+  const popupLabelsRef = useRef({
+    video: language === 'ja' ? '▶ 動画' : '▶ Video',
+    navigate: language === 'ja' ? 'ナビ' : 'Directions',
+    localizeScene: (s: string) => localizeScene(s, language),
+    localizeGenre: (g: string) => localizeGenre(g, language),
+  });
+  popupLabelsRef.current = {
+    video: language === 'ja' ? '▶ 動画' : '▶ Video',
+    navigate: language === 'ja' ? 'ナビ' : 'Directions',
+    localizeScene: (s: string) => localizeScene(s, language),
+    localizeGenre: (g: string) => localizeGenre(g, language),
+  };
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
@@ -777,7 +797,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             photoUrls: p.photoUrls || '',
             scene: Array.isArray(scenes) ? scenes : [], priceRange: p.priceRange || '',
             lat: coords[1], lng: coords[0], ownerNickname: p.ownerNickname || '',
-          }, userPosRef.current))
+          }, userPosRef.current, popupLabelsRef.current))
           .addTo(map);
       };
       // クラスタークリック → ズームイン
@@ -921,7 +941,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
               photoUrls: r.photoUrls?.[0] || '',
               scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
-            } : { name: '選択した場所' },
+            } : { name: t('map.selectedPlace') },
           }],
         });
       }
@@ -938,7 +958,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               photoUrls: r.photoUrls?.[0] || '',
               scene: r.scene || [], priceRange: r.priceRange || '',
               lat: r.lat, lng: r.lng,
-            }, userPosRef.current))
+            }, userPosRef.current, popupLabelsRef.current))
             .addTo(map);
         };
         map.once('moveend', showPopup);
@@ -1166,7 +1186,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             lat: nearbyStock.lat,
             lng: nearbyStock.lng,
             ownerNickname: '',
-          }, userPosRef.current))
+          }, userPosRef.current, popupLabelsRef.current))
           .addTo(map);
       } catch { /* ignore */ }
     };
@@ -1336,19 +1356,19 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <div className="map-search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input
-            placeholder="エリア・お店の名前で検索"
+            placeholder={t('map.searchPlaceholder')}
             value={topSearch}
             onChange={(e) => setTopSearch(e.target.value)}
           />
           <span className="map-search__shortcut">⌘K</span>
         </div>
         {([
-          { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
-          { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-red)', count: stocks.filter(s => !s.visited).length },
-          { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
+          { key: 'all' as const, label: t('map.all'), color: null, count: stocks.length },
+          { key: 'wishlist' as const, label: t('map.visitedNotYet'), color: 'var(--stg-red)', count: stocks.filter(s => !s.visited).length },
+          { key: 'visited' as const, label: t('map.visitedDone'), color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
           // 投稿: 自分が投稿したお店 (紫ピン) のみ表示する pill。保存とは
           // 直交する概念なのでカウントは stocks ではなく myPostedRef を見る。
-          { key: 'posted' as const, label: '投稿', color: '#a855f7', count: postedCount },
+          { key: 'posted' as const, label: t('map.posted'), color: '#a855f7', count: postedCount },
           // 「気になる」フィルターは UI バランス + 機能要件の整理で削除
         ]).map((c) => (
           <button
@@ -1372,7 +1392,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           onClick={() => setFilterOpen(v => !v)}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 12h12M15 18h6"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
-          絞り込み
+          {t('map.filter')}
         </button>
         {/* リストを表示 — 旧版は absolute で top:80px に置いていたが、狭い viewport
             では上部の検索バー + フィルター chip 群が wrap した行と被る事故が
@@ -1381,7 +1401,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         {!listOpen && (
           <button className="map-list-toggle" onClick={() => setListOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
-            リストを表示
+            {t('map.showList')}
             <span className="map-pill__count">{visibleCount}</span>
           </button>
         )}
@@ -1391,16 +1411,16 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             Claude Design map.html 準拠 ─── */}
       <div className="map-right">
         <div className="map-ctrl-stack">
-          <button title="ズームイン" onClick={() => mapRef.current?.zoomIn()}>
+          <button title={t('map.legendCurrentLocation')} aria-label="zoom in" onClick={() => mapRef.current?.zoomIn()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
-          <button title="ズームアウト" onClick={() => mapRef.current?.zoomOut()}>
+          <button aria-label="zoom out" onClick={() => mapRef.current?.zoomOut()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
           </button>
         </div>
         <button
           className="map-ctrl"
-          title="現在地"
+          title={t('map.legendCurrentLocation')}
           onClick={() => { if (userPosition) mapRef.current?.flyTo({ center: [userPosition.lng, userPosition.lat], zoom: 16 }); }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
@@ -1421,10 +1441,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       <div className={`map-list ${listOpen ? '' : 'is-collapsed'}`}>
         <div className="map-list__head">
           <div>
-            <div className="map-list__title">表示中のお店</div>
-            <div className="map-list__count">{visibleCount}件 · 地図上のピン</div>
+            <div className="map-list__title">{t('map.listTitle')}</div>
+            <div className="map-list__count">{visibleCount}{t('map.listCountSuffix')}</div>
           </div>
-          <button className="map-list__close" onClick={() => setListOpen(false)} aria-label="閉じる">
+          <button className="map-list__close" onClick={() => setListOpen(false)} aria-label={t('common.close')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
         </div>
@@ -1432,7 +1452,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           <div className="map-list__search-box">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input
-              placeholder="このリストを絞り込む"
+              placeholder={t('map.listSearchPlaceholder')}
               value={listSearch}
               onChange={(e) => setListSearch(e.target.value)}
             />
@@ -1454,7 +1474,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               if (postedItems.length === 0) {
                 return (
                   <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--stg-gray-600)', fontSize: 13 }}>
-                    投稿したお店がありません
+                    {t('search.notPostedYet')}
                   </div>
                 );
               }
@@ -1488,7 +1508,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                       </div>
                       <div className="map-list__item-tags">
                         <span className="map-list__item-tag" style={{ background: 'rgba(168,85,247,0.14)', color: '#a855f7' }}>
-                          投稿
+                          {t('map.posted')}
                         </span>
                       </div>
                     </div>
@@ -1515,7 +1535,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             if (items.length === 0) {
               return (
                 <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--stg-gray-600)', fontSize: 13 }}>
-                  該当するお店がありません
+                  {t('search.noResultsTitle')}
                 </div>
               );
             }
@@ -1546,7 +1566,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                     </div>
                     <div className="map-list__item-tags">
                       <span className={`map-list__item-tag ${s.visited ? 'is-visited' : ''}`}>
-                        {s.visited ? '行った' : 'まだ'}
+                        {s.visited ? t('map.visitedDone') : t('map.visitedNotYet')}
                       </span>
                     </div>
                   </div>
@@ -1576,33 +1596,33 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               {photo && <img loading="lazy" src={photo} alt={s.name} />}
               <div className="map-card__photo-badge">
                 {s.visited ? (
-                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>行った</>
+                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>{t('map.visitedDone')}</>
                 ) : (
-                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>まだ</>
+                  <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>{t('map.visitedNotYet')}</>
                 )}
               </div>
             </div>
             <div className="map-card__body">
               <div className="map-card__top">
                 <h3 className="map-card__title">{s.name}</h3>
-                <button className="map-card__close" onClick={() => setSelectedStockId(null)} aria-label="閉じる">
+                <button className="map-card__close" onClick={() => setSelectedStockId(null)} aria-label={t('common.close')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>
               <div className="map-card__meta">
                 {s.address && <span>{s.address}</span>}
                 {dist && <><span className="map-card__meta-dot" /><span style={{ color: 'var(--stg-gray-900)', fontWeight: 600 }}>{dist}</span></>}
-                {s.genre && <><span className="map-card__meta-dot" /><span>{s.genre}</span></>}
+                {s.genre && <><span className="map-card__meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
                 {s.priceRange && <><span className="map-card__meta-dot" /><span>{s.priceRange}</span></>}
               </div>
               <div className="map-card__actions">
                 {s.videoUrl ? (
                   <a className="map-card__action" href={s.videoUrl} target="_blank" rel="noopener noreferrer">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>動画
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>{language === 'ja' ? '動画' : 'Video'}
                   </a>
                 ) : (
                   <button className="map-card__action" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>動画
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 14 8-14 8Z"/></svg>{language === 'ja' ? '動画' : 'Video'}
                   </button>
                 )}
                 <a
@@ -1612,7 +1632,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                   rel="noopener noreferrer"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>
-                  経路
+                  {language === 'ja' ? '経路' : 'Directions'}
                 </a>
               </div>
             </div>
@@ -1622,17 +1642,17 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
       {/* ─── Legend (左下) — 4 項目に整理：保存 / 行った / 投稿（紫） / 現在地 ─── */}
       <div className="map-legend">
-        <div className="map-legend__item"><span className="map-legend__dot cat-todo" />保存</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-visited" />行った</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-special" />投稿</div>
-        <div className="map-legend__item"><span className="map-legend__dot cat-here" />現在地</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-todo" />{t('map.legendSaved')}</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-visited" />{t('map.legendVisited')}</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-special" />{t('map.legendPosted')}</div>
+        <div className="map-legend__item"><span className="map-legend__dot cat-here" />{t('map.legendCurrentLocation')}</div>
       </div>
 
       {/* ─── Layer switcher (右下) — 3D / 2D / 衛星 ─── */}
       <div className="map-layers">
         <button className={mapMode === '3d' ? 'is-active' : ''} onClick={() => handleSwitchMode('3d')}>3D</button>
         <button className={mapMode === 'standard' ? 'is-active' : ''} onClick={() => handleSwitchMode('standard')}>2D</button>
-        <button className={mapMode === 'satellite' ? 'is-active' : ''} onClick={() => handleSwitchMode('satellite')}>衛星</button>
+        <button className={mapMode === 'satellite' ? 'is-active' : ''} onClick={() => handleSwitchMode('satellite')}>{t('map.layerSatellite')}</button>
       </div>
 
       {/* ダークモードトグルは map に置くと layer switcher と被って邪魔だったので削除。
@@ -1665,7 +1685,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                             active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {tag}
+                          {localizeGenre(tag, language)}
                         </button>
                       );
                     })}
@@ -1675,7 +1695,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                       onClick={() => setFilterAllGenres((v) => !v)}
                       className="mb-4 text-[11px] font-semibold text-[var(--accent-orange)] hover:underline"
                     >
-                      {expanded ? '閉じる' : `もっと見る (${GENRE_TAGS.length - POPULAR_GENRES.length})`}
+                      {expanded
+                        ? t('common.close')
+                        : (language === 'ja'
+                            ? `もっと見る (${GENRE_TAGS.length - POPULAR_GENRES.length})`
+                            : `Show more (${GENRE_TAGS.length - POPULAR_GENRES.length})`)}
                     </button>
                   )}
                 </>
@@ -1693,7 +1717,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 { v: 'all' as const, label: t('map.all') },
                 { v: 'wishlist' as const, label: t('map.visitedNotYet') },
                 { v: 'visited' as const, label: t('map.visitedDone') },
-                { v: 'posted' as const, label: '投稿' },
+                { v: 'posted' as const, label: t('map.posted') },
               ]).map(opt => {
                 const active = filterVisited === opt.v;
                 return (
@@ -1753,14 +1777,14 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           >
             <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--stg-orange-500)' }}>
               <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-orange-500)' }} />
-              すぐそこ {nearbyDistance != null ? `${Math.round(nearbyDistance)}m` : ''}
+              {t('map.nearbyShortLabel')} {nearbyDistance != null ? `${Math.round(nearbyDistance)}m` : ''}
             </div>
             <div className="text-[13px] font-bold truncate leading-tight">{nearbyStock.name}</div>
           </button>
           {/* → 矢印（タップで pin にとぶサイン） */}
           <button
             onClick={handleFocusNearby}
-            aria-label="ピンへ移動"
+            aria-label={t('map.goToPin')}
             className="flex-shrink-0 w-8 h-8 rounded-full grid place-items-center text-white"
             style={{ background: 'var(--accent-orange)' }}
           >
@@ -1786,11 +1810,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <>
           <div className="absolute inset-0 z-20" onClick={() => setShowFollowingPicker(false)} />
           <div className="absolute top-28 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-3 shadow-xl min-w-[180px] max-h-[300px] overflow-y-auto">
-            <p className="text-white text-sm font-bold text-center mb-2">マップを見る</p>
+            <p className="text-white text-sm font-bold text-center mb-2">{t('map.showSomeonesMap')}</p>
             {followingLoading ? (
-              <p className="text-gray-400 text-xs text-center py-4">読み込み中...</p>
+              <p className="text-gray-400 text-xs text-center py-4">{t('common.loading')}</p>
             ) : followingUsers.length === 0 ? (
-              <p className="text-gray-400 text-xs text-center py-4">フォロー中のユーザーがいません</p>
+              <p className="text-gray-400 text-xs text-center py-4">{t('map.noFollowingUsers')}</p>
             ) : (
               followingUsers.map(u => (
                 <button
@@ -1818,11 +1842,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <div className="map-other-banner absolute z-30 flex items-center gap-2 bg-white/96 backdrop-blur-sm rounded-full pl-3 pr-1 py-1 shadow-[0_8px_24px_rgba(0,0,0,0.22)] border border-black/5">
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--stg-gray-900)] truncate max-w-[180px]">
             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#a855f7' }} />
-            <span className="truncate">{followingUsers.find(u => u.id === selectedFollowUser)?.nickname}のマップ</span>
+            <span className="truncate">{t('map.someoneMap').replace('{name}', followingUsers.find(u => u.id === selectedFollowUser)?.nickname ?? '')}</span>
           </span>
           <button
             onClick={handleOpenFollowingPicker}
-            aria-label="自分のマップに戻る"
+            aria-label={t('map.backToMyMap')}
             className="w-7 h-7 rounded-full grid place-items-center text-[var(--stg-gray-700)] hover:bg-black/5 flex-shrink-0"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -1835,7 +1859,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <>
           <div className="absolute inset-0 z-20" onClick={() => setModePickerOpen(false)} />
           <div className="absolute top-16 right-4 z-30 bg-gray-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl min-w-[220px]">
-            <p className="text-white text-sm font-bold text-center mb-3">地図モード</p>
+            <p className="text-white text-sm font-bold text-center mb-3">{t('map.layerMode')}</p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               {([
                 { id: 'standard' as const, label: '2D',
@@ -1877,14 +1901,14 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 >
                   <img
                     src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/135.4959,34.7025,12,0,0/60x60@2x?access_token=${mapboxgl.accessToken}`}
-                    alt="シンプル" className="w-full h-full object-cover opacity-60"
+                    alt={t('map.layerSimple')} className="w-full h-full object-cover opacity-60"
                   />
                 </div>
                 <div className="text-left">
                   <span className={`text-xs font-medium ${simpleMode ? 'text-blue-400' : 'text-gray-400'}`}>
-                    シンプル
+                    {t('map.layerSimple')}
                   </span>
-                  <p className="text-[9px] text-gray-500">ラベルを非表示</p>
+                  <p className="text-[9px] text-gray-500">{t('map.layerSimpleHint')}</p>
                 </div>
               </button>
             </div>

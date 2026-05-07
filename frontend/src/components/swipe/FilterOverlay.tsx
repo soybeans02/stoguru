@@ -1,5 +1,7 @@
 import { createPortal } from 'react-dom';
 import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS, PREFECTURES } from '../../data/mockRestaurants';
+import { useTranslation } from '../../context/LanguageContext';
+import { localizeGenre, localizeScene, localizePrefecture } from '../../utils/labelI18n';
 
 interface Props {
   selectedScenes: string[];
@@ -28,6 +30,7 @@ export function FilterOverlay({
   onClose,
   onApply,
 }: Props) {
+  const { t, language } = useTranslation();
   // 人気 8 と残りを分ける（home の GenreListModal と同じレイアウトに揃える）
   const popularSet = new Set<string>(POPULAR_GENRES as readonly string[]);
   const restGenres = GENRES.filter((g) => !popularSet.has(g));
@@ -89,15 +92,15 @@ export function FilterOverlay({
     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white">絞り込み</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" aria-label="閉じる">
+        <h2 className="text-base font-bold text-gray-900 dark:text-white">{t('filter.title')}</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" aria-label={t('common.close')}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
         {/* Scene */}
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">シーン</h3>
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('filter.scene')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
           {SCENES.map((s) => {
             const active = selectedScenes.includes(s.id);
@@ -131,7 +134,7 @@ export function FilterOverlay({
                   className="absolute inset-0 grid place-items-center text-white text-[20px] sm:text-[22px] font-extrabold tracking-[-0.01em]"
                   style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.5)' }}
                 >
-                  {s.label}
+                  {localizeScene(s.label, language)}
                 </span>
               </button>
             );
@@ -143,9 +146,9 @@ export function FilterOverlay({
         {onAreasChange && (
           <>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">エリア</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('filter.area')}</h3>
               {selectedAreas.length > 0 && (
-                <span className="text-[11px] font-semibold text-orange-500">{selectedAreas.length} 選択中</span>
+                <span className="text-[11px] font-semibold text-orange-500">{t('common.selectedCount').replace('{count}', String(selectedAreas.length))}</span>
               )}
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-8">
@@ -161,7 +164,7 @@ export function FilterOverlay({
                         : 'bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-orange-100 dark:hover:bg-gray-700'
                     }`}
                   >
-                    {p}
+                    {localizePrefecture(p, language)}
                   </button>
                 );
               })}
@@ -172,15 +175,15 @@ export function FilterOverlay({
         {/* Genre — home の GenreListModal と同じレイアウトに揃える。
             人気 8 を写真タイル（2 列 16:10）、残りはテキストチップで。 */}
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">ジャンル</h3>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('filter.genre')}</h3>
           {selectedGenres.length > 0 && (
-            <span className="text-[11px] font-semibold text-orange-500">{selectedGenres.length} 選択中</span>
+            <span className="text-[11px] font-semibold text-orange-500">{t('common.selectedCount').replace('{count}', String(selectedGenres.length))}</span>
           )}
         </div>
 
         {/* 人気 8（写真タイル） */}
         <div className="text-[10px] uppercase tracking-[0.04em] font-bold text-gray-400 dark:text-gray-500 mb-2">
-          人気ジャンル
+          {t('filter.popularGenres')}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {POPULAR_GENRES.map((g) => {
@@ -217,7 +220,7 @@ export function FilterOverlay({
                   </span>
                 )}
                 <span className="absolute bottom-2 left-3 right-3 text-white text-[15px] font-extrabold tracking-[-0.01em] text-left drop-shadow">
-                  {g}
+                  {localizeGenre(g, language)}
                 </span>
               </button>
             );
@@ -226,7 +229,7 @@ export function FilterOverlay({
 
         {/* 残りジャンル（テキストチップ） */}
         <div className="text-[10px] uppercase tracking-[0.04em] font-bold text-gray-400 dark:text-gray-500 mb-2">
-          すべてのジャンル
+          {t('filter.allGenres')}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-8">
           {restGenres.map((g) => {
@@ -241,17 +244,17 @@ export function FilterOverlay({
                     : 'bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-orange-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {g}
+                {localizeGenre(g, language)}
               </button>
             );
           })}
         </div>
 
         {/* Price Range - free input */}
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('filter.priceRange')}</h3>
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1">
-            <label className="text-[10px] text-gray-400 mb-1 block">下限</label>
+            <label className="text-[10px] text-gray-400 mb-1 block">{t('filter.priceMin')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input
@@ -267,7 +270,7 @@ export function FilterOverlay({
           </div>
           <span className="text-gray-300 dark:text-gray-600 mt-4">〜</span>
           <div className="flex-1">
-            <label className="text-[10px] text-gray-400 mb-1 block">上限</label>
+            <label className="text-[10px] text-gray-400 mb-1 block">{t('filter.priceMax')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
               <input
@@ -276,7 +279,7 @@ export function FilterOverlay({
                 value={priceMax >= 10000 ? '' : priceMax || ''}
                 onChange={(e) => handleMaxChange(parseInt(e.target.value) || 10000)}
                 onKeyDown={blockNonNumeric}
-                placeholder="上限なし"
+                placeholder={t('filter.priceUnlimited')}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-7 pr-3 py-2.5 text-sm text-gray-700 dark:text-gray-200"
               />
             </div>
@@ -293,13 +296,13 @@ export function FilterOverlay({
           onClick={clearAll}
           className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium"
         >
-          クリア
+          {t('filter.clear')}
         </button>
         <button
           onClick={onApply ?? onClose}
           className="flex-[2] py-3 rounded-xl bg-orange-500 text-white text-sm font-medium"
         >
-          この条件で探す
+          {t('filter.apply')}
         </button>
       </div>
     </div>,

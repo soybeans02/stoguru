@@ -3,6 +3,7 @@ import * as api from '../../utils/api';
 import { InfluencerRestaurantForm } from './InfluencerRestaurantForm';
 import { useTranslation } from '../../context/LanguageContext';
 import { safeHttpUrl } from '../../utils/safeUrl';
+import { localizeGenre } from '../../utils/labelI18n';
 
 interface InfluencerProfile {
   influencerId: string;
@@ -43,7 +44,7 @@ interface Props {
 }
 
 export function InfluencerDashboard({ onBack }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [profile, setProfile] = useState<InfluencerProfile | null>(null);
   const [restaurants, setRestaurants] = useState<InfluencerRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +233,7 @@ export function InfluencerDashboard({ onBack }: Props) {
         <button onClick={onBack} className="text-gray-400 hover:text-gray-600">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">お店を編集</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t('influencer.dashboardTitle')}</h1>
       </div>
 
       {error && (
@@ -436,8 +437,8 @@ export function InfluencerDashboard({ onBack }: Props) {
 
       {restaurants.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm mb-2">まだレストランがありません</p>
-          <p className="text-gray-300 text-xs">おすすめのレストランを追加しましょう</p>
+          <p className="text-gray-400 text-sm mb-2">{t('influencer.noSpots')}</p>
+          <p className="text-gray-300 text-xs">{t('influencer.addSpotsHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -472,7 +473,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                   <button
                     onClick={() => setPreviewRestaurant(r)}
                     className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:bg-white transition-colors"
-                    title="プレビュー"
+                    title={t('influencer.preview')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
@@ -509,7 +510,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                 {r.genres && r.genres.length > 0 && (
                   <div className="flex gap-1 flex-wrap mt-1">
                     {r.genres.slice(0, 3).map(g => (
-                      <span key={g} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px]">{g}</span>
+                      <span key={g} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px]">{localizeGenre(g, language)}</span>
                     ))}
                   </div>
                 )}
@@ -523,7 +524,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                         : 'bg-gray-400 text-white'
                   }`}
                 >
-                  {(r.visibility ?? 'public') === 'public' ? '公開' : (r.visibility === 'mutual' ? '相互のみ' : '非表示')}
+                  {(r.visibility ?? 'public') === 'public' ? t('influencer.visibilityPublic') : (r.visibility === 'mutual' ? t('influencer.visibilityMutual') : t('influencer.visibilityHidden'))}
                 </button>
               </div>
             </div>

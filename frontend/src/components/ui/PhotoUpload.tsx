@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { uploadPhoto, deletePhoto } from '../../utils/api';
+import { useTranslation } from '../../context/LanguageContext';
 
 interface Props {
   photos: string[];
@@ -11,6 +12,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: Props) {
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -26,26 +28,26 @@ export function PhotoUpload({ photos, onChange, maxPhotos = 5 }: Props) {
 
     // バリデーション
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('JPEG、PNG、WebP形式の画像のみアップロードできます');
+      setError(t('upload.onlyImageTypes'));
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setError('ファイルサイズは5MB以下にしてください');
+      setError(t('upload.sizeLimit').replace('{mb}', String(Math.floor(MAX_FILE_SIZE / 1024 / 1024))));
       return;
     }
     if (photos.length >= maxPhotos) {
-      setError(`写真は${maxPhotos}枚までです`);
+      setError(t('upload.countLimit').replace('{n}', String(maxPhotos)));
       return;
     }
 
     setUploading(true);
-    setProgress('アップロード中...');
+    setProgress(t('upload.inProgress'));
     try {
       const publicUrl = await uploadPhoto(file);
       onChange([...photos, publicUrl]);
       setProgress('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'アップロードに失敗しました');
+      setError(err instanceof Error ? err.message : t('upload.failed'));
       setProgress('');
     } finally {
       setUploading(false);
