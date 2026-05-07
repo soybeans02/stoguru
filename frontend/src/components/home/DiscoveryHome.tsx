@@ -400,6 +400,7 @@ export function DiscoveryHome({
         onSignUp={() => setAuthModal('signup')}
         onLogIn={() => setAuthModal('login')}
         onOpenMap={onOpenMap}
+        onOpenSwipe={onOpenSwipe}
         onLogoClick={onReload}
         isAnonymous={isAnonymous}
       />
@@ -1497,6 +1498,7 @@ function DiscoveryTopBar({
   onSignUp,
   onLogIn,
   onOpenMap,
+  onOpenSwipe,
   onLogoClick,
   isAnonymous,
 }: {
@@ -1506,6 +1508,8 @@ function DiscoveryTopBar({
   onSignUp: () => void;
   onLogIn: () => void;
   onOpenMap: () => void;
+  /** 検索バー左の「スワイプで探す」ショートカット */
+  onOpenSwipe?: () => void;
   /** ロゴ（タブレットの "stoguru"）タップでフィードを再生成（パーソナライズ更新） */
   onLogoClick?: () => void;
   isAnonymous: boolean;
@@ -1573,6 +1577,26 @@ function DiscoveryTopBar({
             />
           </div>
         </div>
+        {/* スワイプで探すショートカット — 全サイズで検索バーの右隣に出す。
+            Tinder 風のカード重ねアイコン。 */}
+        {onOpenSwipe && (
+          <button
+            type="button"
+            onClick={onOpenSwipe}
+            aria-label="スワイプで探す"
+            className="flex-shrink-0 w-10 h-10 rounded-full grid place-items-center transition-all hover:-translate-y-0.5 text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"
+            style={{
+              background:
+                'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {/* 重なった 2 枚のカード（Tinder 風スワイプを連想） */}
+              <rect x="6.5" y="3.5" width="13" height="17" rx="2.5" transform="rotate(8 13 12)" />
+              <rect x="3.5" y="3.5" width="13" height="17" rx="2.5" />
+            </svg>
+          </button>
+        )}
         {/* Right side */}
         <div className="hidden md:flex items-center gap-5 flex-shrink-0">
           {/* PC では左サイドバーに「マップ」タブがあるため、二重化を避けて lg 以上では非表示 */}
