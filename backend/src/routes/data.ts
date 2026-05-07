@@ -119,6 +119,11 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
         platform: selectedPlatform,
         url: profileUrl,
       },
+      // 投稿者の Cognito sub。フロントの「@handle タップで投稿者プロフィール
+      // を開く」のために必要。これが無いと onInfluencerClick(undefined) で
+      // ハンドルがクリックできても何も起きない無反応バグになる。
+      influencerUserId: r.postedBy,
+      influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
       videoUrl: (r.urls || [])[0] || '',
       photoEmoji: '🍽️',
       photoUrls: r.photoUrls || [],
