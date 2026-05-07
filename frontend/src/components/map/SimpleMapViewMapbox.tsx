@@ -563,8 +563,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [filterGenres, setFilterGenres] = useState<string[]>([]);
   // 「もっと見る」展開フラグ。OFF だと人気 8 ジャンルだけ、ON で全件表示。
   const [filterAllGenres, setFilterAllGenres] = useState(false);
-  // 0 = no limit, otherwise meters (100..10000)
-  const [filterDistance, setFilterDistance] = useState<number>(0);
   // visited filter: 'all' | 'wishlist' | 'visited' | 'posted'
   // 'posted' は「自分が投稿したお店だけ」の表示（紫ピンのみ）。pill でも
   // 「絞り込み」シートでも切り替え可能。
@@ -611,7 +609,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Active filter count
   const activeFilterCount =
     filterGenres.length +
-    (filterDistance > 0 ? 1 : 0) +
     (filterVisited !== 'all' ? 1 : 0);
 
   // GPS取得時に日の出/日の入り時刻を更新 → テーマを即再適用
@@ -1019,11 +1016,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       // 投稿のみ表示モード → 保存リストのピンは出さない（紫ピンのみ）。
       list = [];
     }
-    if (filterDistance > 0 && userPosition) {
-      list = list.filter(r => distanceMetres(userPosition.lat, userPosition.lng, r.lat, r.lng) <= filterDistance);
-    }
     return list;
-  }, [stocks, filterGenres, filterVisited, filterDistance, userPosition]);
+  }, [stocks, filterGenres, filterVisited]);
 
   // 「リストを表示」ピル / list panel ヘッダに出す現在表示件数。
   //   投稿モード → 自分の投稿件数
@@ -1141,7 +1135,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
   const handleClearFilters = useCallback(() => {
     setFilterGenres([]);
-    setFilterDistance(0);
     setFilterVisited('all');
   }, []);
 
@@ -1689,34 +1682,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               );
             })()}
 
-            {/* Distance */}
-            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.distance')}</p>
-            <div className="mb-4">
-              <input
-                type="range"
-                min={0}
-                max={10000}
-                step={100}
-                value={filterDistance}
-                onChange={(e) => setFilterDistance(Number(e.target.value))}
-                className="w-full accent-[var(--accent-orange)]"
-                aria-label={t('map.distance')}
-              />
-              <div className="flex justify-between mt-1">
-                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                  {filterDistance === 0
-                    ? t('map.distanceUnlimited')
-                    : filterDistance < 1000
-                      ? `${filterDistance}m`
-                      : `${(filterDistance / 1000).toFixed(1)}km`}
-                </span>
-                {filterDistance > 0 && (
-                  <button onClick={() => setFilterDistance(0)} className="text-[10px] text-[var(--accent-orange)] font-medium">
-                    {t('map.distanceUnlimited')}
-                  </button>
-                )}
-              </div>
-            </div>
+            {/* 距離フィルタは UI 体験的にスコープが狭い (現在地が無いと
+                機能しない、マップ表示でズーム / pan で同等のことが出来る)
+                ため撤廃。 */}
 
             {/* Visited */}
             <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.visitedFilter')}</p>
