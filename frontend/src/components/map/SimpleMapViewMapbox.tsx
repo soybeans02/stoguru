@@ -530,6 +530,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
   const [followingLoading, setFollowingLoading] = useState(false);
   const [selectedFollowUser, setSelectedFollowUser] = useState<string | null>(null);
+  // updateData 内で「他人マップ表示中なら自分のピン再書き込みをスキップ」する
+  // ためのフラグ。state を closure で握ると stale になるので ref で参照。
+  const selectedFollowUserRef = useRef<string | null>(null);
+  selectedFollowUserRef.current = selectedFollowUser;
   const [followingData, setFollowingData] = useState<Record<string, unknown>[]>([]);
   const followingDataRef = useRef<Record<string, unknown>[]>([]);
   const followingLoaded = useRef(false);
@@ -550,16 +554,18 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Nearby banner dismissal (so user can hide it)
   const [nearbyDismissed, setNearbyDismissed] = useState(false);
   // Explore-this-area UI は削除済み（state も不要）。
-  // Nearby (100m) detection — banner には距離も出すので一緒に持って返す
+  // Nearby (100m) detection — banner には距離も出すので一緒に持って返す。
+  // 他人マップ表示中は自分の店との距離を案内する意味が無いので null。
   const nearbyMatch = useMemo(() => {
     if (!userPosition) return null;
+    if (selectedFollowUser) return null;
     const matches = stocks
       .filter(s => s.lat && s.lng)
       .map(s => ({ s, d: distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng) }))
       .filter(({ d }) => d <= 100)
       .sort((a, b) => a.d - b.d);
     return matches.length > 0 ? matches[0] : null;
-  }, [stocks, userPosition]);
+  }, [stocks, userPosition, selectedFollowUser]);
   const nearbyStock = nearbyMatch?.s ?? null;
   const nearbyDistance = nearbyMatch?.d ?? null;
 
@@ -617,9 +623,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       if (!map.hasImage('pin-logo')) map.addImage('pin-logo', createLogoPinImage(48));
 
       // 空のGeoJSONソースとレイヤーを事前追加
-      map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
-      map.addSource('my-posted', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
-      map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 35 });
+      // stocks に「自分の保存」も「自分の投稿」も両方入れる（旧 my-posted ソースは廃止）。
+      // 別ソースだとクラスタが合体せず黒丸が並んで見えるバグの原因だったため。
+      // 投稿は properties.isPosted = 1 で識別して紫ピンに切り替える。
+      map.addSource('stocks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 });
+      map.addSource('following', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 });
       map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('panTo-pin', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
@@ -640,42 +648,58 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
 
-      // 縮小時: 丸ピン
+      // 縮小時: 丸ピン（保存=赤 / 行った=緑 / 投稿=紫 を isPosted/visited で判定）
       map.addLayer({ id: 'stocks-outline', type: 'circle', source: 'stocks', maxzoom: 15,
         filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 7], 'circle-color': '#ffffff' } });
       map.addLayer({ id: 'stocks-circle', type: 'circle', source: 'stocks', maxzoom: 15,
         filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5],
-          /* 保存 = 赤 (--stg-red #FD383C)、行った = 緑。
-             凡例の cat-todo と色を揃える。 */
-          'circle-color': ['case', ['==', ['get', 'visited'], 1], '#4ade80', '#FD383C'] } });
+          /* 投稿 = 紫 / 行った = 緑 / 保存 = 赤 (--stg-red #FD383C)。凡例と色を揃える。 */
+          'circle-color': ['case',
+            ['==', ['get', 'isPosted'], 1], '#a855f7',
+            ['==', ['get', 'visited'], 1], '#4ade80',
+            '#FD383C'] } });
       // 拡大時: ティアドロップピン
       map.addLayer({ id: 'stocks-pin', type: 'symbol', source: 'stocks', minzoom: 15,
         filter: ['!', ['has', 'point_count']],
-        layout: { 'icon-image': ['case', ['==', ['get', 'visited'], 1], 'pin-green', 'pin-red'],
+        layout: { 'icon-image': ['case',
+            ['==', ['get', 'isPosted'], 1], 'pin-purple',
+            ['==', ['get', 'visited'], 1], 'pin-green',
+            'pin-red'],
           'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
           'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
-      // 自分の投稿（紫ピン）
-      map.addLayer({ id: 'my-posted-outline', type: 'circle', source: 'my-posted', maxzoom: 15,
-        filter: ['!', ['has', 'point_count']],
-        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 14, 7], 'circle-color': '#ffffff' } });
-      map.addLayer({ id: 'my-posted-circle', type: 'circle', source: 'my-posted', maxzoom: 15,
-        filter: ['!', ['has', 'point_count']],
-        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 5], 'circle-color': '#a855f7' } });
-      map.addLayer({ id: 'my-posted-pin', type: 'symbol', source: 'my-posted', minzoom: 15,
-        filter: ['!', ['has', 'point_count']],
-        layout: { 'icon-image': 'pin-purple',
-          'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
-          'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
-      // panTo一時ピン（スワイプ/保存カードからマップに飛んだ時用）
+      // panTo 一時ピン（スワイプ/保存カードからマップに飛んだ時用）。
+      // 周りに同じくらいの大きさのピンが密集してると「どれが目的の店か」が
+      // 分からなくなるので、ロゴピンの真下にオレンジのパルス halo を 2 重で
+      // アニメーション表示 + ピン本体も他より一回り大きくして強調する。
+      map.addLayer({ id: 'panTo-pulse-outer', type: 'circle', source: 'panTo-pin',
+        paint: {
+          'circle-radius': 0,
+          'circle-color': '#FE8D28',  // var(--accent-orange)
+          'circle-opacity': 0.0,
+          'circle-stroke-width': 0,
+          'circle-pitch-alignment': 'map',
+        } });
+      map.addLayer({ id: 'panTo-pulse-inner', type: 'circle', source: 'panTo-pin',
+        paint: {
+          'circle-radius': 0,
+          'circle-color': '#FE8D28',
+          'circle-opacity': 0.0,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#FE8D28',
+          'circle-stroke-opacity': 0.0,
+          'circle-pitch-alignment': 'map',
+        } });
       map.addLayer({ id: 'panTo-pin-icon', type: 'symbol', source: 'panTo-pin',
         layout: { 'icon-image': 'pin-logo',
-          'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 18, 1],
-          'icon-anchor': 'bottom', 'icon-allow-overlap': true } });
+          // 周辺ピン (zoom 18 で 1.0) より一回り大きく見えるよう 0.85 -> 1.4
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 15, 1.0, 18, 1.4],
+          'icon-anchor': 'bottom', 'icon-allow-overlap': true,
+          'icon-ignore-placement': true } });
 
       // クラスター（黒丸 + 白数字）
-      for (const src of ['stocks', 'my-posted', 'following'] as const) {
+      for (const src of ['stocks', 'following'] as const) {
         map.addLayer({ id: `${src}-cluster`, type: 'circle', source: src,
           filter: ['has', 'point_count'],
           paint: {
@@ -722,7 +746,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           .addTo(map);
       };
       // クラスタークリック → ズームイン
-      for (const src of ['stocks', 'my-posted', 'following'] as const) {
+      for (const src of ['stocks', 'following'] as const) {
         map.on('click', `${src}-cluster`, (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: [`${src}-cluster`] });
           if (!features.length) return;
@@ -737,34 +761,16 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       }
       map.on('click', 'stocks-circle', (e) => handleClick(e, 15));
       map.on('click', 'stocks-pin', (e) => handleClick(e, [0, -55]));
-      map.on('click', 'my-posted-circle', (e) => handleClick(e, 15));
-      map.on('click', 'my-posted-pin', (e) => handleClick(e, [0, -55]));
       map.on('click', 'following-circle', (e) => handleClick(e, 15));
       map.on('click', 'following-pin', (e) => handleClick(e, [0, -55]));
       map.on('click', 'panTo-pin-icon', (e) => handleClick(e, [0, -70]));
-      ['stocks-circle', 'stocks-pin', 'my-posted-circle', 'my-posted-pin', 'following-circle', 'following-pin', 'panTo-pin-icon'].forEach(id => {
+      ['stocks-circle', 'stocks-pin', 'following-circle', 'following-pin', 'panTo-pin-icon'].forEach(id => {
         map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
       });
 
-      // 初期データがあれば反映
-      const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
-      if (stockSrc && stocksRef.current.length > 0) {
-        stockSrc.setData({
-          type: 'FeatureCollection',
-          features: stocksRef.current.map(r => ({
-            type: 'Feature' as const,
-            geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
-            properties: {
-              id: r.id, name: r.name, genre: r.genre || '',
-              visited: r.visited ? 1 : 0, distance: r.distance || '',
-              videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-              photoUrls: (r as any).photoUrls?.[0] || '',
-              scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
-            },
-          })),
-        });
-      }
+      // 初期データの反映は updateData() に一本化（保存と投稿を 1 ソースに統合）。
+      // ここでは投稿フェッチをトリガーして、終わったら updateData が呼ばれる useEffect 連鎖に乗せる。
       const userSrc = map.getSource('user-location') as mapboxgl.GeoJSONSource | undefined;
       if (userSrc && userPosRef.current) {
         userSrc.setData({
@@ -776,34 +782,52 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           }],
         });
       }
-      // マップロード直後にmyPostedデータもフェッチして紫ピンを表示
+      // マップロード直後に投稿データを取り込む（updateData の中でも取るが、
+      // 早めに取って初回 setData に間に合わせる）。完了後に再 setData は不要。
       if (!myPostedLoaded.current && !myPostedLoading.current) {
         myPostedLoading.current = true;
         getInfluencerRestaurants()
           .then(posted => {
             myPostedRef.current = posted;
             myPostedLoaded.current = true;
-            const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
-            if (postedSrc) {
-              const stockIds = new Set(stocksRef.current.map(r => r.id));
-              postedSrc.setData({
-                type: 'FeatureCollection',
-                features: posted
-                  .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
-                  .map((r: Record<string, unknown>) => ({
-                    type: 'Feature' as const,
-                    geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
-                    properties: {
-                      id: r.restaurantId, name: `${r.name}`,
-                      genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
-                      visited: 0, distance: '',
-                      videoUrl: r.videoUrl || '', photoEmoji: '',
-                      photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
-                      scene: '[]', priceRange: r.priceRange || '',
-                    },
-                  })),
-              });
-            }
+            // 他人マップ表示中ならソースを書き戻さない（戻った時に updateData で復元される）。
+            // 旧版はこのガードが無く、async fetch の resolution が user 選択より遅れた時に
+            // ストック + 投稿が突然 stocks ソースに刺さって、ズーム変更を契機に
+            // クラスタ黒丸が再描画されるバグになっていた。
+            if (selectedFollowUserRef.current) return;
+            // 取得後に最新の filteredStocks で stocks ソースを再構築
+            const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
+            if (!stockSrc) return;
+            const cur = stocksRef.current;
+            const stockIds = new Set(cur.map(r => r.id));
+            const stockFeatures = cur.map(r => ({
+              type: 'Feature' as const,
+              geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
+              properties: {
+                id: r.id, name: r.name, genre: r.genre || '',
+                visited: r.visited ? 1 : 0, isPosted: 0,
+                distance: r.distance || '',
+                videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+                photoUrls: (r as any).photoUrls?.[0] || '',
+                scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
+              },
+            }));
+            const postedFeatures = posted
+              .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+              .map((r: Record<string, unknown>) => ({
+                type: 'Feature' as const,
+                geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+                properties: {
+                  id: r.restaurantId, name: `${r.name}`,
+                  genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+                  visited: 0, isPosted: 1,
+                  distance: '',
+                  videoUrl: r.videoUrl || '', photoEmoji: '',
+                  photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+                  scene: '[]', priceRange: r.priceRange || '',
+                },
+              }));
+            stockSrc.setData({ type: 'FeatureCollection', features: [...stockFeatures, ...postedFeatures] });
           })
           .catch(() => { /* ignore */ })
           .finally(() => { myPostedLoading.current = false; });
@@ -886,6 +910,40 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     }
   }, [panTo, onPanComplete]);
 
+  // panTo-pin パルス animation（光の輪が広がる演出）。
+  // panTo ピンが置かれてる間ずっと脈動させて、周りの店ピンに埋もれないように。
+  // 30fps 相当 (33ms) で OK だが requestAnimationFrame でブラウザに任せる。
+  useEffect(() => {
+    let raf = 0;
+    let start = 0;
+    const tick = (ts: number) => {
+      const map = mapRef.current;
+      if (!map || !mapLoadedRef.current) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (!start) start = ts;
+      const elapsed = (ts - start) % 1500;          // 1.5 秒 1 周期
+      const t = elapsed / 1500;                     // 0..1
+      // 外側リング: 8 → 38 px / opacity 0.45 → 0
+      const r1 = 8 + t * 30;
+      const o1 = 0.45 * (1 - t);
+      // 内側リング: 6 → 22 px / 半周ぶん遅らせて連続感
+      const t2 = (t + 0.5) % 1;
+      const r2 = 6 + t2 * 16;
+      const o2 = 0.55 * (1 - t2);
+      try {
+        map.setPaintProperty('panTo-pulse-outer', 'circle-radius', r1);
+        map.setPaintProperty('panTo-pulse-outer', 'circle-opacity', o1);
+        map.setPaintProperty('panTo-pulse-inner', 'circle-radius', r2);
+        map.setPaintProperty('panTo-pulse-inner', 'circle-stroke-opacity', o2);
+      } catch { /* layer 未作成のフレームを安全にスキップ */ }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   // Set initial center to user position
   useEffect(() => {
     if (mapRef.current && userPosition && !initialCenterSet.current) {
@@ -918,30 +976,21 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   userPosRef.current = userPosition;
 
   // データ更新のみ（ソース/レイヤーはon('load')で作成済み）
+  // stocks ソースに「保存」と「自分の投稿」を 1 つの FeatureCollection で投入。
+  // 同じソースなので近接していればクラスタが合体する（黒丸が分裂しない）。
   const updateData = useCallback(async (s: StockedRestaurant[], uPos: GPSPosition | null) => {
     const map = mapRef.current;
     if (!map || !mapLoadedRef.current) return;
+    // 他人マップを見てる間は自分のピン / クラスタを再書き込みしない。
+    // GPS 移動やフィルタ変更で useEffect が走るたびに stocks ソースを書き戻す
+    // と、ズーム変更後に黒丸が突然復活して見える。user の操作で外すまでは
+    // updateData は no-op にして、handleOpenFollowingPicker(戻る) で明示的に呼ぶ。
+    if (selectedFollowUserRef.current) return;
     // 一時ピンをクリア
     const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
     if (panSrc) panSrc.setData({ type: 'FeatureCollection', features: [] });
-    const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
-    if (stockSrc) {
-      stockSrc.setData({
-        type: 'FeatureCollection',
-        features: s.map(r => ({
-          type: 'Feature' as const,
-          geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
-          properties: {
-            id: r.id, name: r.name, genre: r.genre || '',
-            visited: r.visited ? 1 : 0, distance: r.distance || '',
-            videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-            photoUrls: (r as any).photoUrls?.[0] || '',
-            scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
-          },
-        })),
-      });
-    }
-    // 自分の投稿レストラン（紫ピン）
+
+    // 自分の投稿レストランを必要なら取得
     if (!myPostedLoaded.current && !myPostedLoading.current) {
       myPostedLoading.current = true;
       try {
@@ -951,29 +1000,40 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       } catch { /* ignore */ }
       myPostedLoading.current = false;
     }
-    // 紫ピンソース更新（ストック済みの店は除外）
-    if (myPostedLoaded.current) {
-      const postedSrc = map.getSource('my-posted') as mapboxgl.GeoJSONSource | undefined;
-      if (postedSrc) {
-        const stockIds = new Set(s.map(r => r.id));
-        postedSrc.setData({
-          type: 'FeatureCollection',
-          features: myPostedRef.current
-            .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
-            .map((r: Record<string, unknown>) => ({
-              type: 'Feature' as const,
-              geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
-              properties: {
-                id: r.restaurantId, name: `${r.name}`,
-                genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
-                visited: 0, distance: '',
-                videoUrl: r.videoUrl || '', photoEmoji: '',
-                photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
-                scene: '[]', priceRange: r.priceRange || '',
-              },
-            })),
-        });
-      }
+
+    const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
+    if (stockSrc) {
+      const stockIds = new Set(s.map(r => r.id));
+      const stockFeatures = s.map(r => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
+        properties: {
+          id: r.id, name: r.name, genre: r.genre || '',
+          visited: r.visited ? 1 : 0, isPosted: 0,
+          distance: r.distance || '',
+          videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
+          photoUrls: (r as any).photoUrls?.[0] || '',
+          scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
+        },
+      }));
+      const postedFeatures = myPostedLoaded.current
+        ? myPostedRef.current
+          .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+          .map((r: Record<string, unknown>) => ({
+            type: 'Feature' as const,
+            geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+            properties: {
+              id: r.restaurantId, name: `${r.name}`,
+              genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+              visited: 0, isPosted: 1,
+              distance: '',
+              videoUrl: r.videoUrl || '', photoEmoji: '',
+              photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+              scene: '[]', priceRange: r.priceRange || '',
+            },
+          }))
+        : [];
+      stockSrc.setData({ type: 'FeatureCollection', features: [...stockFeatures, ...postedFeatures] });
     }
     const userSrc = map.getSource('user-location') as mapboxgl.GeoJSONSource | undefined;
     if (userSrc) {
@@ -1003,7 +1063,35 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
   const handleFocusNearby = useCallback(() => {
     if (!nearbyStock) return;
-    mapRef.current?.flyTo({ center: [nearbyStock.lng, nearbyStock.lat], zoom: 17, duration: 800 });
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo({ center: [nearbyStock.lng, nearbyStock.lat], zoom: 17, duration: 800 });
+    // flyTo 完了後に popup を開く。すでに 17 ズームの近接状態でも反応するように
+    // moveend を 1 回だけ拾って popup を立てる（旧版は flyTo だけで何も起きないように見えた）。
+    const openPopup = () => {
+      try {
+        popupRef.current?.remove();
+        popupRef.current = new mapboxgl.Popup({ offset: [0, -55], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
+          .setLngLat([nearbyStock.lng, nearbyStock.lat])
+          .setDOMContent(buildPopupNode({
+            name: nearbyStock.name,
+            genre: nearbyStock.genre || '',
+            distance: nearbyStock.distance || '',
+            videoUrl: nearbyStock.videoUrl || '',
+            photoEmoji: nearbyStock.photoEmoji || '',
+            photoUrls: (nearbyStock as any).photoUrls?.[0] || '',
+            scene: nearbyStock.scene || [],
+            priceRange: nearbyStock.priceRange || '',
+            lat: nearbyStock.lat,
+            lng: nearbyStock.lng,
+            ownerNickname: '',
+          }, userPosRef.current))
+          .addTo(map);
+      } catch { /* ignore */ }
+    };
+    map.once('moveend', openPopup);
+    // 既に flyTo が動かない（同じ座標タップ等）ケースの保険として 900ms 後にも一度
+    setTimeout(() => { if (popupRef.current?.isOpen?.() !== true) openPopup(); }, 900);
   }, [nearbyStock]);
 
 
@@ -1047,20 +1135,35 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     setMapMode(mode);
   }, []);
 
+  // 自分のピン / クラスタ表示の対象レイヤー一覧（show / hide で使い回す）
+  const MY_LAYER_IDS = [
+    'stocks-outline', 'stocks-circle', 'stocks-pin',
+    'stocks-cluster', 'stocks-cluster-count',
+  ];
+  const FOLLOWING_LAYER_IDS = [
+    'following-outline', 'following-circle', 'following-pin',
+    'following-cluster', 'following-cluster-count',
+  ];
+
   // Open following picker
   const handleOpenFollowingPicker = useCallback(async () => {
     if (selectedFollowUser) {
-      // 解除: 自分のピンに戻す
+      // 解除: 自分のマップに戻す
       setSelectedFollowUser(null);
       setShowFollowingPicker(false);
       const map = mapRef.current;
       if (map && mapLoadedRef.current) {
-        ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
+        // following ソースを空にして黒丸/ピン/クラスタを全て消す
+        const fSrc = map.getSource('following') as mapboxgl.GeoJSONSource | undefined;
+        if (fSrc) fSrc.setData({ type: 'FeatureCollection', features: [] });
+        FOLLOWING_LAYER_IDS.forEach(id => {
           try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
         });
-        ['stocks-outline', 'stocks-circle', 'stocks-pin', 'my-posted-outline', 'my-posted-circle', 'my-posted-pin'].forEach(id => {
+        MY_LAYER_IDS.forEach(id => {
           try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
         });
+        // 自分のソースを最新 filteredStocks + 投稿で再構築
+        updateData(stocksRef.current, userPosRef.current);
       }
       return;
     }
@@ -1091,7 +1194,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     } finally {
       setFollowingLoading(false);
     }
-  }, [selectedFollowUser, showFollowingPicker, followingData]);
+  }, [selectedFollowUser, showFollowingPicker, followingData, updateData]);
 
   // Select a following user
   const handleSelectFollowUser = useCallback((userId: string) => {
@@ -1100,8 +1203,16 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     const map = mapRef.current;
     if (!map || !mapLoadedRef.current) return;
 
-    // 自分のピンを非表示
-    ['stocks-outline', 'stocks-circle', 'stocks-pin', 'my-posted-outline', 'my-posted-circle', 'my-posted-pin'].forEach(id => {
+    // 自分のソースを完全に空にする。
+    // setLayoutProperty('visibility','none') だけだと環境によって黒丸クラスタが
+    // 残ることがあったので、データ自体を空にして物理的に描画を止める。
+    // panTo-pin（一時パルス）も他人マップ中は無関係なので消す。
+    const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
+    if (stockSrc) stockSrc.setData({ type: 'FeatureCollection', features: [] });
+    const panSrc = map.getSource('panTo-pin') as mapboxgl.GeoJSONSource | undefined;
+    if (panSrc) panSrc.setData({ type: 'FeatureCollection', features: [] });
+    // 念のため visibility も off にして二重の防御
+    MY_LAYER_IDS.forEach(id => {
       try { map.setLayoutProperty(id, 'visibility', 'none'); } catch {}
     });
 
@@ -1127,7 +1238,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         })),
       });
     }
-    ['following-outline', 'following-circle', 'following-pin'].forEach(id => {
+    FOLLOWING_LAYER_IDS.forEach(id => {
       try { map.setLayoutProperty(id, 'visibility', 'visible'); } catch {}
     });
   }, []);
@@ -1500,11 +1611,12 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </>
       )}
 
-      {/* 100m nearby banner — 画面下中央に配置。サムネ + 店名 + 距離 +
-          → でどの店が近いか一目で分かる。タップで該当ピンに flyTo。 */}
-      {nearbyStock && !nearbyDismissed && (
+      {/* 100m nearby banner — 画面下、legend / 3D-2D とちょうど高さが揃う位置に
+          配置。サムネ + 店名 + 距離 + → でどの店が近いか一目で分かる。
+          他人のマップを見てるときは関係ないので非表示。 */}
+      {nearbyStock && !nearbyDismissed && !selectedFollowUser && (
         <div
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-32px)] w-[320px] flex items-center gap-2.5 bg-white text-[var(--stg-gray-900)] rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.25)] border border-black/5 pl-2 pr-1.5 py-1.5"
+          className="map-nearby-banner absolute z-30 flex items-center gap-2.5 bg-white text-[var(--stg-gray-900)] rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.25)] border border-black/5 pl-2 pr-1.5 py-1.5"
           role="status"
           aria-live="polite"
         >
@@ -1583,14 +1695,23 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </>
       )}
 
-      {/* Selected user banner */}
+      {/* Selected user banner — 上部は検索バー + pill が wrap して 2 行になる
+          ことがあるので、被らないよう画面下中央に配置。
+          legend (left:18, bottom:22) と layers (right:18, bottom:22) の間に
+          ちょうど挟まる位置。他人マップ中は nearby banner は出さないので
+          競合しない。 */}
       {selectedFollowUser && (
-        <div className="absolute top-4 left-4 right-16 z-10 bg-purple-500/90 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center justify-between shadow-md">
-          <span className="text-white text-sm font-bold truncate">
-            {followingUsers.find(u => u.id === selectedFollowUser)?.nickname}のマップ
+        <div className="map-other-banner absolute z-30 flex items-center gap-2 bg-white/96 backdrop-blur-sm rounded-full pl-3 pr-1 py-1 shadow-[0_8px_24px_rgba(0,0,0,0.22)] border border-black/5">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--stg-gray-900)] truncate max-w-[180px]">
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#a855f7' }} />
+            <span className="truncate">{followingUsers.find(u => u.id === selectedFollowUser)?.nickname}のマップ</span>
           </span>
-          <button onClick={handleOpenFollowingPicker} className="text-white/80 text-xs ml-2 flex-shrink-0">
-            戻る
+          <button
+            onClick={handleOpenFollowingPicker}
+            aria-label="自分のマップに戻る"
+            className="w-7 h-7 rounded-full grid place-items-center text-[var(--stg-gray-700)] hover:bg-black/5 flex-shrink-0"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
       )}

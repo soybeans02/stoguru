@@ -343,10 +343,11 @@
 /* ─── Layer switcher ─── */
 /* 3D / 2D / 衛星 の 3 ボタンが必ず横並びで表示されるよう、
    flex-wrap: nowrap + 各ボタンに white-space: nowrap + min-width を明示。
-   container には z-index を高めに振って他の overlay に隠されないように。 */
+   container には z-index を高めに振って他の overlay に隠されないように。
+   bottom は .map-legend (22px) と高さを揃えて視覚的に同じ row に並べる。 */
 .map-layers {
   position: absolute;
-  bottom: 18px; right: 18px;
+  bottom: 22px; right: 18px;
   display: flex;
   flex-wrap: nowrap;
   gap: 4px;
@@ -370,6 +371,38 @@
   flex-shrink: 0;
 }
 .map-layers button.is-active { background: var(--stg-orange-500); color: white; }
+
+/* ─── Nearby banner（「すぐそこ XXm」） ─── */
+/* legend (left:18 / bottom:22) と layers (right:18 / bottom:22) の真ん中に
+   並ぶよう、同じ bottom: 22px に置いて中央寄せ。banner 幅は 320px 固定。
+   左の legend と右の layers にぶつからない最低画面幅は ~720px 想定。
+   それより狭い時は responsive 側で位置を変える。 */
+.map-nearby-banner {
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  max-width: calc(100% - 32px);
+}
+
+/* ─── Selected-user banner（〇〇のマップ表示中） ─── */
+/* nearby banner と同じ位置 (画面下中央) に配置するが、他人マップ中は
+   nearby banner は非表示なので両者は同時に出ない。 */
+.map-other-banner {
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+}
+
+@media (max-width: 800px) {
+  /* 小画面では legend が左下、layers が右下に居座るので nearby/他人 banner は
+     legend の上に積む（bottom: 70px の legend のさらに上 = 118px）。 */
+  .map-nearby-banner,
+  .map-other-banner {
+    bottom: 118px;
+  }
+}
 
 /* Attribution */
 .map-attr {
