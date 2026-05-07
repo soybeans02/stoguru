@@ -585,13 +585,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     (filterDistance > 0 ? 1 : 0) +
     (filterVisited !== 'all' ? 1 : 0);
 
-  // 「リストを表示」ピル / list panel ヘッダに出す現在表示件数。
-  //   投稿モード → 自分の投稿件数
-  //   それ以外    → filteredStocks (= 絞り込み後の保存) の件数
-  // 単に stocks.length を出すと「行った 1」を選んでも 43 のままで、
-  // 数字とフィルタ結果が乖離して紛らわしいので絞り込みを反映させる。
-  const visibleCount = filterVisited === 'posted' ? postedCount : filteredStocks.length;
-
   // GPS取得時に日の出/日の入り時刻を更新 → テーマを即再適用
   useEffect(() => {
     if (userPosition) {
@@ -992,6 +985,13 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     }
     return list;
   }, [stocks, filterGenres, filterVisited, filterDistance, userPosition]);
+
+  // 「リストを表示」ピル / list panel ヘッダに出す現在表示件数。
+  //   投稿モード → 自分の投稿件数
+  //   それ以外    → filteredStocks (= 絞り込み後の保存) の件数
+  // 単に stocks.length を出すと「行った 1」を選んでも 43 のままで、
+  // 数字とフィルタ結果が乖離して紛らわしいので絞り込みを反映させる。
+  const visibleCount = filterVisited === 'posted' ? postedCount : filteredStocks.length;
 
   // Refs for accessing latest data inside map event handlers
   const stocksRef = useRef(filteredStocks);
