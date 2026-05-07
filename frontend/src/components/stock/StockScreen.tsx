@@ -5,10 +5,19 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import './stock-page.css';
 
+/** 保存日を「今日 / 昨日 / 3日前 / 2週間前 / 5ヶ月前 / 1年前」のような
+ *  相対時刻に整形する。旧 `5/7` だけだと初見で何の数字か分からなかったので
+ *  ぱっと意味の取れるラベルに置き換える。 */
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (diffDays <= 0) return '今日';
+  if (diffDays === 1) return '昨日';
+  if (diffDays < 7) return `${diffDays}日前`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}週間前`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}ヶ月前`;
+  return `${Math.floor(diffDays / 365)}年前`;
 }
 
 export interface StockedRestaurant extends SwipeRestaurant {

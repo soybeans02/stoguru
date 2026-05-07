@@ -213,26 +213,31 @@
   padding: 3px 9px; border-radius: 999px;
   display: inline-flex; align-items: center; gap: 4px;
 }
+/* ピンは右下に移動（旧版は左上で × ボタンと衝突していた）。 */
 .stock-card__pin {
-  position: absolute; top: 10px; left: 10px;
+  position: absolute; bottom: 10px; right: 10px;
   width: 26px; height: 26px; border-radius: 50%;
   background: var(--stg-orange-500); color: white;
   display: grid; place-items: center;
   box-shadow: 0 4px 10px rgba(254,141,40,0.40);
   border: none;
   cursor: pointer;
+  z-index: 2;
 }
 .stock-card__pin svg { width: 13px; height: 13px; }
+/* × ボタンは左上に移動 + 常時表示。タッチ端末では hover が無いので
+   旧 hover-only だと押せなかった事故を回避。 */
 .stock-card__remove {
-  position: absolute; bottom: 10px; right: 10px;
+  position: absolute; top: 10px; left: 10px;
   width: 28px; height: 28px; border-radius: 50%;
-  background: rgba(0,0,0,0.5); color: white; border: none; cursor: pointer;
+  background: rgba(0,0,0,0.55); color: white; border: none; cursor: pointer;
   display: grid; place-items: center;
-  opacity: 0; transition: opacity 120ms var(--stg-ease);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background 120ms var(--stg-ease);
+  z-index: 2;
 }
+.stock-card__remove:hover { background: rgba(0,0,0,0.75); }
 .stock-card__remove svg { width: 13px; height: 13px; }
-.stock-card:hover .stock-card__remove { opacity: 1; }
 .stock-card__visited-badge {
   position: absolute; bottom: 10px; left: 10px;
   background: var(--stg-green); color: white;
