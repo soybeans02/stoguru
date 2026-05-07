@@ -5,7 +5,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { priceRangeMatches } from '../../utils/price';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene, localizePrefecture } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizePrefecture, localizeTag } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { getTranslation, STORAGE_KEY, type Language } from '../../i18n';
@@ -359,7 +359,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   {chips.length > 0 && (
                     <div className="stock-card__chips">
                       {chips.map((c, i) => (
-                        <span key={i} className="stock-card__chip">{localizeGenre(c, language)}</span>
+                        <span key={i} className="stock-card__chip">{localizeTag(c, language)}</span>
                       ))}
                     </div>
                   )}

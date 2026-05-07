@@ -110,3 +110,13 @@ export function localizePrefecture(jp: string, lang: Language): string {
   if (lang === 'ja') return jp;
   return PREFECTURE_EN[jp] ?? jp;
 }
+
+/**
+ * カードの「チップ」表記用：genre と scene を混ぜた配列を表示する場面で
+ * 値がどちらの辞書にあるか分からない時に使うフォールバック。
+ * GENRE → SCENE → そのまま JP の順で引く。
+ */
+export function localizeTag(jp: string, lang: Language): string {
+  if (lang === 'ja') return jp;
+  return GENRE_EN[jp] ?? SCENE_EN[jp] ?? jp;
+}

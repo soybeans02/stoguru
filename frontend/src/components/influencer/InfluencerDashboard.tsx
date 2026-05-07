@@ -364,7 +364,7 @@ export function InfluencerDashboard({ onBack }: Props) {
             <div className="flex flex-wrap gap-1.5">
               {genres.map(g => (
                 <span key={g} className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  {g}
+                  {localizeGenre(g, language)}
                   <button type="button" onClick={() => setGenres(genres.filter(x => x !== g))} className="text-gray-400 hover:text-gray-600">x</button>
                 </span>
               ))}

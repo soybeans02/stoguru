@@ -12,7 +12,7 @@ import { goBack, navigate } from '../../utils/navigate';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre as localizeGenreFn } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn } from '../../utils/labelI18n';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -702,7 +702,7 @@ function ThemeCard({
   userPosition: { lat: number; lng: number } | null;
   onClick: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0
     ? restaurant.photoUrls
     : [fallbackPhoto(restaurant.id)];
@@ -770,7 +770,7 @@ function ThemeCard({
           {restaurant.genre && (
             <span className="inline-flex items-center gap-1">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}><path d="M5 14a4 4 0 0 0 4 4h6a4 4 0 0 0 4-4v-3a4 4 0 0 0-4-4l-7-3-3 3v7z"/></svg>
-              {restaurant.genre}
+              {localizeGenreFn(restaurant.genre, language)}
             </span>
           )}
           {restaurant.priceRange && (
@@ -788,7 +788,7 @@ function ThemeCard({
                 className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
                 style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}
               >
-                {s}
+                {localizeSceneFn(s, language)}
               </span>
             ))}
           </div>

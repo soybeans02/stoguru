@@ -6,6 +6,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { navigate, goBack } from '../../utils/navigate';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { safeHttpUrl } from '../../utils/safeUrl';
+import { localizeGenre, localizeTag } from '../../utils/labelI18n';
 
 interface PublicProfile {
   influencerId: string;
@@ -57,7 +58,7 @@ function fallbackFor(id: string) {
 
 export function PublicProfileScreen({ userId }: Props) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isAnonymous = !user;
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [restaurants, setRestaurants] = useState<PublicRestaurant[]>([]);
@@ -225,7 +226,7 @@ export function PublicProfileScreen({ userId }: Props) {
                         className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
                         style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}
                       >
-                        {g}
+                        {localizeGenre(g, language)}
                       </span>
                     ))}
                   </div>
@@ -288,7 +289,7 @@ function SocialLink({ url, label, handle }: { url: string; label: string; handle
    食べログ風 横長リッチカード
    ───────────────────────────────────── */
 function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0
     ? restaurant.photoUrls
     : [fallbackFor(restaurant.restaurantId)];
@@ -340,7 +341,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] mb-2 flex-wrap">
             {restaurant.address && <span>{restaurant.address}</span>}
             {restaurant.address && (genre || restaurant.priceRange) && <span className="opacity-50">·</span>}
-            {genre && <span>{genre}</span>}
+            {genre && <span>{localizeGenre(genre, language)}</span>}
             {genre && restaurant.priceRange && <span className="opacity-50">·</span>}
             {restaurant.priceRange && <span>{restaurant.priceRange}</span>}
           </div>
@@ -359,7 +360,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
                   className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
                   style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}
                 >
-                  {g}
+                  {localizeTag(g, language)}
                 </span>
               ))}
             </div>

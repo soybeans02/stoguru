@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
+import { useTranslation } from '../../context/LanguageContext';
+import { localizeGenre, localizeScene } from '../../utils/labelI18n';
 
 interface Props {
   restaurant: SwipeRestaurant;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOut, preview }: Props) {
+  const { language } = useTranslation();
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<'left' | 'right' | 'up' | null>(null);
@@ -284,12 +287,12 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
           <div className="flex gap-1.5 flex-wrap">
             {(restaurant.genres && restaurant.genres.length > 0 ? restaurant.genres : [restaurant.genre]).filter(Boolean).map((g) => (
               <span key={g} className="bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-medium">
-                {g}
+                {localizeGenre(g, language)}
               </span>
             ))}
             {restaurant.scene.slice(0, 2).map((s) => (
               <span key={s} className="bg-white/15 backdrop-blur-sm text-white/80 px-2.5 py-1 rounded-full text-xs">
-                {s}
+                {localizeScene(s, language)}
               </span>
             ))}
           </div>
