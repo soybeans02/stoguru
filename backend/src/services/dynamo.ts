@@ -767,8 +767,21 @@ export async function deleteFollowRequest(targetId: string, requesterId: string)
 // 通知
 // =============================================
 
+// 同 ms に複数通知が来てもユニーク SK にするための単調増加カウンタ。
+// プロセス内で incrementing。ミリ秒タイムスタンプの末尾に 1/1000 単位で
+// 載せることで Date 由来の見かけは保ちつつ衝突を完全に回避。
+let _notifSeq = 0;
+let _notifLastMs = 0;
 export async function createNotification(userId: string, type: NotificationType, fromUserId: string, fromNickname: string, content?: string) {
-  const ts = Date.now() + Math.random() * 0.999;
+  const now = Date.now();
+  if (now === _notifLastMs) {
+    _notifSeq = (_notifSeq + 1) % 1000;
+  } else {
+    _notifLastMs = now;
+    _notifSeq = 0;
+  }
+  // ts = ms + (counter / 1000) で 1 ms あたり最大 1000 ユニーク値を確保。
+  const ts = now + _notifSeq / 1000;
   const item: Record<string, unknown> = { userId, createdAt: ts, type, fromUserId, fromNickname, read: false };
   if (content) item.content = content.slice(0, 50);
   await db.send(new PutCommand({
@@ -1196,7 +1209,8 @@ export interface FeedbackItem {
 }
 
 export async function createFeedback(item: Omit<FeedbackItem, 'id' | 'createdAt' | 'read'>): Promise<FeedbackItem> {
-  const id = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // crypto-grade ランダム ID。同 ms 連投でも衝突しない (uuid 衝突確率 ~2^-122)。
+  const id = `fb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   const createdAt = Date.now();
   const record: FeedbackItem = {
     id,

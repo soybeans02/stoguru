@@ -101,8 +101,12 @@ export function peekVerifiedUserId(req: Request): string | null {
   return null;
 }
 
-/// 認証は任意（ログインしてれば user セット、未ログインでも次へ進む）
-export const optionalAuth: RequestHandler = async (req: Request, _res: Response, next: NextFunction) => {
+/// 認証は任意（ログインしてれば user セット、未ログインでも次へ進む）。
+/// 旧版は catch で Cognito 5xx エラーまで「匿名 OK」と握り潰していたため、
+/// AWS 一時障害時に全 optionalAuth エンドポイントが沈黙のまま匿名扱いに
+/// なる事故が起きやすかった。"Token 不正/期限切れ" と "Cognito 一時障害"
+/// を区別して、後者は 503 で明示的に失敗させる。
+export const optionalAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   const token = extractToken(req);
   if (!token) {
     next();
@@ -122,9 +126,23 @@ export const optionalAuth: RequestHandler = async (req: Request, _res: Response,
       (req as AuthRequest).user = user;
     }
     next();
-  } catch {
-    // トークン期限切れでも匿名として通す
-    next();
+  } catch (err: unknown) {
+    // Cognito の認証ライブラリは "NotAuthorizedException" / "TokenExpired"
+    // 系を name に持つ独自エラーを投げる。これは 401 相当 (= 匿名扱いで OK)。
+    // それ以外 (network / Cognito 5xx 等) は明示的に 503 で失敗させて
+    // 「Cognito 障害が匿名アクセスに化ける」事故を防ぐ。
+    const name = err instanceof Error ? err.name : '';
+    const expiredOrInvalid =
+      name === 'NotAuthorizedException' ||
+      name === 'TokenExpiredError' ||
+      name === 'JsonWebTokenError' ||
+      name === 'UserNotFoundException';
+    if (expiredOrInvalid) {
+      next();
+      return;
+    }
+    console.error('optionalAuth: upstream auth failed:', err);
+    res.status(503).json({ error: '認証サービスが一時的に利用できません' });
   }
 };
 

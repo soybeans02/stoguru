@@ -21,13 +21,29 @@ function getAudioContext(): AudioContext {
   return sharedAudioCtx;
 }
 
-// Nope風切り音（mp3）
+// Nope風切り音（mp3）。
+// 旧版は import 時に即 fetch + decodeAudioData していたが、
+//   1. ユーザー gesture 前なので iOS Safari の AudioContext が suspended
+//      で decodeAudioData が失敗するケースがあった
+//   2. SwipeScreen を 1 度も開かないユーザーにもダウンロード料金がかかる
+// 解決: 最初の swipe 時に 1 回だけ遅延ロード。Promise を共有して二重 fetch
+// を防ぐ。
 let whooshBuffer: AudioBuffer | null = null;
-fetch('/sounds/whoosh.mp3')
-  .then(r => r.arrayBuffer())
-  .then(buf => getAudioContext().decodeAudioData(buf))
-  .then(decoded => { whooshBuffer = decoded; })
-  .catch(() => {});
+let whooshLoadPromise: Promise<AudioBuffer | null> | null = null;
+function ensureWhooshLoaded(): Promise<AudioBuffer | null> {
+  if (whooshBuffer) return Promise.resolve(whooshBuffer);
+  if (!whooshLoadPromise) {
+    whooshLoadPromise = fetch('/sounds/whoosh.mp3')
+      .then((r) => r.arrayBuffer())
+      .then((buf) => getAudioContext().decodeAudioData(buf))
+      .then((decoded) => {
+        whooshBuffer = decoded;
+        return decoded;
+      })
+      .catch(() => null);
+  }
+  return whooshLoadPromise;
+}
 
 // スワイプ効果音
 function createSwipeSound(type: 'like' | 'nope') {
@@ -46,14 +62,20 @@ function createSwipeSound(type: 'like' | 'nope') {
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.3);
-  } else if (whooshBuffer) {
-    const source = ctx.createBufferSource();
-    source.buffer = whooshBuffer;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    source.connect(gain);
-    gain.connect(ctx.destination);
-    source.start(ctx.currentTime);
+  } else {
+    // whoosh は遅延ロード済みなら即再生、未ロードなら trigger だけしておいて
+    // 次の nope から効くようにする (最初の 1 回は無音だが致命的ではない)。
+    if (whooshBuffer) {
+      const source = ctx.createBufferSource();
+      source.buffer = whooshBuffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(ctx.currentTime);
+    } else {
+      ensureWhooshLoaded();
+    }
   }
 }
 

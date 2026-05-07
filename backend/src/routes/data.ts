@@ -336,12 +336,16 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
   const restaurants = v.data.restaurants;
 
   const userId = req.user!.userId;
+
+  // 旧版は for...of で 1 件ずつ await していたため 500 件 × ~200ms = 100s
+  // で Cloud Run / Lambda の execution timeout を超えていた。
+  // chunk 単位で Promise.all 並列化 (DynamoDB のスロットリング回避のため
+  // 過剰な並列にはせず CHUNK=20)。エラーは個別に握り潰して synced 数だけ返す。
+  const CHUNK = 20;
   let synced = 0;
-  for (const r of restaurants) {
+  const syncOne = async (r: typeof restaurants[number]): Promise<boolean> => {
     try {
       const restaurantId = r.id;
-
-      // レストランマスターが無ければ作成
       const existing = await getRestaurantV2(restaurantId);
       if (!existing) {
         await putRestaurantV2({
@@ -362,7 +366,6 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
           updatedAt: Date.now(),
         });
       }
-
       const existingStock = await getUserStock(userId, restaurantId);
       await putUserStock(userId, {
         restaurantId,
@@ -375,10 +378,17 @@ router.post('/restaurants/sync', requireAuth, async (req: AuthRequest, res: Resp
         photoEmoji: r.photoEmoji,
         createdAt: r.createdAt || new Date().toISOString(),
       });
-
       if (!existingStock) await incrementStockCount(restaurantId, 1);
-      synced++;
-    } catch {}
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  for (let i = 0; i < restaurants.length; i += CHUNK) {
+    const chunk = restaurants.slice(i, i + CHUNK);
+    const results = await Promise.all(chunk.map(syncOne));
+    synced += results.filter(Boolean).length;
   }
 
   res.json({ synced });

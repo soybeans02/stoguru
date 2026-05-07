@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { setRefreshTokenFn } from '../utils/api';
 
 const API = (import.meta.env.VITE_API_URL ?? '/api') + '/auth';
@@ -30,6 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('accessToken'));
   const [loading, setLoading] = useState(!!localStorage.getItem('accessToken'));
+  // bootstrap effect 内で自前 setToken した時に effect を再走させないための
+  // ガード。外部 (login / logout) から token が変わった時だけ再 bootstrap する。
+  const internalTokenSetRef = useRef(false);
 
   // ─── 自動ログイン ───
   // トークン取得元の優先度:
@@ -41,6 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 旧版は 401 即 logout していたため、accessToken の TTL（Cognito 既定 1h）が
   // 切れてからリロードすると毎回ログアウトされる事故が起きていた。
   useEffect(() => {
+    // 自前 setToken (refresh 成功時) で来た再走はスキップ。
+    // 外部からの token 変更 (login / logout) のみで bootstrap し直す。
+    if (internalTokenSetRef.current) {
+      internalTokenSetRef.current = false;
+      return;
+    }
     let cancelled = false;
     const tryFetchMe = async (bearer: string | null): Promise<Response> => {
       return fetch(`${API}/me`, {
@@ -84,7 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (res.ok) {
               const u = await res.json();
               setUser(u);
-              setToken(newToken); // 後続 fetch のためにも反映
+              // setToken の再走を防ぐためフラグを立ててから set。
+              internalTokenSetRef.current = true;
+              setToken(newToken);
               return;
             }
           }
@@ -219,11 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  // api.tsにrefreshToken関数を登録
-  useEffect(() => {
-    setRefreshTokenFn(refreshTokenFn);
-  }, []);
-
   const refreshTokenFn = useCallback(async (): Promise<string | null> => {
     const rt = localStorage.getItem('refreshToken');
     if (!rt) return null;
@@ -246,6 +252,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   }, []);
+
+  // api.ts に refreshToken 関数を登録。
+  // 旧版は refreshTokenFn 宣言より前に書かれていて、deps も [] だったため
+  // ホットリロード / 多重 mount 時に古い closure (古い logout を抱える) が
+  // api.ts に残る恐れがあった。宣言後に移動 + deps に refreshTokenFn を含める。
+  useEffect(() => {
+    setRefreshTokenFn(refreshTokenFn);
+  }, [refreshTokenFn]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, signUp, confirm, login, logout, refreshToken: refreshTokenFn, forgotPassword, resetPassword, updateNickname: updateNicknameLocal, updateEmail: updateEmailLocal }}>

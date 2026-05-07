@@ -29,16 +29,20 @@ function withCreds(init?: RequestInit): RequestInit {
   return { credentials: 'include', ...init };
 }
 
-// 401時に自動でトークンリフレッシュしてリトライ
+// 401時に自動でトークンリフレッシュしてリトライ。
+// Headers の大文字小文字混在を防ぐため Headers インスタンスを直接 set/delete
+// する。旧版は Object.fromEntries(new Headers(...).entries()) で lowercase 化
+// された後に Authorization (Capital) を追加していて、proxy / middleware に
+// よっては「authorization と Authorization の二重ヘッダ」と解釈されて
+// reject されることがあった。
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(url, withCreds(init));
   if (res.status === 401 && _refreshTokenFn) {
     const newToken = await _refreshTokenFn();
     if (newToken) {
-      const newInit = withCreds({
-        ...init,
-        headers: { ...Object.fromEntries(new Headers(init?.headers).entries()), Authorization: `Bearer ${newToken}` },
-      });
+      const headers = new Headers(init?.headers);
+      headers.set('Authorization', `Bearer ${newToken}`);
+      const newInit = withCreds({ ...init, headers });
       return fetch(url, newInit);
     }
   }
