@@ -310,11 +310,14 @@
    どちらとも被らないように、left を 396px (= 18 + 360 + 18 = list panel の
    右隣) から始めて max-width で抑える。bottom は 22px に上げて legend と
    layer switcher の高さを揃え、視覚的に同じ row として並べる。 */
+/* legend は左端へ寄せる。list panel (top: 88, bottom: 90, height = viewport-178)
+   は画面上部寄りなので、bottom: 22px に置けば legend は panel の下に出て
+   重ならない。 */
 .map-legend {
   position: absolute;
   bottom: 22px;
-  left: 396px;
-  max-width: calc(100% - 396px - 220px);
+  left: 18px;
+  max-width: calc(100% - 36px);
   display: flex; gap: 12px;
   padding: 8px 14px;
   background: rgba(255,255,255,0.96);

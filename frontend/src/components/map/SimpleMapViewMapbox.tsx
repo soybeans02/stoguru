@@ -550,16 +550,18 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Nearby banner dismissal (so user can hide it)
   const [nearbyDismissed, setNearbyDismissed] = useState(false);
   // Explore-this-area UI は削除済み（state も不要）。
-  // Nearby (100m) detection
-  const nearbyStock = useMemo(() => {
+  // Nearby (100m) detection — banner には距離も出すので一緒に持って返す
+  const nearbyMatch = useMemo(() => {
     if (!userPosition) return null;
     const matches = stocks
       .filter(s => s.lat && s.lng)
       .map(s => ({ s, d: distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng) }))
       .filter(({ d }) => d <= 100)
       .sort((a, b) => a.d - b.d);
-    return matches.length > 0 ? matches[0].s : null;
+    return matches.length > 0 ? matches[0] : null;
   }, [stocks, userPosition]);
+  const nearbyStock = nearbyMatch?.s ?? null;
+  const nearbyDistance = nearbyMatch?.d ?? null;
 
   // Reset banner dismissal when nearby stock changes
   useEffect(() => {
@@ -1498,32 +1500,52 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </>
       )}
 
-      {/* 100m nearby banner — コンパクトな pill 風。中央寄せ、内容に応じた幅。
-          ピン📍 + 店名 + ▶（タップで飛ぶサイン）+ × 閉じる。 */}
+      {/* 100m nearby banner — 画面下中央に配置。サムネ + 店名 + 距離 +
+          → でどの店が近いか一目で分かる。タップで該当ピンに flyTo。 */}
       {nearbyStock && !nearbyDismissed && (
         <div
-          className="absolute top-20 left-1/2 -translate-x-1/2 z-10 max-w-[calc(100%-32px)] flex items-center gap-1 bg-[var(--accent-orange)] text-white rounded-full shadow-lg pl-3 pr-1.5 py-1.5"
+          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-32px)] w-[320px] flex items-center gap-2.5 bg-white text-[var(--stg-gray-900)] rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.25)] border border-black/5 pl-2 pr-1.5 py-1.5"
           role="status"
           aria-live="polite"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 -ml-0.5">
-            <path d="M12 2a7 7 0 0 0-7 7c0 5.5 7 13 7 13s7-7.5 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
-          </svg>
+          {/* サムネ（写真があれば写真、無ければ photoEmoji） */}
+          {nearbyStock.photoUrls?.[0] ? (
+            <img
+              src={nearbyStock.photoUrls[0]}
+              alt=""
+              className="flex-shrink-0 w-10 h-10 rounded-xl object-cover"
+            />
+          ) : (
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--stg-cream-100)] grid place-items-center text-[20px]">
+              {nearbyStock.photoEmoji || '🍽️'}
+            </div>
+          )}
           <button
             onClick={handleFocusNearby}
-            className="min-w-0 inline-flex items-center gap-1 text-[12px] font-semibold truncate hover:opacity-90"
+            className="min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
             aria-label={`${t('map.nearby100m')} ${nearbyStock.name}`}
           >
-            <span className="truncate">{nearbyStock.name}</span>
-            {/* ▶ 矢印：タップで該当ピンに飛ぶサイン */}
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-90">
+            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--stg-orange-500)' }}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--stg-orange-500)' }} />
+              すぐそこ {nearbyDistance != null ? `${Math.round(nearbyDistance)}m` : ''}
+            </div>
+            <div className="text-[13px] font-bold truncate leading-tight">{nearbyStock.name}</div>
+          </button>
+          {/* → 矢印（タップで pin にとぶサイン） */}
+          <button
+            onClick={handleFocusNearby}
+            aria-label="ピンへ移動"
+            className="flex-shrink-0 w-8 h-8 rounded-full grid place-items-center text-white"
+            style={{ background: 'var(--accent-orange)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="m9 6 6 6-6 6"/>
             </svg>
           </button>
           <button
             onClick={() => setNearbyDismissed(true)}
             aria-label={t('common.close')}
-            className="flex-shrink-0 w-5 h-5 rounded-full hover:bg-white/25 flex items-center justify-center ml-0.5"
+            className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-black/5 grid place-items-center text-[var(--stg-gray-500)]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
