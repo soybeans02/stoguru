@@ -627,6 +627,22 @@ export function ThemeListScreen({ themeId }: Props) {
             }
             setPreviewRestaurant(null);
           }}
+          /* /themes/{id} は MainApp の外側のルートなので、
+             マップで見るは sessionStorage 経由で App.tsx に panTo を伝えて
+             ホームに navigate する。MainApp 側の useEffect で受け取り済み。 */
+          onShowOnMap={
+            previewRestaurant.lat && previewRestaurant.lng
+              ? () => {
+                  sessionStorage.setItem('pendingPanTo', JSON.stringify({
+                    lat: previewRestaurant.lat,
+                    lng: previewRestaurant.lng,
+                  }));
+                  sessionStorage.setItem('activeTab', 'map');
+                  setPreviewRestaurant(null);
+                  navigate('/');
+                }
+              : undefined
+          }
           onClose={() => setPreviewRestaurant(null)}
         />
       )}

@@ -202,6 +202,24 @@ function MainApp() {
   const { position } = useGPS();
   const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
 
+  // 別ルート（ThemeListScreen / FeatureArticleScreen 等）から navigate('/')
+  // で戻ってきた時に「マップで見る」を引き継ぐためのブリッジ。
+  // 該当ルート側で sessionStorage('pendingPanTo') に { lat, lng } を入れて
+  // navigate('/') すると、ここで読んで panTo + tab=map に反映する。
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('pendingPanTo');
+      if (!raw) return;
+      sessionStorage.removeItem('pendingPanTo');
+      const parsed = JSON.parse(raw) as { lat?: number; lng?: number };
+      if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number') {
+        setPanTo({ lat: parsed.lat, lng: parsed.lng });
+        setTab('map');
+      }
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 起動時にバックエンドからストック復元（ログイン済みのみ）
   useEffect(() => {
     if (!user) { setStocks([]); return; }
