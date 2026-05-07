@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS, PREFECTURES } from '../../data/mockRestaurants';
 
 interface Props {
@@ -80,11 +81,11 @@ export function FilterOverlay({
     onPriceChange?.(0, 10000);
   }
 
-  return (
-    // position: fixed + inset:0 で viewport 全体を覆う。旧版の absolute inset-0
-     // だと親 (main) 内にしか広がらず、モバイルの bottom tab bar (ホーム/マップ/
-     // 保存/アカウント) と Footer の クリア / 適用 ボタンが重なって見えてしまった。
-     // z-index は bottom-tab より十分高く設定。
+  return createPortal(
+    // document.body にポータル + position: fixed inset:0 で viewport 全体を覆う。
+    // ポータルしない方法では親要素に transform / filter / will-change が
+    // 効いてると containing-block が viewport じゃなくなり、bottom tab に
+    // 被ってしまうことがある。一番堅いのは document.body 直下に流すこと。
     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
@@ -301,6 +302,7 @@ export function FilterOverlay({
           この条件で探す
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
