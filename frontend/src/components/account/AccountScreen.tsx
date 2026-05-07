@@ -354,8 +354,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           <div className="px-5 sm:px-7 lg:px-8 pb-6 lg:pb-7">
             {/* Avatar 行：avatar (左、cover に被せて) と action buttons (右)。
                 Twitter のプロフィール準拠で、名前 / @handle / email / bio / chips は
-                すべて avatar の下に配置する。 */}
-            <div className="-mt-8 sm:-mt-10 lg:-mt-12 flex items-end justify-between gap-4">
+                すべて avatar の下に配置する。
+                Mobile (〜sm) は avatar を 1 行目、ボタン群を 2 行目に積む
+                (横並びだと avatar とボタンが互いに押しつぶし合う)。 */}
+            <div className="-mt-8 sm:-mt-10 lg:-mt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
               <div className="flex items-end gap-4 min-w-0">
                 {/* Avatar */}
                 <input

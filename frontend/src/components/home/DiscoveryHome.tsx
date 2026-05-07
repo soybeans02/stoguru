@@ -572,8 +572,11 @@ export function DiscoveryHome({
                   />
                 ))}
               </div>
-              {/* 〜lg: 通常のグリッド */}
-              <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 〜lg: 通常のグリッド。
+                  Story button は内部が全部 absolute なので、grid-template-rows
+                  を指定しないとカード高さが 0 に潰れて見えなくなる。
+                  各セル h-[260px] を強制してカードを描画する。 */}
+              <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 [&>*]:h-[260px]">
                 {themeConfigs.slice(0, 4).map((th, idx) => (
                   <Story
                     key={th.id}
