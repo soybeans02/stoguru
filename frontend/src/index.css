@@ -323,12 +323,16 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Focus-visible: orange ring for keyboard users (Phase 5)
-   text 入力 (input/textarea/[contenteditable]) は除外して、フォーカス時にオレンジ枠が出ないように */
+/* Focus-visible: orange ring for keyboard users.
+   旧版は `outline` + `border-radius: 4px` で focus 時の見た目をすべて
+   4px 角丸に強制していたため、pill / circle ボタンが押下時に角ばって見える
+   不具合があった（特に Safari は click でも focus-visible が発火しやすく、
+   マップトップバーが「オレンジ枠で囲まれた箱」のように見える事故が起きていた）。
+   border-radius を変更しない box-shadow ベースの soft リングに切替。
+   text 入力（input/textarea/[contenteditable]）は引き続き outline を出さない。 */
 :where(button, [role="button"], a, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent-orange);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-orange);
 }
 input:focus,
 textarea:focus,
