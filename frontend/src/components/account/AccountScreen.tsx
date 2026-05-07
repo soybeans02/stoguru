@@ -205,7 +205,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     {
       label: t('account.theme'),
       value: themeLabel,
-      sub: '外観のスタイルを変更',
+      sub: t('account.themeSub'),
       onClick: () => setPanel('theme'),
       iconBg: 'var(--stg-cream-100)',
       iconColor: 'var(--stg-orange-500)',
@@ -214,7 +214,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     {
       label: t('account.language'),
       value: language === 'ja' ? '日本語' : 'English',
-      sub: 'アプリの表示言語',
+      sub: t('account.languageSub'),
       onClick: () => setPanel('language'),
       iconBg: 'rgba(0,122,255,0.12)',
       iconColor: 'var(--stg-blue)',
@@ -222,7 +222,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
     {
       label: t('account.changePassword'),
-      sub: 'アカウントのパスワードを更新',
+      sub: t('account.changePasswordSub'),
       onClick: () => setPanel('password'),
       iconBg: 'rgba(255,159,10,0.14)',
       iconColor: '#FF9F0A',
@@ -241,7 +241,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const supportTiles: SettingTileDef[] = [
     {
       label: t('account.howToUse'),
-      sub: 'stoguru をもっと活用',
+      sub: t('account.howToUseSub'),
       onClick: () => setPanel('howto'),
       iconBg: 'rgba(175,82,222,0.12)',
       iconColor: '#AF52DE',
@@ -249,7 +249,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
     {
       label: t('account.feedback'),
-      sub: '機能リクエスト・不具合報告',
+      sub: t('account.feedbackSub'),
       onClick: () => setPanel('feedback'),
       iconBg: 'rgba(255,55,95,0.12)',
       iconColor: '#FF375F',
@@ -257,7 +257,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
     {
       label: t('account.contactUs'),
-      sub: '通常 24 時間以内に返信',
+      sub: t('account.contactUsSub'),
       onClick: () => setPanel('support'),
       iconBg: 'rgba(255,159,10,0.14)',
       iconColor: '#FF9F0A',
@@ -265,7 +265,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
     {
       label: t('account.privacyPolicy'),
-      sub: 'データ取り扱いについて',
+      sub: t('account.privacyPolicySub'),
       onClick: () => setPanel('privacy'),
       iconBg: 'var(--stg-gray-100)',
       iconColor: 'var(--text-secondary)',
@@ -273,7 +273,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     },
     {
       label: t('account.termsOfService'),
-      sub: '利用規約',
+      sub: t('account.termsOfServiceSub'),
       onClick: () => setPanel('terms'),
       iconBg: 'var(--stg-gray-100)',
       iconColor: 'var(--text-secondary)',
@@ -324,7 +324,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             )}
             {uploadingCover && (
               <div className="absolute inset-0 bg-black/50 grid place-items-center z-10">
-                <span className="text-white text-sm font-medium">アップロード中…</span>
+                <span className="text-white text-sm font-medium">{t('account.uploading')}</span>
               </div>
             )}
             {/* Cover edit controls (top-right)。タッチ端末では hover が無いので
@@ -334,16 +334,16 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 onClick={() => coverInputRef.current?.click()}
                 disabled={uploadingCover}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md text-white text-[12px] font-semibold hover:bg-black/70 transition-colors"
-                aria-label="カバー画像を変更"
+                aria-label={t('account.coverChangeAriaLabel')}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                {coverImage ? 'カバーを変更' : 'カバーを追加'}
+                {coverImage ? t('account.coverChange') : t('account.coverAdd')}
               </button>
               {coverImage && (
                 <button
                   onClick={handleRemoveCover}
                   className="flex items-center justify-center w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
-                  aria-label="カバーを削除"
+                  aria-label={t('account.coverRemoveAriaLabel')}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                 </button>
@@ -446,10 +446,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
                   style={{ fontSize: 24, color: 'var(--text-primary)', lineHeight: 1.15 }}
                 >
-                  <span className="truncate">{user?.nickname ?? 'ユーザー'}</span>
+                  <span className="truncate">{user?.nickname ?? t('account.userFallback')}</span>
                   {isVerified && (
                     <span
-                      aria-label="認証済み"
+                      aria-label={t('account.verifiedAriaLabel')}
                       className="inline-grid place-items-center flex-shrink-0"
                       style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--stg-blue)', color: 'white' }}
                     >
@@ -577,12 +577,14 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             </div>
             <div className="relative flex-1 min-w-0">
               <div className="text-[17px] font-bold mb-1">
-                {streakDays >= 7 ? '7 日連続でお店を保存！' : `${streakDays} 日連続でお店を保存中！`}
+                {streakDays >= 7
+                  ? t('account.streakDaysReached')
+                  : t('account.streakDaysOngoing').replace('{days}', String(streakDays))}
               </div>
               <div className="text-[13px] leading-[1.5]" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 {streakDays >= 7
-                  ? 'お見事！「ストグルマスター」相当のペース。'
-                  : `あと ${7 - streakDays} 日続けると「ストグルマスター」バッジを獲得できます`}
+                  ? t('account.streakMaster')
+                  : t('account.streakRemaining').replace('{days}', String(7 - streakDays))}
               </div>
               {/* 7-day flame indicator */}
               <div className="flex gap-1 mt-2.5">
@@ -615,10 +617,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 borderRadius: 10,
                 cursor: 'pointer',
               }}
-              onClick={() => alert('バッジ機能は近日対応予定')}
+              onClick={() => alert(t('account.badgesComingSoon'))}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
-              バッジを見る
+              {t('account.badgesView')}
             </button>
           </div>
         )}
@@ -661,7 +663,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         </div>
 
         {/* ─── 通知 ─── */}
-        <SectionLabel>通知</SectionLabel>
+        <SectionLabel>{t('account.notifications')}</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div
             className="flex items-center gap-3.5 px-4 py-3.5 sm:col-span-2"
@@ -674,12 +676,12 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>プッシュ通知</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>新着のおすすめ・フォローイベント</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('account.pushNotifications')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.pushNotificationsSub')}</div>
             </div>
             <Toggle
               checked={pushNotif}
-              ariaLabel="プッシュ通知"
+              ariaLabel={t('account.pushNotifications')}
               onChange={(next) => { setPushNotif(next); localStorage.setItem('cache:pushNotif', next ? '1' : '0'); }}
             />
           </div>
@@ -694,19 +696,19 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>メール通知</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>週次のダイジェスト・お知らせ</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('account.emailNotifications')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.emailNotificationsSub')}</div>
             </div>
             <Toggle
               checked={emailNotif}
-              ariaLabel="メール通知"
+              ariaLabel={t('account.emailNotifications')}
               onChange={(next) => { setEmailNotif(next); localStorage.setItem('cache:emailNotif', next ? '1' : '0'); }}
             />
           </div>
         </div>
 
         {/* ─── データとプライバシー ─── */}
-        <SectionLabel>データとプライバシー</SectionLabel>
+        <SectionLabel>{t('account.dataAndPrivacy')}</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <a
             href="#"
@@ -721,8 +723,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>プライバシー設定</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>公開範囲・ブロック・履歴</div>
+              <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('account.privacySettings')}</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.privacySettingsSub')}</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -752,7 +754,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t('auth.logOut')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>このデバイスからサインアウト</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.logoutSub')}</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -771,7 +773,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-semibold" style={{ color: 'var(--stg-red)' }}>{t('account.deleteAccount')}</div>
-              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>すべてのデータが永久に削除されます</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{t('account.deleteAccountSub')}</div>
             </div>
             <span className="text-[var(--text-tertiary)] flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -782,10 +784,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         {/* ─── Footer ─── Claude Design 風 4 リンク + バージョン */}
         <div className="text-center mt-10" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
           <div className="flex justify-center gap-4 mb-2 flex-wrap">
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>プライバシー</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>利用規約</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('cookie'); }} style={{ color: 'inherit', textDecoration: 'none' }}>クッキー</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('commerce'); }} style={{ color: 'inherit', textDecoration: 'none' }}>特定商取引</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('privacy'); }} style={{ color: 'inherit', textDecoration: 'none' }}>{t('account.footerPrivacy')}</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('terms'); }} style={{ color: 'inherit', textDecoration: 'none' }}>{t('account.footerTerms')}</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('cookie'); }} style={{ color: 'inherit', textDecoration: 'none' }}>{t('account.footerCookie')}</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setPanel('commerce'); }} style={{ color: 'inherit', textDecoration: 'none' }}>{t('account.footerCommerce')}</a>
           </div>
           <div>stoguru v1.0 · © 2026 stoguru</div>
         </div>
@@ -831,13 +833,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         <StaticTextSheet
           onClose={() => setPanel(null)}
           title={t('account.howToUse')}
-          body={t('howto.body',
-`1. ホームでスワイプ → 気になったお店を保存
-2. 保存タブで一覧管理 (ピン留め・行った)
-3. マップタブで近くのお店を確認
-4. 検索タブでユーザー・お店・URL から探す
-5. 「お店を編集」から自分でお店を投稿`
-          )}
+          body={t('account.howToUseBody')}
         />
       )}
       {panel === 'privacy' && <LegalSheet doc="privacy" onClose={() => setPanel(null)} />}
@@ -858,7 +854,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 await updateNickname(next.nickname);
               }
             } catch (e) {
-              alert(e instanceof Error ? e.message : 'ニックネームの更新に失敗しました');
+              alert(e instanceof Error ? e.message : t('account.nicknameUpdateFailed'));
               return;
             }
             // localStorage 更新 + state 反映で即座に画面に反映する
@@ -1049,6 +1045,7 @@ function LanguageSheet({ onClose, language, setLanguage, t }: {
   setLanguage: (l: Language) => void;
   t: (key: string, fallback?: string) => string;
 }) {
+  // Language names stay native — same in both UI languages.
   const options: { value: Language; label: string; sub: string }[] = [
     { value: 'ja', label: '日本語', sub: 'Japanese' },
     { value: 'en', label: 'English', sub: 'English' },

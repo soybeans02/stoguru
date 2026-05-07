@@ -1,4 +1,16 @@
 import { Component, type ReactNode } from 'react';
+import { getTranslation, STORAGE_KEY, type Language } from '../../i18n';
+
+// ErrorBoundary は class component なので hooks が使えない。
+// localStorage から言語を直接読んで getTranslation を呼ぶヘルパー。
+function readLanguage(): Language {
+  if (typeof window === 'undefined') return 'ja';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' ? 'en' : 'ja';
+}
+function tt(key: string): string {
+  return getTranslation(readLanguage(), key);
+}
 
 interface Props {
   children: ReactNode;
@@ -34,12 +46,12 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.scope === 'inline') {
         return (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center gap-3">
-            <p className="text-gray-700 text-sm font-medium">読み込みに失敗しました</p>
+            <p className="text-gray-700 text-sm font-medium">{tt('common.errorLoadFailed')}</p>
             <button
               onClick={this.reset}
               className="bg-orange-500 text-white text-sm px-5 py-2 rounded-full font-medium hover:bg-orange-600 transition-colors"
             >
-              もう一度試す
+              {tt('common.tryAgain')}
             </button>
           </div>
         );
@@ -47,13 +59,13 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-svh flex flex-col items-center justify-center bg-gray-50 px-4 text-center gap-4">
           <p className="text-gray-700 text-base font-medium">
-            エラーが発生しました。再読み込みしてください。
+            {tt('common.errorReloadHint')}
           </p>
           <button
             onClick={() => window.location.reload()}
             className="bg-orange-500 text-white text-sm px-6 py-2.5 rounded-xl font-medium hover:bg-orange-600 transition-colors"
           >
-            再読み込み
+            {tt('common.reload')}
           </button>
         </div>
       );

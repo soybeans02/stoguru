@@ -1,4 +1,16 @@
+import { getTranslation, STORAGE_KEY, type Language } from '../i18n';
+
 const BASE = import.meta.env.VITE_API_URL ?? '/api';
+
+// utility なので localStorage を直接読んで言語を解決。
+function readLang(): Language {
+  if (typeof window === 'undefined') return 'ja';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' ? 'en' : 'ja';
+}
+function tt(key: string): string {
+  return getTranslation(readLang(), key);
+}
 
 // Token refresh callback — AuthContextから設定される
 let _refreshTokenFn: (() => Promise<string | null>) | null = null;
@@ -142,7 +154,7 @@ export async function updateNickname(nickname: string): Promise<{ nickname: stri
     body: JSON.stringify({ nickname }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'ニックネーム変更に失敗しました');
+  if (!res.ok) throw new Error(data.error || tt('common.apiNicknameUpdate'));
   return data;
 }
 
@@ -154,7 +166,7 @@ export async function changeEmail(newEmail: string, currentPassword: string): Pr
     body: JSON.stringify({ newEmail, currentPassword }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'メールアドレス変更に失敗しました');
+  if (!res.ok) throw new Error(data.error || tt('common.apiEmailUpdate'));
   return data;
 }
 
@@ -166,7 +178,7 @@ export async function changePassword(oldPassword: string, newPassword: string) {
     body: JSON.stringify({ oldPassword, newPassword }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'パスワード変更に失敗しました');
+  if (!res.ok) throw new Error(data.error || tt('common.apiPasswordUpdate'));
   return data;
 }
 
@@ -292,7 +304,7 @@ export async function getPresignedUploadUrl(contentType: string, filename: strin
     method: 'POST', headers: headers(),
     body: JSON.stringify({ contentType, filename }),
   });
-  if (!res.ok) throw new Error('プリサインドURL取得に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiPresignedUrl'));
   return res.json();
 }
 
@@ -301,10 +313,10 @@ export async function uploadPhoto(file: File): Promise<string> {
   // - サイズ上限超過は presign する前に拒否 (presigned URL の悪用防止)
   // - MIME も WL チェック (拡張子偽装で .exe を image/jpeg として弾くため)
   if (!ALLOWED_UPLOAD_MIMES.has(file.type)) {
-    throw new Error('JPEG / PNG / WebP のみアップロードできます');
+    throw new Error(tt('common.apiPhotoFormat'));
   }
   if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-    throw new Error(`ファイルサイズは ${Math.floor(MAX_UPLOAD_SIZE_BYTES / 1024 / 1024)}MB までです`);
+    throw new Error(tt('common.apiPhotoSize').replace('{mb}', String(Math.floor(MAX_UPLOAD_SIZE_BYTES / 1024 / 1024))));
   }
   const { uploadUrl, publicUrl } = await getPresignedUploadUrl(file.type, file.name);
   const uploadRes = await fetch(uploadUrl, {
@@ -312,7 +324,7 @@ export async function uploadPhoto(file: File): Promise<string> {
     headers: { 'Content-Type': file.type },
     body: file,
   });
-  if (!uploadRes.ok) throw new Error('写真のアップロードに失敗しました');
+  if (!uploadRes.ok) throw new Error(tt('common.apiPhotoUpload'));
   return publicUrl;
 }
 
@@ -320,7 +332,7 @@ export async function deletePhoto(key: string) {
   const res = await fetchWithRetry(`${BASE}/upload/${encodeURIComponent(key)}`, {
     method: 'DELETE', headers: headers(),
   });
-  if (!res.ok) throw new Error('写真の削除に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiPhotoDelete'));
 }
 
 // ─── ランキング ───
@@ -414,7 +426,7 @@ export async function stockByUrl(url: string): Promise<{ ok: boolean; name?: str
   const res = await fetchWithRetry(`${BASE}/restaurants/stock-by-url`, {
     method: 'POST', headers: headers(), body: JSON.stringify({ url }),
   });
-  if (!res.ok) throw new Error('保存に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiSaveFailed'));
   return res.json();
 }
 
@@ -424,7 +436,7 @@ export async function requestGenre(genre: string) {
   const res = await fetchWithRetry(`${BASE}/genre-request`, {
     method: 'POST', headers: headers(), body: JSON.stringify({ genre }),
   });
-  if (!res.ok) throw new Error('リクエストに失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiRequestFailed'));
   return res.json();
 }
 
@@ -440,7 +452,7 @@ export async function updateInfluencerProfile(data: { displayName: string; bio?:
   const res = await fetchWithRetry(`${BASE}/influencer/profile`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('プロフィール更新に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiProfileUpdate'));
   return res.json();
 }
 
@@ -454,7 +466,7 @@ export async function putInfluencerRestaurant(id: string, data: Record<string, u
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}`, {
     method: 'PUT', headers: headers(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('レストラン保存に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiRestaurantSave'));
   return res.json();
 }
 
@@ -462,7 +474,7 @@ export async function updateRestaurantVisibility(id: string, visibility: 'public
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}/visibility`, {
     method: 'PATCH', headers: headers(), body: JSON.stringify({ visibility }),
   });
-  if (!res.ok) throw new Error('公開設定の変更に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiVisibilityUpdate'));
   return res.json();
 }
 
@@ -470,18 +482,18 @@ export async function deleteInfluencerRestaurant(id: string) {
   const res = await fetchWithRetry(`${BASE}/influencer/restaurants/${id}`, {
     method: 'DELETE', headers: headers(),
   });
-  if (!res.ok) throw new Error('レストラン削除に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiRestaurantDelete'));
 }
 
 export async function getPublicInfluencerProfile(id: string) {
   const res = await fetchWithRetry(`${BASE}/influencer/${id}/public`, { headers: headers() });
-  if (!res.ok) throw new Error('プロフィール取得に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiProfileFetch'));
   return res.json();
 }
 
 export async function getPublicInfluencerRestaurants(id: string) {
   const res = await fetchWithRetry(`${BASE}/influencer/${id}/restaurants`, { headers: headers() });
-  if (!res.ok) throw new Error('レストラン一覧取得に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiRestaurantList'));
   return res.json();
 }
 
@@ -499,7 +511,7 @@ export async function submitFeedback(payload: {
     headers: headers(),
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error('フィードバック送信に失敗しました');
+  if (!res.ok) throw new Error(tt('common.apiFeedbackSend'));
   return res.json().catch(() => ({}));
 }
 

@@ -5,6 +5,7 @@ import type { FeatureArticle, FeatureEntry } from '../../data/features';
 import { AuthModal } from '../auth/AuthModal';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
 import { navigate, goBack } from '../../utils/navigate';
+import { useTranslation } from '../../context/LanguageContext';
 
 interface Props {
   slug: string;
@@ -12,6 +13,7 @@ interface Props {
 
 export function FeatureArticleScreen({ slug }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isAnonymous = !user;
   const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
   const [savedToast, setSavedToast] = useState(false);
@@ -45,7 +47,7 @@ export function FeatureArticleScreen({ slug }: Props) {
           onLogIn={() => setAuthModal('login')}
         />
         <div className="flex-1 grid place-items-center px-6 py-20 text-center">
-          <p className="text-[14px] text-[var(--text-tertiary)]">読み込み中…</p>
+          <p className="text-[14px] text-[var(--text-tertiary)]">{t('common.loading')}</p>
         </div>
         <AuthModal isOpen={authModal !== null} initialMode={authModal ?? 'signup'} onClose={() => setAuthModal(null)} />
       </div>
@@ -62,14 +64,14 @@ export function FeatureArticleScreen({ slug }: Props) {
         />
         <div className="flex-1 grid place-items-center px-6 py-20 text-center">
           <div>
-            <p className="text-[18px] font-bold mb-2">記事が見つかりません</p>
-            <p className="text-[13px] text-[var(--text-secondary)]">URL が間違っているか、削除された可能性があります。</p>
+            <p className="text-[18px] font-bold mb-2">{t('feature.notFound')}</p>
+            <p className="text-[13px] text-[var(--text-secondary)]">{t('feature.notFoundHint')}</p>
             <button
               onClick={() => navigate('/')}
               className="mt-6 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white"
               style={{ background: 'var(--accent-orange)' }}
             >
-              ホームへ
+              {t('feature.backToHome')}
             </button>
           </div>
         </div>
@@ -118,7 +120,7 @@ export function FeatureArticleScreen({ slug }: Props) {
             </div>
             <div className="flex flex-col leading-tight">
               <span className="font-semibold">{article.author.name}</span>
-              <span className="opacity-80 text-[11.5px] mt-0.5">{article.date} · 読了 {article.readMinutes} 分</span>
+              <span className="opacity-80 text-[11.5px] mt-0.5">{t('feature.readMinutesTemplate').replace('{date}', article.date).replace('{min}', String(article.readMinutes))}</span>
             </div>
             {article.location && (
               <>
@@ -174,7 +176,7 @@ export function FeatureArticleScreen({ slug }: Props) {
       {/* Closing CTA */}
       <div className="max-w-[760px] mx-auto px-5 sm:px-6 lg:px-8 pb-20 text-center">
         <p className="text-[14px] sm:text-[15px] text-[var(--text-secondary)] mb-5">
-          気になったお店は stoguru アプリで保存して、近くを通った時に思い出そう。
+          {t('feature.bottomCta')}
         </p>
         <button
           onClick={handleSave}
@@ -189,7 +191,7 @@ export function FeatureArticleScreen({ slug }: Props) {
       {related.length > 0 && (
         <section className="bg-[var(--bg-soft)] py-14 lg:py-16">
           <div className="max-w-[1100px] mx-auto px-5 sm:px-6 lg:px-8">
-            <h2 className="text-[22px] sm:text-[24px] font-extrabold tracking-[-0.02em] mb-5">他の特集</h2>
+            <h2 className="text-[22px] sm:text-[24px] font-extrabold tracking-[-0.02em] mb-5">{t('feature.otherFeatures')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {related.map((r) => (
                 <button
@@ -215,7 +217,7 @@ export function FeatureArticleScreen({ slug }: Props) {
       {/* Saved toast */}
       {savedToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[var(--text-primary)] text-[var(--card-bg)] px-5 py-3 rounded-full shadow-[var(--shadow-lg)] text-[13px] font-semibold animate-fade-in">
-          ✓ 保存しました
+          {t('feature.saved')}
         </div>
       )}
 
@@ -230,6 +232,7 @@ export function FeatureArticleScreen({ slug }: Props) {
 
 /* ─── 個別エントリー ─── */
 function EntryBlock({ entry, isFirst, onSave }: { entry: FeatureEntry; isFirst: boolean; onSave: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className={`py-12 sm:py-14 ${isFirst ? '' : 'border-t border-[var(--border-strong)]'}`}>
       <div className="flex items-baseline gap-4 mb-5">
@@ -266,10 +269,10 @@ function EntryBlock({ entry, isFirst, onSave }: { entry: FeatureEntry; isFirst: 
 
       <div className="bg-[var(--bg-soft)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4 sm:p-5 mt-5 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:items-center">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
-          <InfoItem label="価格帯" value={entry.info.price} />
-          <InfoItem label="アクセス" value={entry.info.access} />
-          <InfoItem label="座席" value={entry.info.seats} />
-          <InfoItem label="予約" value={entry.info.reservation} />
+          <InfoItem label={t('feature.infoPrice')} value={entry.info.price} />
+          <InfoItem label={t('feature.infoAccess')} value={entry.info.access} />
+          <InfoItem label={t('feature.infoSeats')} value={entry.info.seats} />
+          <InfoItem label={t('feature.infoReservation')} value={entry.info.reservation} />
         </div>
         <button
           onClick={onSave}
@@ -278,7 +281,7 @@ function EntryBlock({ entry, isFirst, onSave }: { entry: FeatureEntry; isFirst: 
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
-          保存する
+          {t('feature.save')}
         </button>
       </div>
 
@@ -316,6 +319,7 @@ export function ArticleTopBar({
   onSignUp: () => void;
   onLogIn: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <nav
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-[var(--border)]"
@@ -325,7 +329,7 @@ export function ArticleTopBar({
         {/* 戻るボタン */}
         <button
           onClick={goBack}
-          aria-label="戻る"
+          aria-label={t('feature.backAria')}
           className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] hover:bg-[var(--bg-soft)] transition-colors flex-shrink-0"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -348,19 +352,19 @@ export function ArticleTopBar({
         {isAnonymous ? (
           <>
             <button onClick={onLogIn} className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 sm:px-3 py-2 hidden sm:block">
-              ログイン
+              {t('feature.login')}
             </button>
             <button
               onClick={onSignUp}
               className="px-3.5 sm:px-4 py-2 rounded-full text-[12px] sm:text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] transition-all"
               style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
             >
-              新規登録
+              {t('feature.signUp')}
             </button>
           </>
         ) : (
           <button onClick={() => navigate('/')} className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-3 py-2">
-            ホーム
+            {t('feature.home')}
           </button>
         )}
       </div>
@@ -370,16 +374,17 @@ export function ArticleTopBar({
 
 /* ─── 共通フッター（記事・静的ページで共有） ─── */
 export function FooterStrip() {
+  const { t } = useTranslation();
   const [legalPanel, setLegalPanel] = useState<LegalDocType | null>(null);
   return (
     <>
       <footer className="border-t border-[var(--border)] py-10 px-6">
         <div className="max-w-[1100px] mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
-          <button onClick={() => navigate('/p/contact')} className="hover:text-[var(--accent-orange)] transition-colors">お問い合わせ</button>
-          <button onClick={() => setLegalPanel('privacy')} className="hover:text-[var(--accent-orange)] transition-colors">プライバシーポリシー</button>
-          <button onClick={() => setLegalPanel('terms')} className="hover:text-[var(--accent-orange)] transition-colors">利用規約</button>
-          <button onClick={() => setLegalPanel('cookie')} className="hover:text-[var(--accent-orange)] transition-colors">クッキーポリシー</button>
-          <button onClick={() => setLegalPanel('commerce')} className="hover:text-[var(--accent-orange)] transition-colors">特商法表記</button>
+          <button onClick={() => navigate('/p/contact')} className="hover:text-[var(--accent-orange)] transition-colors">{t('feature.contactUs')}</button>
+          <button onClick={() => setLegalPanel('privacy')} className="hover:text-[var(--accent-orange)] transition-colors">{t('feature.privacyPolicy')}</button>
+          <button onClick={() => setLegalPanel('terms')} className="hover:text-[var(--accent-orange)] transition-colors">{t('feature.termsOfService')}</button>
+          <button onClick={() => setLegalPanel('cookie')} className="hover:text-[var(--accent-orange)] transition-colors">{t('feature.cookiePolicy')}</button>
+          <button onClick={() => setLegalPanel('commerce')} className="hover:text-[var(--accent-orange)] transition-colors">{t('feature.commerce')}</button>
           <span>© 2026 stoguru</span>
         </div>
       </footer>

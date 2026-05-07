@@ -183,7 +183,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('店名は必須です');
+      setError(t('influencer.storeNameRequired'));
       return;
     }
 
@@ -214,7 +214,7 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
       await api.putInfluencerRestaurant(id, data);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : t('common.error'));
       setSaving(false);
     }
   }

@@ -222,7 +222,7 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
     setStockingUrl(true);
     try {
       const res = await api.stockByUrl(url);
-      setStockSuccess(res.name ?? 'お店');
+      setStockSuccess(res.name ?? t('social.storeFallback'));
     } catch { setStockSuccess(null); }
     finally { setStockingUrl(false); }
   }, []);
@@ -292,11 +292,11 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
   function timeAgo(ts: number) {
     const diff = Date.now() - ts;
     const min = Math.floor(diff / 60000);
-    if (min < 1) return '今';
-    if (min < 60) return `${min}分前`;
+    if (min < 1) return t('social.timeJustNow');
+    if (min < 60) return t('social.timeMinAgo').replace('{min}', String(min));
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}時間前`;
-    return `${Math.floor(hr / 24)}日前`;
+    if (hr < 24) return t('social.timeHourAgo').replace('{hour}', String(hr));
+    return t('social.timeDayAgo').replace('{day}', String(Math.floor(hr / 24)));
   }
 
   function notifIcon(type: string) {
@@ -309,11 +309,12 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
   }
 
   function notifText(n: api.Notification) {
+    const name = n.fromNickname ?? '';
     switch (n.type) {
-      case 'follow': return `${n.fromNickname}があなたをフォローしました`;
-      case 'follow_request': return `${n.fromNickname}からフォローリクエスト`;
-      case 'follow_accepted': return `${n.fromNickname}がフォローリクエストを承認しました`;
-      default: return '通知';
+      case 'follow': return t('social.notifFollow').replace('{name}', name);
+      case 'follow_request': return t('social.notifFollowRequest').replace('{name}', name);
+      case 'follow_accepted': return t('social.notifFollowAccepted').replace('{name}', name);
+      default: return t('social.notifFallback');
     }
   }
 
@@ -324,11 +325,11 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
   if (view === 'notifications') {
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
-        <Header title="通知" onBack={handleBack} />
+        <Header title={t('social.notifTitle')} onBack={handleBack} />
         <div className="flex-1 overflow-y-auto">
-          {notifLoading && <p className="text-center text-gray-400 text-sm py-8">読み込み中...</p>}
+          {notifLoading && <p className="text-center text-gray-400 text-sm py-8">{t('common.loading')}</p>}
           {!notifLoading && notifications.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-12">通知はまだありません</p>
+            <p className="text-center text-gray-400 text-sm py-12">{t('social.notifEmpty')}</p>
           )}
           {notifications.map((n, i) => (
             <button

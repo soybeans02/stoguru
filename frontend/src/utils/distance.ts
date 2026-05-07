@@ -1,3 +1,5 @@
+import { getTranslation, STORAGE_KEY, type Language } from '../i18n';
+
 /** Haversine distance in metres between two lat/lng points */
 export function distanceMetres(
   lat1: number, lng1: number,
@@ -14,11 +16,18 @@ export function distanceMetres(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/** Format distance for display: "徒歩3分" or "1.2km" */
+// utility は React 外でも呼ばれるので、localStorage 直読みで言語を解決。
+function readLang(): Language {
+  if (typeof window === 'undefined') return 'ja';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' ? 'en' : 'ja';
+}
+
+/** Format distance for display: "徒歩3分" / "3 min walk" or "1.2km" */
 export function formatDistance(metres: number): string {
   if (metres < 1000) {
     const min = Math.max(1, Math.round(metres / 80)); // 徒歩 80m/min
-    return `徒歩${min}分`;
+    return getTranslation(readLang(), 'common.walkingMin').replace('{min}', String(min));
   }
   return `${(metres / 1000).toFixed(1)}km`;
 }

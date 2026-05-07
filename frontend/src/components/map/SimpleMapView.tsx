@@ -3,6 +3,7 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-map
 import type { StockedRestaurant } from '../stock/StockScreen';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { useTranslation } from '../../context/LanguageContext';
 
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 
@@ -19,6 +20,7 @@ const containerStyle = { width: '100%', height: '100%' };
 const defaultCenter = { lat: 34.7025, lng: 135.4959 }; // 梅田
 
 export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, compassGranted, requestCompass }: Props) {
+  const { t } = useTranslation();
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
   });
@@ -127,7 +129,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
   if (!isLoaded) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <p className="text-gray-400 text-sm">マップを読み込み中...</p>
+        <p className="text-gray-400 text-sm">{t('common.loadingMap')}</p>
       </div>
     );
   }
@@ -190,7 +192,7 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
                 className="block text-gray-500 text-xs font-medium mt-2"
                 onClick={() => window.open(selectedPin.videoUrl, '_blank')}
               >
-                動画を見る →
+                {t('map.seeVideo')}
               </button>
             </div>
           </InfoWindow>
@@ -200,13 +202,13 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
       {/* Legend + label toggle */}
       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 flex gap-3 text-[11px] text-gray-600 shadow-sm">
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> 保存
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> {t('map.legendSaved')}
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> 行った
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> {t('map.legendVisited')}
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> 現在地
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> {t('map.legendCurrentLocationShort')}
         </span>
       </div>
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
@@ -215,14 +217,14 @@ export function SimpleMapView({ stocks, panTo, onPanComplete, userPosition, comp
             onClick={requestCompass}
             className="bg-blue-500 text-white backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm"
           >
-            方向を表示
+            {t('map.showDirection')}
           </button>
         )}
         <button
           onClick={() => setLabelsOn(!labelsOn)}
           className={`bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-[11px] font-medium shadow-sm transition-colors ${labelsOn ? 'text-gray-600' : 'text-gray-400'}`}
         >
-          {labelsOn ? 'ラベル非表示' : 'ラベル表示'}
+          {labelsOn ? t('map.labelsHide') : t('map.labelsShow')}
         </button>
       </div>
     </div>

@@ -119,7 +119,7 @@ export function InfluencerDashboard({ onBack }: Props) {
       setProfile(p);
       setRestaurants(r);
     } catch {
-      setError('データの読み込みに失敗しました');
+      setError(t('influencer.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -159,7 +159,7 @@ export function InfluencerDashboard({ onBack }: Props) {
       await loadData();
       setEditingProfile(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -180,7 +180,7 @@ export function InfluencerDashboard({ onBack }: Props) {
       await api.updateRestaurantVisibility(r.restaurantId, newVis);
       setRestaurants(restaurants.map(x => x.restaurantId === r.restaurantId ? { ...x, visibility: newVis } : x));
     } catch {
-      setError('公開設定の変更に失敗しました');
+      setError(t('influencer.visibilityUpdateFailed'));
     }
   }
 
@@ -208,7 +208,7 @@ export function InfluencerDashboard({ onBack }: Props) {
       await api.deleteInfluencerRestaurant(restaurantId);
       setRestaurants(restaurants.filter(r => r.restaurantId !== restaurantId));
     } catch {
-      setError('削除に失敗しました');
+      setError(t('influencer.deleteFailed'));
     }
   }
 
@@ -221,7 +221,7 @@ export function InfluencerDashboard({ onBack }: Props) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">読み込み中...</p>
+        <p className="text-gray-400 text-sm">{t('common.loading')}</p>
       </div>
     );
   }
@@ -248,7 +248,7 @@ export function InfluencerDashboard({ onBack }: Props) {
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 {profile.displayName}
                 {profile.isVerified && (
-                  <span className="text-blue-500 text-xs bg-blue-50 px-1.5 py-0.5 rounded-full">認証済み</span>
+                  <span className="text-blue-500 text-xs bg-blue-50 px-1.5 py-0.5 rounded-full">{t('influencer.listVerifiedBadge')}</span>
                 )}
               </h2>
               {profile.bio && <p className="text-sm text-gray-500 mt-1">{profile.bio}</p>}
@@ -257,7 +257,7 @@ export function InfluencerDashboard({ onBack }: Props) {
               onClick={startEditProfile}
               className="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
             >
-              編集
+              {t('influencer.listEditProfileBtn')}
             </button>
           </div>
 
@@ -305,7 +305,7 @@ export function InfluencerDashboard({ onBack }: Props) {
           {(profile.genres?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {(profile.genres ?? []).map(g => (
-                <span key={g} className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{g}</span>
+                <span key={g} className="text-[11px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{localizeGenre(g, language)}</span>
               ))}
             </div>
           )}
@@ -315,16 +315,16 @@ export function InfluencerDashboard({ onBack }: Props) {
       {/* Profile Edit Form */}
       {editingProfile && (
         <div className="mb-8 p-5 bg-gray-50 rounded-2xl space-y-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-2">プロフィール編集</h2>
+          <h2 className="text-sm font-bold text-gray-900 mb-2">{t('influencer.profileEditTitle')}</h2>
 
           <div>
-            <label className="block text-xs text-gray-400 mb-1">表示名 *</label>
+            <label className="block text-xs text-gray-400 mb-1">{t('influencer.profileDisplayNameLabel')} *</label>
             <input value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={50}
               className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-400 mb-1">自己紹介</label>
+            <label className="block text-xs text-gray-400 mb-1">{t('influencer.profileBioLabel')}</label>
             <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={3}
               className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm resize-none" />
           </div>
@@ -332,21 +332,21 @@ export function InfluencerDashboard({ onBack }: Props) {
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <label className="block text-xs text-gray-400">Instagram</label>
-              <input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+              <input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} maxLength={100} placeholder={t('influencer.profileHandleExample')}
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
               <input value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} maxLength={500} placeholder="https://www.instagram.com/suimy/"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
             </div>
             <div className="space-y-2">
               <label className="block text-xs text-gray-400">TikTok</label>
-              <input value={tiktokHandle} onChange={e => setTiktokHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+              <input value={tiktokHandle} onChange={e => setTiktokHandle(e.target.value)} maxLength={100} placeholder={t('influencer.profileHandleExample')}
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
               <input value={tiktokUrl} onChange={e => setTiktokUrl(e.target.value)} maxLength={500} placeholder="https://www.tiktok.com/@suimy"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
             </div>
             <div className="space-y-2">
               <label className="block text-xs text-gray-400">YouTube</label>
-              <input value={youtubeHandle} onChange={e => setYoutubeHandle(e.target.value)} maxLength={100} placeholder="表示名（例: suimy）"
+              <input value={youtubeHandle} onChange={e => setYoutubeHandle(e.target.value)} maxLength={100} placeholder={t('influencer.profileHandleExample')}
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
               <input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} maxLength={500} placeholder="https://www.youtube.com/@suimy"
                 className="w-full rounded-lg bg-white text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
@@ -354,12 +354,12 @@ export function InfluencerDashboard({ onBack }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-400 mb-1">ジャンル</label>
+            <label className="block text-xs text-gray-400 mb-1">{t('influencer.profileGenreLabel')}</label>
             <div className="flex gap-2 mb-2">
-              <input value={genreInput} onChange={e => setGenreInput(e.target.value)} maxLength={50} placeholder="例: 和食"
+              <input value={genreInput} onChange={e => setGenreInput(e.target.value)} maxLength={50} placeholder={t('influencer.profileGenreInputPlaceholder')}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addGenre(); } }}
                 className="flex-1 rounded-lg bg-white text-gray-900 px-3 py-2 outline-none border border-gray-200 focus:border-gray-400 text-sm" />
-              <button type="button" onClick={addGenre} className="px-3 py-2 bg-gray-900 text-white text-sm rounded-lg">追加</button>
+              <button type="button" onClick={addGenre} className="px-3 py-2 bg-gray-900 text-white text-sm rounded-lg">{t('influencer.profileAddBtn')}</button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {genres.map(g => (
@@ -374,11 +374,11 @@ export function InfluencerDashboard({ onBack }: Props) {
           <div className="flex gap-2 pt-2">
             <button onClick={handleSaveProfile} disabled={saving || !displayName.trim()}
               className="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-              {saving ? '...' : '保存'}
+              {saving ? '...' : t('common.save')}
             </button>
             <button onClick={() => setEditingProfile(false)}
               className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600">
-              キャンセル
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -386,7 +386,7 @@ export function InfluencerDashboard({ onBack }: Props) {
 
       {/* Restaurants Section */}
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-base font-bold text-gray-900">おすすめレストラン</h2>
+        <h2 className="text-base font-bold text-gray-900">{t('influencer.listSpotsTitle')}</h2>
         <div className="flex items-center gap-1.5">
           {/* Sort menu */}
           <div className="relative" ref={sortMenuRef}>
@@ -430,7 +430,7 @@ export function InfluencerDashboard({ onBack }: Props) {
             onClick={() => setRestaurantForm({ open: true })}
             className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
           >
-            + 追加
+            {t('influencer.listAddSpot')}
           </button>
         </div>
       </div>
@@ -596,7 +596,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                 </p>
                 <div className="flex gap-1.5 flex-wrap mb-2.5">
                   {previewRestaurant.genres?.map(g => (
-                    <span key={g} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[11px]">{g}</span>
+                    <span key={g} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[11px]">{localizeGenre(g, language)}</span>
                   ))}
                 </div>
                 {previewRestaurant.description && <p className="text-xs text-gray-500 mb-2 line-clamp-2">{previewRestaurant.description}</p>}
@@ -605,7 +605,7 @@ export function InfluencerDashboard({ onBack }: Props) {
                   return ig ? (
                     <a href={ig} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-pink-500 hover:text-pink-600 font-medium">
-                      Instagramで見る →
+                      {t('influencer.seeOnInstagram')}
                     </a>
                   ) : null;
                 })()}

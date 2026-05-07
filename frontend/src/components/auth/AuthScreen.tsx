@@ -53,7 +53,7 @@ export function AuthScreen({ initialMode, onClose, onAuthSuccess }: AuthScreenPr
         await login(email, password);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '失敗しました');
+      setError(err instanceof Error ? err.message : t('common.failedGeneric'));
     } finally {
       setLoading(false);
     }

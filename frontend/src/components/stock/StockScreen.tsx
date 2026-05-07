@@ -8,7 +8,15 @@ import { useTranslation } from '../../context/LanguageContext';
 import { localizeGenre, localizeScene, localizePrefecture } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
+import { getTranslation, STORAGE_KEY, type Language } from '../../i18n';
 import './stock-page.css';
+
+// utility 関数の中で言語を解決するための localStorage 直読みヘルパー。
+function readLang(): Language {
+  if (typeof window === 'undefined') return 'ja';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' ? 'en' : 'ja';
+}
 
 /** 保存日を「今日 / 昨日 / 3日前 / 2週間前 / 5ヶ月前 / 1年前」のような
  *  相対時刻に整形する。旧 `5/7` だけだと初見で何の数字か分からなかったので
@@ -17,12 +25,13 @@ function formatDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (diffDays <= 0) return '今日';
-  if (diffDays === 1) return '昨日';
-  if (diffDays < 7) return `${diffDays}日前`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}週間前`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}ヶ月前`;
-  return `${Math.floor(diffDays / 365)}年前`;
+  const lang = readLang();
+  if (diffDays <= 0) return getTranslation(lang, 'stock.dateToday');
+  if (diffDays === 1) return getTranslation(lang, 'stock.dateYesterday');
+  if (diffDays < 7) return getTranslation(lang, 'stock.dateDaysAgo').replace('{n}', String(diffDays));
+  if (diffDays < 30) return getTranslation(lang, 'stock.dateWeeksAgo').replace('{n}', String(Math.floor(diffDays / 7)));
+  if (diffDays < 365) return getTranslation(lang, 'stock.dateMonthsAgo').replace('{n}', String(Math.floor(diffDays / 30)));
+  return getTranslation(lang, 'stock.dateYearsAgo').replace('{n}', String(Math.floor(diffDays / 365)));
 }
 
 export interface StockedRestaurant extends SwipeRestaurant {

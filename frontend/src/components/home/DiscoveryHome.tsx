@@ -14,7 +14,7 @@ import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 // `GENRE_PHOTOS` はこのファイル下方で genre keyword → 写真の解決用 const として
 // 別途定義しているので、衝突を避けるために import 側は alias で受ける。
 import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
-import { localizeGenre as localizeGenreFn } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn } from '../../utils/labelI18n';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -978,6 +978,7 @@ function HeroDeck({
   tStatRestaurants, tStatUsers, tStatSaves,
   statRestaurantsCount, statUsersCount, statSavesCount,
 }: HeroDeckProps) {
+  const { t } = useTranslation();
   // ユーザーデータと無関係の「見本」カードを使う。
   const cards = HERO_SAMPLE_CARDS;
   // 数値の表示整形：1000 以上なら "1.2k" 形式、1万以上は "1.2万" 形式。
@@ -1018,7 +1019,7 @@ function HeroDeck({
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ background: 'var(--stg-orange-500)', boxShadow: '0 0 0 4px rgba(254,141,40,0.15)' }}
             />
-            ストック × グルメ
+            {t('home.heroTag')}
           </div>
 
           {/* h1 — design では 40-64px clamp。ページ背景に直で乗るので
@@ -1123,7 +1124,7 @@ function HeroDeck({
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
             </span>
-            行った
+            {t('home.visitedTag')}
           </div>
 
           {/* 3-card stack: --3 (back), --2 (mid), --1 (top) */}
@@ -1247,6 +1248,7 @@ function MultiFieldSearchBar({
   onSubmit: () => void;
   size?: 'md' | 'lg';
 }) {
+  const { t, language } = useTranslation();
   const set = (key: keyof SearchFields, value: string) => onChange({ ...fields, [key]: value });
   const hasAny = (fields.area || fields.name || fields.genre || fields.price || fields.account).trim().length > 0;
   const cellPad = size === 'lg' ? 'px-3.5' : 'px-3';
@@ -1369,7 +1371,7 @@ function MultiFieldSearchBar({
     >
       <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 min-w-0">
         {/* エリア（Google Places autocomplete 付き） */}
-        <Cell label="エリア" first cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
+        <Cell label={t('home.cellArea')} first cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
           <div className="relative w-full">
             <input
               value={fields.area}
@@ -1383,7 +1385,7 @@ function MultiFieldSearchBar({
                 if (fields.area && areaSuggestions.length > 0) setShowAreaSuggestions(true);
               }}
               onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
-              placeholder="渋谷・大阪 など"
+              placeholder={t('home.cellAreaPlaceholder')}
               className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}
               style={NO_OUTLINE}
             />
@@ -1408,45 +1410,45 @@ function MultiFieldSearchBar({
           </div>
         </Cell>
         {/* お店の名前 */}
-        <Cell label="お店の名前" cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
+        <Cell label={t('home.cellName')} cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
           <input
             value={fields.name}
             onChange={(e) => set('name', e.target.value)}
-            placeholder="店名・キーワード"
+            placeholder={t('home.cellNamePlaceholder')}
             className={`w-full bg-transparent border-0 ${cellFont} placeholder:text-[var(--text-tertiary)]`}
             style={NO_OUTLINE}
           />
         </Cell>
         {/* ジャンル */}
-        <Cell label="ジャンル" cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
+        <Cell label={t('home.cellGenre')} cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
           <select
             value={fields.genre}
             onChange={(e) => set('genre', e.target.value)}
             className={`w-full bg-transparent border-0 ${cellFont} appearance-none cursor-pointer pr-3 ${fields.genre ? '' : 'text-[var(--text-tertiary)]'}`}
             style={{ outline: 'none', boxShadow: 'none', backgroundImage: SELECT_BG_DATAURI, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
-            <option value="">指定しない</option>
+            <option value="">{t('home.cellGenreUnspecified')}</option>
             {GENRE_OPTIONS.map((g) => (
-              <option key={g} value={g}>{g}</option>
+              <option key={g} value={g}>{localizeGenreFn(g, language)}</option>
             ))}
           </select>
         </Cell>
         {/* 価格帯 */}
-        <Cell label="価格帯" cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
+        <Cell label={t('home.cellPrice')} cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont}>
           <select
             value={fields.price}
             onChange={(e) => set('price', e.target.value)}
             className={`w-full bg-transparent border-0 ${cellFont} appearance-none cursor-pointer pr-3 ${fields.price ? '' : 'text-[var(--text-tertiary)]'}`}
             style={{ outline: 'none', boxShadow: 'none', backgroundImage: SELECT_BG_DATAURI, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
-            <option value="">指定しない</option>
+            <option value="">{t('home.cellPriceUnspecified')}</option>
             {PRICE_OPTIONS.map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
         </Cell>
         {/* アカウント */}
-        <Cell label="アカウント" cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont} last>
+        <Cell label={t('home.cellAccount')} cellHeight={cellHeight} cellPad={cellPad} cellFont={cellFont} labelFont={labelFont} last>
           <input
             value={fields.account}
             onChange={(e) => set('account', e.target.value)}
@@ -1461,13 +1463,13 @@ function MultiFieldSearchBar({
         disabled={!hasAny}
         className={`flex-shrink-0 ml-1 ${btnPad} rounded-[var(--radius-lg)] ${btnFont} font-bold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center gap-1.5`}
         style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
-        aria-label="検索"
+        aria-label={t('home.searchBtn')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <span className="hidden sm:inline">検索</span>
+        <span className="hidden sm:inline">{t('home.searchBtn')}</span>
       </button>
     </form>
   );
@@ -1567,7 +1569,7 @@ function DiscoveryTopBar({
             <input
               value={searchFields.name}
               onChange={(e) => onSearchFieldsChange({ ...searchFields, name: e.target.value })}
-              placeholder="お店・エリア・キーワード"
+              placeholder={t('home.searchBarPlaceholder')}
               className="flex-1 bg-transparent border-0 outline-none text-[14px] placeholder:text-[var(--text-tertiary)] py-1.5 min-w-0"
             />
             <button
@@ -1576,7 +1578,7 @@ function DiscoveryTopBar({
               className="px-3.5 h-8 rounded-full text-[12.5px] font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
             >
-              検索
+              {t('home.searchBtn')}
             </button>
           </form>
           {/* md+: 5 セルパーティション（〜768px は単一検索 fallback） */}
@@ -1697,6 +1699,7 @@ function SpotRankCard({
   onBookmark: () => void;
   visitedLabel: string;
 }) {
+  const { t, language } = useTranslation();
   // メダル背景：1=金、2=シルバー、3=オレンジ、4位以降=ダークグレー
   const medalBg =
     rank === 1 ? 'var(--stg-yellow)' :
@@ -1748,7 +1751,7 @@ function SpotRankCard({
           >
             {rank}
           </span>
-          位
+          {t('home.rankSuffix')}
         </div>
         {/* saved count バッジ */}
         <div
@@ -1783,7 +1786,7 @@ function SpotRankCard({
           className="flex items-center gap-2 mt-1 flex-wrap"
           style={{ fontSize: 12, color: 'var(--text-secondary)' }}
         >
-          {spot.genres?.[0] && <span>{spot.genres[0]}</span>}
+          {spot.genres?.[0] && <span>{localizeGenreFn(spot.genres[0], language)}</span>}
           {spot.genres?.[0] && spot.priceRange && <span className="opacity-50">·</span>}
           {spot.priceRange && <span>{spot.priceRange}</span>}
         </div>
@@ -1800,7 +1803,7 @@ function SpotRankCard({
                   borderRadius: 999,
                 }}
               >
-                {g}
+                {localizeGenreFn(g, language)}
               </span>
             ))}
           </div>
@@ -1855,6 +1858,7 @@ function RankCard({
   user: api.RankedUser;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const photo = user.profilePhotoUrl;
   // 順位ごとに avatar アクセント色を変える（1=金、2=シルバー、3=オレンジ、それ以降=パープル/ブルー）
   const accentBg =
@@ -1896,12 +1900,12 @@ function RankCard({
           className="inline-flex items-center justify-center text-[11px] font-bold px-2.5 py-1 rounded-full"
           style={{ background: 'var(--bg-soft)', color: 'var(--text-primary)' }}
         >
-          {rank}位
+          {rank}{t('home.rankSuffix')}
         </span>
       </div>
       <div className="flex gap-3.5" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
         <div>
-          <b style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 }}>{user.totalStocks}</b> 回保存
+          <b style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 }}>{user.totalStocks}</b> {t('home.rankSavesSuffix')}
         </div>
       </div>
     </button>
@@ -1991,6 +1995,7 @@ function RestaurantCard({
   onInfluencerClick: (uid: string | undefined) => void;
   visitedLabel: string;
 }) {
+  const { t, language } = useTranslation();
   const photo =
     (restaurant.photoUrls && restaurant.photoUrls[0]) || fallbackPhoto(restaurant.id, { name: restaurant.name, genre: restaurant.genre });
   const photoCount = restaurant.photoUrls?.length ?? 0;
@@ -2027,7 +2032,7 @@ function RestaurantCard({
         {/* 保存ボタン */}
         <button
           onClick={(e) => { e.stopPropagation(); onBookmark(); }}
-          aria-label={bookmarked ? '保存解除' : '保存'}
+          aria-label={bookmarked ? t('home.bookmarkRemoveAria') : t('home.bookmarkAria')}
           className={`absolute top-2.5 right-2.5 w-9 h-9 rounded-full grid place-items-center shadow-[var(--shadow-sm)] transition-transform hover:scale-110 ${
             bookmarked ? '' : 'bg-white/92 backdrop-blur'
           }`}
@@ -2076,7 +2081,7 @@ function RestaurantCard({
         <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)] mb-2 flex-wrap">
           {distance && <span className="font-medium">{distance}</span>}
           {distance && restaurant.genre && <span className="opacity-40">·</span>}
-          {restaurant.genre && <span>{restaurant.genre}</span>}
+          {restaurant.genre && <span>{localizeGenreFn(restaurant.genre, language)}</span>}
           {restaurant.priceRange && <span className="opacity-40">·</span>}
           {restaurant.priceRange && <span className="text-[var(--text-primary)] font-semibold tabular-nums">{restaurant.priceRange}</span>}
         </div>
@@ -2088,7 +2093,7 @@ function RestaurantCard({
                 className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ color: 'var(--accent-orange)', background: 'rgba(244,128,15,0.1)' }}
               >
-                {s}
+                {localizeSceneFn(s, language)}
               </span>
             ))}
           </div>
@@ -2454,6 +2459,7 @@ export function RestaurantPreviewModal({
   onClose: () => void;
   onShowOnMap?: () => void;
 }) {
+  const { t, language } = useTranslation();
   const distance = userPosition
     ? formatDistance(
         distanceMetres(userPosition.lat, userPosition.lng, restaurant.lat, restaurant.lng),
@@ -2504,7 +2510,7 @@ export function RestaurantPreviewModal({
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                  aria-label="前の写真"
+                  aria-label={t('home.previewPrevPhoto')}
                   className="absolute left-0 top-12 bottom-16 w-1/3 flex items-center justify-start pl-2 group"
                   style={{ background: 'transparent' }}
                 >
@@ -2514,7 +2520,7 @@ export function RestaurantPreviewModal({
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); goNext(); }}
-                  aria-label="次の写真"
+                  aria-label={t('home.previewNextPhoto')}
                   className="absolute right-0 top-12 bottom-16 w-1/3 flex items-center justify-end pr-2 group"
                   style={{ background: 'transparent' }}
                 >
@@ -2543,7 +2549,7 @@ export function RestaurantPreviewModal({
             {/* × は design 通り右上 */}
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('common.close')}
               className="absolute top-3 right-3 flex items-center justify-center w-9 h-9 rounded-full bg-black/55 backdrop-blur-md text-white hover:bg-black/70 transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -2551,12 +2557,12 @@ export function RestaurantPreviewModal({
             {/* 保存する／保存済み — 写真の右下 */}
             <button
               onClick={(e) => { e.stopPropagation(); onBookmark(); }}
-              aria-label={bookmarked ? 'Unsave' : 'Save'}
+              aria-label={bookmarked ? t('home.bookmarkRemoveAria') : t('home.bookmarkAria')}
               className="absolute bottom-4 right-4 flex items-center gap-1.5 px-4 h-10 rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(254,141,40,0.45)] transition-transform hover:-translate-y-0.5"
               style={{ background: bookmarked ? 'var(--stg-gray-700)' : 'var(--accent-orange)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              {bookmarked ? '保存済み' : '保存する'}
+              {bookmarked ? t('home.previewBookmarked') : t('home.previewBookmark')}
             </button>
           </div>
 
@@ -2592,10 +2598,10 @@ export function RestaurantPreviewModal({
               style={{ background: 'var(--bg-soft)' }}
             >
               {[
-                { label: '距離', value: distance || '—' },
-                { label: 'ジャンル', value: genre || '—' },
-                { label: '価格帯', value: restaurant.priceRange || '—' },
-                { label: 'エリア', value: area || '—' },
+                { label: t('home.previewLabelDistance'), value: distance || '—' },
+                { label: t('home.previewLabelGenre'), value: genre ? localizeGenreFn(genre, language) : '—' },
+                { label: t('home.previewLabelPrice'), value: restaurant.priceRange || '—' },
+                { label: t('home.previewLabelArea'), value: area || '—' },
               ].map((row) => (
                 <div key={row.label}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: 'var(--text-tertiary)' }}>
@@ -2623,7 +2629,7 @@ export function RestaurantPreviewModal({
                       color: 'var(--stg-orange-700)',
                     }}
                   >
-                    {s}
+                    {localizeSceneFn(s, language)}
                   </span>
                 ))}
               </div>
@@ -2649,7 +2655,7 @@ export function RestaurantPreviewModal({
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                マップで見る
+                {t('home.previewActionMap')}
               </button>
               {(() => {
                 // 「動画を見る」: TikTok / Instagram / YouTube などの videoUrl を
@@ -2676,7 +2682,7 @@ export function RestaurantPreviewModal({
                     }}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    動画を見る
+                    {t('home.previewActionVideo')}
                   </a>
                 );
               })()}
@@ -2854,6 +2860,7 @@ function ThemeDetailModal({
   onInfluencerClick: (uid: string | undefined) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const matched = useMemo(() => {
     const kws = theme.keywords.map((k) => k.toLowerCase());
     return feed.filter((r) => {
@@ -2901,12 +2908,12 @@ function ThemeDetailModal({
         {/* Restaurants */}
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-end justify-between mb-4">
-            <h2 className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.015em]">マッチしたお店</h2>
-            <span className="text-[13px] text-[var(--text-tertiary)]">{matched.length} 件</span>
+            <h2 className="text-[18px] sm:text-[20px] font-extrabold tracking-[-0.015em]">{t('home.themeMatchTitle')}</h2>
+            <span className="text-[13px] text-[var(--text-tertiary)]">{matched.length} {t('home.themeMatchCountSuffix')}</span>
           </div>
           {matched.length === 0 ? (
             <div className="py-16 text-center text-[var(--text-tertiary)] text-sm bg-[var(--card-bg)] rounded-[var(--radius-xl)] border border-[var(--border)]">
-              このテーマに合うお店がまだありません
+              {t('home.themeNoMatch')}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">

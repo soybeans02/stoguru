@@ -105,7 +105,7 @@ function Sidebar({
       <button
         onClick={() => { onTabChange('home'); onLogoClick?.(); }}
         className="stg-brand"
-        aria-label="ホームを再読み込み"
+        aria-label={t('common.refreshHomeAria')}
       >
         <span className="stg-brand__mark">
           <BrandMark />
@@ -142,7 +142,7 @@ function Sidebar({
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="sidebar__user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.nickname ?? 'ゲスト'}
+            {user?.nickname ?? t('common.guest')}
           </div>
           <div className="sidebar__user-handle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             @{handle}
@@ -408,7 +408,7 @@ function MainApp() {
           )}
           {tab === 'map' && (
             <ErrorBoundary scope="inline">
-              <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">マップを読み込み中...</p></div>}>
+              <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-gray-400">{t('common.loadingMap')}</p></div>}>
                 <LazyMapView
                   stocks={stocks}
                   panTo={panTo}
@@ -503,6 +503,7 @@ function isStandaloneApp(): boolean {
 export default function App() {
   const { loading } = useAuth();
   const route = useRoute();
+  const { t } = useTranslation();
   // web ブラウザで開いた時はオンボーディング画面（取説）を出さない。
   // PWA インストール / iOS native（将来）の時だけ初回表示。
   const [onboardingDone, setOnboardingDone] = useState(() => {
@@ -521,7 +522,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-svh flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-400 dark:text-gray-500">読み込み中...</p>
+        <p className="text-gray-400 dark:text-gray-500">{t('common.loading')}</p>
       </div>
     );
   }

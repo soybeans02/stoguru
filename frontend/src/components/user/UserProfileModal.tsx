@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { safeHttpUrl } from '../../utils/safeUrl';
+import { useTranslation } from '../../context/LanguageContext';
 
 interface ProfileData {
   userId: string;
@@ -36,6 +37,7 @@ interface Props {
 
 export function UserProfileModal({ userId, onClose }: Props) {
   const { user } = useAuth();
+  const { t, language } = useTranslation();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,7 +62,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
         setProfile(profileData);
         setIsFollowing(following.some((f) => f.followeeId === userId));
       } catch {
-        setError('プロフィールを取得できませんでした');
+        setError(t('account.profileFetchFailed'));
       } finally {
         setLoading(false);
       }
@@ -103,7 +105,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">プロフィール</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('account.profileTitle')}</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
             <X size={20} />
           </button>
@@ -112,7 +114,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
         <div className="p-4">
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <p className="text-gray-400">読み込み中...</p>
+              <p className="text-gray-400">{t('common.loading')}</p>
             </div>
           )}
           {!loading && error && (
@@ -135,7 +137,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                   <div className="flex items-center gap-2">
                     <p className="font-bold text-gray-900 text-lg truncate">{profile.nickname}</p>
                     {isMyself && (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">あなた</span>
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">{t('account.profileYouBadge')}</span>
                     )}
                     {profile.isPrivate && !isMyself && (
                       <Lock size={13} className="text-gray-400 shrink-0" />
@@ -143,7 +145,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                   </div>
                   {profile.createdAt && (
                     <p className="text-xs text-gray-400">
-                      {new Date(profile.createdAt).toLocaleDateString('ja-JP')} から利用
+                      {t('account.profileJoinedAt').replace('{date}', new Date(profile.createdAt).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US'))}
                     </p>
                   )}
                 </div>
@@ -161,11 +163,11 @@ export function UserProfileModal({ userId, onClose }: Props) {
                       } disabled:opacity-50`}
                     >
                       {isFollowing ? (
-                        <span className="flex items-center gap-1.5"><UserMinus size={14} /> フォロー中</span>
+                        <span className="flex items-center gap-1.5"><UserMinus size={14} /> {t('account.profileFollowing')}</span>
                       ) : isPending ? (
-                        <span className="flex items-center gap-1.5">リクエスト済み</span>
+                        <span className="flex items-center gap-1.5">{t('account.profilePending')}</span>
                       ) : (
-                        <span className="flex items-center gap-1.5"><UserPlus size={14} /> フォローする</span>
+                        <span className="flex items-center gap-1.5"><UserPlus size={14} /> {t('account.profileFollow')}</span>
                       )}
                     </button>
                   </div>
@@ -234,8 +236,8 @@ export function UserProfileModal({ userId, onClose }: Props) {
               {isLockedOut && (
                 <div className="flex flex-col items-center text-center py-8 gap-2">
                   <Lock size={32} className="text-gray-300" />
-                  <p className="text-sm text-gray-500 font-medium">このアカウントは非公開です</p>
-                  <p className="text-xs text-gray-400">フォローするとお店情報を閲覧できます</p>
+                  <p className="text-sm text-gray-500 font-medium">{t('userProfileModal.privateAccount')}</p>
+                  <p className="text-xs text-gray-400">{t('userProfileModal.privateAccountHint')}</p>
                 </div>
               )}
 
@@ -245,22 +247,22 @@ export function UserProfileModal({ userId, onClose }: Props) {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-gray-50 rounded-xl p-3 text-center">
                       <p className="text-lg font-bold text-gray-900">{profile.restaurantCount}</p>
-                      <p className="text-xs text-gray-400">ストック</p>
+                      <p className="text-xs text-gray-400">{t('userProfileModal.statStocks')}</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-3 text-center">
                       <p className="text-lg font-bold text-green-500">{profile.reviewedCount}</p>
-                      <p className="text-xs text-gray-400">レビュー済</p>
+                      <p className="text-xs text-gray-400">{t('userProfileModal.statReviewed')}</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-3 text-center">
                       <p className="text-lg font-bold text-blue-500">{profile.influencerCount}</p>
-                      <p className="text-xs text-gray-400">メンバー</p>
+                      <p className="text-xs text-gray-400">{t('userProfileModal.statMembers')}</p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-gray-700 mb-2">ストックしているお店</p>
+                    <p className="text-sm font-semibold text-gray-700 mb-2">{t('userProfileModal.storesTitle')}</p>
                     {profile.restaurants.length === 0 ? (
-                      <p className="text-xs text-gray-400 py-3 text-center">まだお店がありません</p>
+                      <p className="text-xs text-gray-400 py-3 text-center">{t('userProfileModal.noStores')}</p>
                     ) : (
                       <div className="space-y-1.5 max-h-60 overflow-y-auto">
                         {profile.restaurants.map((r, i) => (

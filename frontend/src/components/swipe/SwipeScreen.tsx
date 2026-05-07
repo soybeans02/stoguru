@@ -8,6 +8,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { priceRangeMatches, PRICE_NO_MAX } from '../../utils/price';
 import { fetchRestaurantFeed, getNotifications } from '../../utils/api';
+import { useTranslation } from '../../context/LanguageContext';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
 let sharedAudioCtx: AudioContext | null = null;
@@ -129,6 +130,7 @@ function getDistance(userPos: GPSPosition | null, r: SwipeRestaurant): string {
 }
 
 export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotifications, onBack, userPosition, stockedIds, refreshKey }: Props) {
+  const { t } = useTranslation();
   const [allRestaurants, setAllRestaurants] = useState<SwipeRestaurant[]>([]);
   const [cards, setCards] = useState<SwipeRestaurant[]>([]);
   const [unreadNotif, setUnreadNotif] = useState(0);
@@ -362,7 +364,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
           {onBack && (
             <button
               onClick={onBack}
-              aria-label="戻る"
+              aria-label={t('swipe.backAria')}
               className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -373,7 +375,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
-            絞り込み
+            {t('swipe.filter')}
             {filterCount > 0 && (
               <span className="bg-orange-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                 {filterCount}
@@ -399,7 +401,7 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin mb-4" />
-            <p className="text-gray-400 dark:text-gray-500 text-sm">近くのお店を探しています...</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">{t('swipe.searchingNearby')}</p>
           </div>
         ) : shuffling ? (
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -426,18 +428,18 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
                 }
               `}</style>
             </div>
-            <p className="text-gray-400 text-sm mt-6 font-medium">シャッフル中...</p>
+            <p className="text-gray-400 text-sm mt-6 font-medium">{t('swipe.shuffling')}</p>
           </div>
         ) : isFinished ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <p className="text-gray-300 dark:text-gray-600 text-6xl font-thin mb-4">0</p>
-            <p className="text-gray-800 dark:text-gray-200 font-semibold text-base mb-1">全部見たよ</p>
-            <p className="text-gray-400 dark:text-gray-500 text-xs mb-6">また後でチェックしてね</p>
+            <p className="text-gray-800 dark:text-gray-200 font-semibold text-base mb-1">{t('swipe.seenAll')}</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs mb-6">{t('swipe.checkLater')}</p>
             <button
               onClick={() => refilter()}
               className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-full text-xs font-medium transition-colors"
             >
-              もう一度見る
+              {t('swipe.seeAgain')}
             </button>
           </div>
         ) : (

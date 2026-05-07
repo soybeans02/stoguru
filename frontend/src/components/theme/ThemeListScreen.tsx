@@ -11,6 +11,8 @@ import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { goBack, navigate } from '../../utils/navigate';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
+import { useTranslation } from '../../context/LanguageContext';
+import { localizeGenre as localizeGenreFn } from '../../utils/labelI18n';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -36,6 +38,7 @@ const POPULAR_AREAS = ['北新地', '心斎橋', '難波', '梅田', '福島'];
 
 export function ThemeListScreen({ themeId }: Props) {
   const { user } = useAuth();
+  const { t, language } = useTranslation();
   const isAnonymous = !user;
   const { position } = useGPS();
   const theme = findTheme(themeId);
@@ -262,13 +265,13 @@ export function ThemeListScreen({ themeId }: Props) {
         <ThemeTopBar />
         <div className="flex-1 grid place-items-center px-6 py-20 text-center">
           <div>
-            <p className="text-[18px] font-bold mb-2">テーマが見つかりません</p>
+            <p className="text-[18px] font-bold mb-2">{t('theme.notFound')}</p>
             <button
               onClick={() => navigate('/')}
               className="mt-6 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white"
               style={{ background: 'var(--accent-orange)' }}
             >
-              ホームへ戻る
+              {t('theme.backToHome')}
             </button>
           </div>
         </div>
@@ -287,7 +290,7 @@ export function ThemeListScreen({ themeId }: Props) {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.3) 100%)' }} />
         <div className="absolute inset-0 max-w-[1280px] xl:max-w-[1440px] mx-auto px-5 sm:px-6 lg:px-8 flex items-center text-white">
           <div className="max-w-[640px]">
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] opacity-80 mb-1.5">テーマ</div>
+            <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] opacity-80 mb-1.5">{t('theme.label')}</div>
             <h1 className="text-[26px] sm:text-[30px] lg:text-[36px] font-extrabold tracking-[-0.02em] leading-tight mb-1.5">
               {theme.label}
             </h1>
@@ -302,20 +305,20 @@ export function ThemeListScreen({ themeId }: Props) {
         <aside>
           <div className="bg-[var(--card-bg)] rounded-[var(--radius-xl)] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)] lg:sticky lg:top-[68px]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-extrabold tracking-[-0.01em]">絞り込み</h3>
+              <h3 className="text-[15px] font-extrabold tracking-[-0.01em]">{t('theme.refine')}</h3>
               {filterCount > 0 && (
-                <button onClick={clearAll} className="text-[12.5px] font-semibold text-[var(--accent-orange)]">クリア</button>
+                <button onClick={clearAll} className="text-[12.5px] font-semibold text-[var(--accent-orange)]">{t('theme.clear')}</button>
               )}
             </div>
 
             {/* 並び替え */}
             <div className="pb-4 mb-4 border-b border-[var(--border)]">
-              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">並び替え</h4>
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">{t('theme.sortTitle')}</h4>
               <div className="flex flex-col gap-1">
                 {([
-                  { id: 'distance', label: '距離が近い順' },
-                  { id: 'price-asc', label: '価格が安い順' },
-                  { id: 'price-desc', label: '価格が高い順' },
+                  { id: 'distance', label: t('theme.sortDistance') },
+                  { id: 'price-asc', label: t('theme.sortPriceAsc') },
+                  { id: 'price-desc', label: t('theme.sortPriceDesc') },
                 ] as const).map((opt) => {
                   const active = sortBy === opt.id;
                   return (
@@ -339,7 +342,7 @@ export function ThemeListScreen({ themeId }: Props) {
 
             {/* エリア（検索） */}
             <div className="pb-4 mb-4 border-b border-[var(--border)]">
-              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">エリア・駅</h4>
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">{t('theme.areaSection')}</h4>
               <div className="relative mb-2">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -355,7 +358,7 @@ export function ThemeListScreen({ themeId }: Props) {
                     if (areaSuggestions.length > 0) setShowAreaSuggestions(true);
                   }}
                   onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
-                  placeholder="例: 梅田、心斎橋駅"
+                  placeholder={t('theme.areaPlaceholder')}
                   className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-soft)] pl-8 pr-2 py-2 text-[13px] outline-none focus:border-[var(--accent-orange)] focus:bg-white"
                 />
                 {showAreaSuggestions && areaSuggestions.length > 0 && (
@@ -390,7 +393,7 @@ export function ThemeListScreen({ themeId }: Props) {
                       <button
                         onClick={() => removeArea(a.label)}
                         className="w-4 h-4 rounded-full grid place-items-center hover:bg-white/20"
-                        aria-label={`${a.label} を削除`}
+                        aria-label={t('theme.removeAreaTemplate').replace('{label}', a.label)}
                       >
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                       </button>
@@ -399,7 +402,7 @@ export function ThemeListScreen({ themeId }: Props) {
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-[var(--text-tertiary)] mr-0.5">人気</span>
+                <span className="text-[11px] font-semibold text-[var(--text-tertiary)] mr-0.5">{t('theme.areaPopular')}</span>
                 {POPULAR_AREAS.filter((a) => !selectedAreas.some((s) => s.label === a)).slice(0, 5).map((a) => (
                   <button
                     key={a}
@@ -414,13 +417,13 @@ export function ThemeListScreen({ themeId }: Props) {
 
             {/* 時間帯 */}
             <div className="pb-4 mb-4 border-b border-[var(--border)]">
-              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">時間帯</h4>
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">{t('theme.timeSection')}</h4>
               <div className="grid grid-cols-3 gap-2">
                 {([
                   {
                     id: 'morning' as const,
-                    label: '朝',
-                    sub: '6-11時',
+                    label: t('theme.timeMorning'),
+                    sub: t('theme.timeMorningSub'),
                     iconBg: 'rgba(245, 184, 0, 0.15)',
                     iconColor: '#d97706',
                     icon: (
@@ -434,8 +437,8 @@ export function ThemeListScreen({ themeId }: Props) {
                   },
                   {
                     id: 'lunch' as const,
-                    label: '昼',
-                    sub: '11-15時',
+                    label: t('theme.timeLunch'),
+                    sub: t('theme.timeLunchSub'),
                     iconBg: 'rgba(249, 115, 22, 0.15)',
                     iconColor: 'var(--accent-orange)',
                     icon: (
@@ -450,8 +453,8 @@ export function ThemeListScreen({ themeId }: Props) {
                   },
                   {
                     id: 'dinner' as const,
-                    label: '晩',
-                    sub: '17-23時',
+                    label: t('theme.timeDinner'),
+                    sub: t('theme.timeDinnerSub'),
                     iconBg: 'rgba(99, 102, 241, 0.15)',
                     iconColor: '#4f46e5',
                     icon: (
@@ -489,7 +492,7 @@ export function ThemeListScreen({ themeId }: Props) {
 
             {/* ジャンル */}
             <div className="pb-4 mb-4 border-b border-[var(--border)]">
-              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">ジャンル</h4>
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">{t('theme.genreSection')}</h4>
               <div className="flex flex-wrap gap-1.5">
                 {GENRES.slice(0, 8).map((g) => {
                   const active = selectedGenres.includes(g);
@@ -502,7 +505,7 @@ export function ThemeListScreen({ themeId }: Props) {
                       }`}
                       style={active ? { background: 'var(--accent-orange)' } : undefined}
                     >
-                      {g}
+                      {localizeGenreFn(g, language)}
                     </button>
                   );
                 })}
@@ -516,7 +519,7 @@ export function ThemeListScreen({ themeId }: Props) {
                       className="text-[13px] font-semibold px-3 py-1.5 rounded-full border-transparent text-white"
                       style={{ background: 'var(--accent-orange)' }}
                     >
-                      {g}
+                      {localizeGenreFn(g, language)}
                     </button>
                   );
                 })}
@@ -525,7 +528,7 @@ export function ThemeListScreen({ themeId }: Props) {
 
             {/* 価格帯 */}
             <div>
-              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">価格帯</h4>
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-2.5">{t('theme.priceSection')}</h4>
               <div className="flex items-center gap-2">
                 <div className="flex-1 relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[var(--text-secondary)]">¥</span>
@@ -546,7 +549,7 @@ export function ThemeListScreen({ themeId }: Props) {
                     inputMode="numeric"
                     value={priceMax >= 10000 ? '' : priceMax || ''}
                     onChange={(e) => setPriceMax(parseInt(e.target.value) || 10000)}
-                    placeholder="上限"
+                    placeholder={t('theme.priceUpper')}
                     className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-soft)] pl-6 pr-2 py-2 text-[13px] outline-none focus:border-[var(--accent-orange)]"
                   />
                 </div>
@@ -558,9 +561,9 @@ export function ThemeListScreen({ themeId }: Props) {
         {/* Main */}
         <main>
           <div className="mb-5">
-            <h2 className="text-[20px] font-extrabold tracking-[-0.015em] mb-0.5">「{theme.label}」のお店</h2>
+            <h2 className="text-[20px] font-extrabold tracking-[-0.015em] mb-0.5">{t('theme.detailTitleTemplate').replace('{label}', theme.label)}</h2>
             <p className="text-[12px] text-[var(--text-tertiary)]">
-              {loading ? '検索中…' : `${matched.length} 件見つかりました`}
+              {loading ? t('common.loading') : t('theme.foundCountTemplate').replace('{count}', String(matched.length))}
             </p>
           </div>
 
@@ -582,14 +585,14 @@ export function ThemeListScreen({ themeId }: Props) {
               <div className="w-14 h-14 rounded-full mx-auto mb-3 grid place-items-center" style={{ background: 'var(--bg-soft)', color: 'var(--accent-orange)' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               </div>
-              <p className="text-[14px] font-bold mb-1.5">該当するお店が見つかりませんでした</p>
-              <p className="text-[12px] text-[var(--text-secondary)] mb-5">フィルターを変えて試してみて</p>
+              <p className="text-[14px] font-bold mb-1.5">{t('theme.noResults')}</p>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-5">{t('theme.noResultsHint')}</p>
               <button
                 onClick={clearAll}
                 className="px-4 py-2 rounded-full text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] hover:-translate-y-0.5 transition-all"
                 style={{ background: 'linear-gradient(135deg, var(--accent-orange-grad-1), var(--accent-orange-grad-2))' }}
               >
-                絞り込みをクリア
+                {t('theme.clearFilters')}
               </button>
             </div>
           ) : (
@@ -658,6 +661,7 @@ export function ThemeListScreen({ themeId }: Props) {
 
 /* ─── トップバー（戻る + ロゴのみ） ─── */
 function ThemeTopBar() {
+  const { t } = useTranslation();
   return (
     <nav
       className="sticky top-0 z-30 backdrop-blur-xl"
@@ -666,7 +670,7 @@ function ThemeTopBar() {
       <div className="max-w-[1280px] xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4 sm:gap-5">
         <button
           onClick={goBack}
-          aria-label="戻る"
+          aria-label={t('theme.backAria')}
           className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] hover:bg-[var(--bg-soft)] transition-colors flex-shrink-0"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -698,6 +702,7 @@ function ThemeCard({
   userPosition: { lat: number; lng: number } | null;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0
     ? restaurant.photoUrls
     : [fallbackPhoto(restaurant.id)];
@@ -736,12 +741,12 @@ function ThemeCard({
             <button
               onClick={(e) => { e.stopPropagation(); setPhotoIdx((photoIdx - 1 + photos.length) % photos.length); }}
               className="absolute top-0 bottom-0 left-0 w-[35%] z-[3] cursor-pointer"
-              aria-label="前の写真"
+              aria-label={t('theme.prevPhoto')}
             />
             <button
               onClick={(e) => { e.stopPropagation(); setPhotoIdx((photoIdx + 1) % photos.length); }}
               className="absolute top-0 bottom-0 right-0 w-[35%] z-[3] cursor-pointer"
-              aria-label="次の写真"
+              aria-label={t('theme.nextPhoto')}
             />
           </>
         )}

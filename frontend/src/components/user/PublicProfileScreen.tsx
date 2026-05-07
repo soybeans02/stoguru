@@ -95,7 +95,7 @@ export function PublicProfileScreen({ userId }: Props) {
           {/* 戻るボタン */}
           <button
             onClick={goBack}
-            aria-label="戻る"
+            aria-label={t('common.back')}
             className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] hover:bg-[var(--bg-soft)] transition-colors flex-shrink-0"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,17 +146,17 @@ export function PublicProfileScreen({ userId }: Props) {
 
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         {loading ? (
-          <div className="py-20 text-center text-[var(--text-tertiary)] text-sm">読み込み中…</div>
+          <div className="py-20 text-center text-[var(--text-tertiary)] text-sm">{t('common.loading')}</div>
         ) : notFound ? (
           <div className="py-20 text-center">
-            <p className="text-[18px] font-bold mb-2">プロフィールが見つかりません</p>
-            <p className="text-[13px] text-[var(--text-secondary)]">URL が間違っているか、プロフィールが削除された可能性があります。</p>
+            <p className="text-[18px] font-bold mb-2">{t('publicProfile.notFound')}</p>
+            <p className="text-[13px] text-[var(--text-secondary)]">{t('publicProfile.notFoundHint')}</p>
             <button
               onClick={goHome}
               className="mt-6 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white"
               style={{ background: 'var(--accent-orange)' }}
             >
-              ホームへ戻る
+              {t('publicProfile.backToHome')}
             </button>
           </div>
         ) : profile && (
@@ -188,12 +188,12 @@ export function PublicProfileScreen({ userId }: Props) {
                     <div className="sm:pb-1.5 min-w-0">
                       <div className="flex items-center gap-2">
                         <h1 className="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] truncate">
-                          {profile.displayName || 'ユーザー'}
+                          {profile.displayName || t('publicProfile.userFallback')}
                         </h1>
                         {profile.isVerified && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--accent-blue)' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="m9 12 2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
-                            認証済み
+                            {t('publicProfile.verified')}
                           </span>
                         )}
                       </div>
@@ -236,14 +236,14 @@ export function PublicProfileScreen({ userId }: Props) {
             {/* Restaurants list */}
             <div className="flex items-end justify-between mb-4">
               <div>
-                <h2 className="text-[20px] sm:text-[22px] font-extrabold tracking-[-0.015em]">投稿したお店</h2>
-                <p className="text-[13px] text-[var(--text-tertiary)] mt-0.5">{restaurants.length} 件</p>
+                <h2 className="text-[20px] sm:text-[22px] font-extrabold tracking-[-0.015em]">{t('publicProfile.postsTitle')}</h2>
+                <p className="text-[13px] text-[var(--text-tertiary)] mt-0.5">{restaurants.length} {t('publicProfile.countSuffix')}</p>
               </div>
             </div>
 
             {restaurants.length === 0 ? (
               <div className="py-16 text-center text-[var(--text-tertiary)] text-sm bg-[var(--card-bg)] rounded-[var(--radius-xl)] border border-[var(--border)]">
-                まだ投稿がありません
+                {t('publicProfile.noPosts')}
               </div>
             ) : (
               <div className="space-y-3">
@@ -288,6 +288,7 @@ function SocialLink({ url, label, handle }: { url: string; label: string; handle
    食べログ風 横長リッチカード
    ───────────────────────────────────── */
 function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
+  const { t } = useTranslation();
   const photos = restaurant.photoUrls && restaurant.photoUrls.length > 0
     ? restaurant.photoUrls
     : [fallbackFor(restaurant.restaurantId)];
@@ -368,7 +369,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
           {restaurant.urls && restaurant.urls.length > 0 && (
             <div className="mt-auto pt-2 border-t border-[var(--border)] flex flex-wrap gap-2">
               {restaurant.urls.slice(0, 3).map((u, i) => {
-                const host = (() => { try { return new URL(u).hostname.replace('www.', ''); } catch { return 'リンク'; } })();
+                const host = (() => { try { return new URL(u).hostname.replace('www.', ''); } catch { return t('publicProfile.linkFallback'); } })();
                 return (
                   <a
                     key={i}
