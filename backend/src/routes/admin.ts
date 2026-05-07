@@ -6,7 +6,7 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
-import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback } from '../services/dynamo';
+import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback, recordAccountDeletion, listDeletedAccounts } from '../services/dynamo';
 import { deleteAllUserPhotos } from '../services/s3';
 import { invalidateTokenCache } from '../middleware/auth';
 import { stats, userActivity } from '../state';
@@ -164,6 +164,15 @@ router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response
     const uid = req.params.userId as string;
     const user = await getUserById(uid);
     if (!user?.username) { res.status(404).json({ error: 'ユーザーが見つかりません' }); return; }
+    // 監査ログにメタを残す（削除実行で本体は消えるので消える前に取る）。
+    // user.username は Cognito の username（= email）。
+    await recordAccountDeletion({
+      userId: uid,
+      email: user.username,
+      nickname: user.nickname ?? '',
+      deletedAt: Date.now(),
+      deletedBy: 'admin',
+    });
     await deleteAllUserData(uid);
     await deleteAllUserPhotos(uid);
     await adminDeleteUser(user.username);
@@ -171,6 +180,17 @@ router.delete('/users/:userId', requireAdmin, async (req: Request, res: Response
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'ユーザーの削除に失敗しました' });
+  }
+});
+
+// 削除アカウント監査ログ一覧（最新順、最大 200 件）
+router.get('/deleted-accounts', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const items = await listDeletedAccounts();
+    res.json({ items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '削除履歴の取得に失敗しました' });
   }
 });
 

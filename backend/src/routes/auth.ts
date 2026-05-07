@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { signUp, confirmSignUp, signIn, deleteUser, changePassword, refreshAccessToken, forgotPassword, confirmForgotPassword, isNicknameTaken, updateNickname, requestEmailChange, verifyEmailChange, resendEmailVerificationCode } from '../services/cognito';
 import { requireAuth, AuthRequest, ACCESS_TOKEN_COOKIE } from '../middleware/auth';
-import { deleteAllUserData } from '../services/dynamo';
+import { deleteAllUserData, recordAccountDeletion } from '../services/dynamo';
 import { deleteAllUserPhotos } from '../services/s3';
 import { validate, signupSchema, loginSchema, confirmSchema, changePasswordSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, updateNicknameSchema, changeEmailSchema, verifyEmailSchema, deleteAccountSchema } from '../validators';
 
@@ -240,6 +240,15 @@ router.delete('/account', requireAuth, async (req: AuthRequest, res: Response) =
       res.status(401).json({ error: 'パスワードが正しくありません' });
       return;
     }
+    // 0.5. 削除直前にニックネームを掴んでおいて監査ログ用に保存（本体は次の手順で消える）。
+    //      失敗しても削除は続行する。
+    await recordAccountDeletion({
+      userId,
+      email: req.user!.email ?? '',
+      nickname: req.user!.nickname ?? '',
+      deletedAt: Date.now(),
+      deletedBy: 'self',
+    });
     // 1. DynamoDB のデータを全削除（プロフィール匿名化含む）
     await deleteAllUserData(userId);
     // 2. S3 上のユーザーアップロード写真を全削除

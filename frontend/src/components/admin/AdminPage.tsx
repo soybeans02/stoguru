@@ -19,6 +19,14 @@ interface Stats {
   byHour: Record<string, number>;
 }
 
+interface DeletedAccount {
+  userId: string;
+  email: string;
+  nickname: string;
+  deletedAt: number;
+  deletedBy: 'self' | 'admin';
+}
+
 interface FeedbackItem {
   id: string;
   userId: string;
@@ -371,6 +379,7 @@ export function AdminPage() {
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<{ userId: string; nickname: string; lastSeen: number; lastSeenAgo: string }[]>([]);
+  const [deletedAccounts, setDeletedAccounts] = useState<DeletedAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -392,6 +401,14 @@ export function AdminPage() {
       if (usersRes.ok) {
         const d = await usersRes.json();
         setUsers(d.users);
+      }
+      // 削除アクションのときだけ削除ログも再取得（admin-issued delete 反映）
+      if (action === 'delete') {
+        const delRes = await fetch(`${API}/deleted-accounts`, { headers: { Authorization: `Bearer ${token}` } });
+        if (delRes.ok) {
+          const d = await delRes.json();
+          setDeletedAccounts(d.items ?? []);
+        }
       }
     } catch { alert('操作に失敗しました'); }
     finally { setActionLoading(null); }
@@ -419,6 +436,7 @@ export function AdminPage() {
     sessionStorage.removeItem('admin_token');
     setToken(null);
     setUsers([]);
+    setDeletedAccounts([]);
   }
 
   useEffect(() => {
@@ -434,6 +452,9 @@ export function AdminPage() {
       fetch(`${API}/activity`, { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.ok ? r.json() : [])
         .then((d) => setActivity(d)),
+      fetch(`${API}/deleted-accounts`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.ok ? r.json() : { items: [] })
+        .then((d) => setDeletedAccounts(d.items ?? [])),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -588,6 +609,38 @@ export function AdminPage() {
               {users.length === 0 && (
                 <p className="text-gray-500 text-center py-8">ユーザーがいません</p>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* 削除されたアカウント（監査ログ） */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Trash2 size={18} className="text-red-400" />
+            <h2 className="text-lg font-semibold">削除されたアカウント</h2>
+            <span className="text-sm text-gray-400">({deletedAccounts.length}件)</span>
+          </div>
+          {deletedAccounts.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">削除履歴はありません</p>
+          ) : (
+            <div className="space-y-2">
+              {deletedAccounts.map((d) => (
+                <div key={d.userId + ':' + d.deletedAt} className="bg-gray-800 rounded-xl p-4 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-200">{d.nickname || '(ニックネーム未設定)'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      d.deletedBy === 'admin' ? 'bg-red-900 text-red-300' : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {d.deletedBy === 'admin' ? '管理者削除' : '本人削除'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400">{d.email || '-'}</p>
+                  <p className="text-xs text-gray-500">
+                    削除日時: {new Date(d.deletedAt).toLocaleString('ja-JP')}
+                  </p>
+                  <p className="text-[10px] text-gray-600 font-mono break-all">{d.userId}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>

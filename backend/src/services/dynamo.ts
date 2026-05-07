@@ -49,6 +49,7 @@ const TABLE = {
   influencerProfiles: 'GourmetStock_InfluencerProfiles',
   influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
   feedback: 'GourmetStock_Feedback',
+  deletedAccounts: 'GourmetStock_DeletedAccounts',
 } as const;
 
 // =============================================
@@ -1257,6 +1258,57 @@ export async function deleteFeedback(id: string) {
     TableName: TABLE.feedback,
     Key: { id },
   }));
+}
+
+// =============================================
+// 削除アカウント監査ログ
+// =============================================
+// 自己削除 / 管理者削除どちらも、ユーザー実体が消えたあとも
+// 「いつ・誰が・どっちで」消えたかだけ admin dashboard に残せるよう
+// 別テーブルに最低限のメタを残す。本人特定情報は email / nickname の
+// 2 つのみ、本体テーブル GourmetStock_DeletedAccounts は新設。
+//
+// 失敗してもユーザーの削除フロー自体は止めないようにする（catch & log）。
+
+export type DeletedAccountRecord = {
+  userId: string;
+  email: string;
+  nickname: string;
+  deletedAt: number;
+  deletedBy: 'self' | 'admin';
+};
+
+export async function recordAccountDeletion(rec: DeletedAccountRecord): Promise<void> {
+  try {
+    await db.send(new PutCommand({
+      TableName: TABLE.deletedAccounts,
+      Item: {
+        userId: rec.userId,
+        email: rec.email,
+        nickname: rec.nickname,
+        deletedAt: rec.deletedAt,
+        deletedBy: rec.deletedBy,
+      },
+    }));
+  } catch (err) {
+    // テーブル未作成 / 一時的な障害でログ取得に失敗してもユーザー側の
+    // 削除を巻き戻したくないので握りつぶす（ERROR ログだけ残す）。
+    console.error('[recordAccountDeletion] failed:', err instanceof Error ? err.message : err);
+  }
+}
+
+export async function listDeletedAccounts(limit = 200): Promise<DeletedAccountRecord[]> {
+  try {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.deletedAccounts,
+      Limit: limit,
+    }));
+    const items = (result.Items ?? []) as DeletedAccountRecord[];
+    return items.sort((a, b) => b.deletedAt - a.deletedAt);
+  } catch (err) {
+    console.error('[listDeletedAccounts] failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 // =============================================
