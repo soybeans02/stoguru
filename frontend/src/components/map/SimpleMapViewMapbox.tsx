@@ -524,7 +524,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [listOpen, setListOpen] = useState(true);
   const [listSearch, setListSearch] = useState('');
   const [topSearch, setTopSearch] = useState('');
-  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist'>('all');
+  const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist' | 'posted'>('all');
+  // 自分の投稿件数（pill のカウント表示用）。myPostedRef は ref で再 render
+  // を起こさないので state を別途持つ。
+  const [postedCount, setPostedCount] = useState(0);
   const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
   const [showFollowingPicker, setShowFollowingPicker] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<{ id: string; nickname: string }[]>([]);
@@ -549,8 +552,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [filterAllGenres, setFilterAllGenres] = useState(false);
   // 0 = no limit, otherwise meters (100..10000)
   const [filterDistance, setFilterDistance] = useState<number>(0);
-  // visited filter: 'all' | 'wishlist' | 'visited'
-  const [filterVisited, setFilterVisited] = useState<'all' | 'wishlist' | 'visited'>('all');
+  // visited filter: 'all' | 'wishlist' | 'visited' | 'posted'
+  // 'posted' は「自分が投稿したお店だけ」の表示（紫ピンのみ）。pill でも
+  // 「絞り込み」シートでも切り替え可能。
+  const [filterVisited, setFilterVisited] = useState<'all' | 'wishlist' | 'visited' | 'posted'>('all');
   // Nearby banner dismissal (so user can hide it)
   const [nearbyDismissed, setNearbyDismissed] = useState(false);
   // Explore-this-area UI は削除済み（state も不要）。
@@ -579,6 +584,13 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     filterGenres.length +
     (filterDistance > 0 ? 1 : 0) +
     (filterVisited !== 'all' ? 1 : 0);
+
+  // 「リストを表示」ピル / list panel ヘッダに出す現在表示件数。
+  //   投稿モード → 自分の投稿件数
+  //   それ以外    → filteredStocks (= 絞り込み後の保存) の件数
+  // 単に stocks.length を出すと「行った 1」を選んでも 43 のままで、
+  // 数字とフィルタ結果が乖離して紛らわしいので絞り込みを反映させる。
+  const visibleCount = filterVisited === 'posted' ? postedCount : filteredStocks.length;
 
   // GPS取得時に日の出/日の入り時刻を更新 → テーマを即再適用
   useEffect(() => {
@@ -790,16 +802,22 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           .then(posted => {
             myPostedRef.current = posted;
             myPostedLoaded.current = true;
+            // pill の件数表示用に件数を state にも反映
+            setPostedCount(Array.isArray(posted) ? posted.length : 0);
             // 他人マップ表示中ならソースを書き戻さない（戻った時に updateData で復元される）。
             // 旧版はこのガードが無く、async fetch の resolution が user 選択より遅れた時に
             // ストック + 投稿が突然 stocks ソースに刺さって、ズーム変更を契機に
             // クラスタ黒丸が再描画されるバグになっていた。
             if (selectedFollowUserRef.current) return;
-            // 取得後に最新の filteredStocks で stocks ソースを再構築
+            // 取得後に最新の filteredStocks で stocks ソースを再構築。
+            // 除外判定はフィルタ前の全保存 id を使い、「行った」フィルタで
+            // 保存から外れた店を紫として復活させない。
             const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
             if (!stockSrc) return;
             const cur = stocksRef.current;
-            const stockIds = new Set(cur.map(r => r.id));
+            const excludeIds = filterVisitedRef.current === 'posted'
+              ? new Set<string>()
+              : new Set(allStocksRef.current.map(r => r.id));
             const stockFeatures = cur.map(r => ({
               type: 'Feature' as const,
               geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
@@ -812,21 +830,24 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
               },
             }));
-            const postedFeatures = posted
-              .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
-              .map((r: Record<string, unknown>) => ({
-                type: 'Feature' as const,
-                geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
-                properties: {
-                  id: r.restaurantId, name: `${r.name}`,
-                  genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
-                  visited: 0, isPosted: 1,
-                  distance: '',
-                  videoUrl: r.videoUrl || '', photoEmoji: '',
-                  photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
-                  scene: '[]', priceRange: r.priceRange || '',
-                },
-              }));
+            const showPosted = filterVisitedRef.current === 'all' || filterVisitedRef.current === 'posted';
+            const postedFeatures = showPosted
+              ? posted
+                .filter((r: Record<string, unknown>) => r.lat && r.lng && !excludeIds.has(r.restaurantId as string))
+                .map((r: Record<string, unknown>) => ({
+                  type: 'Feature' as const,
+                  geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
+                  properties: {
+                    id: r.restaurantId, name: `${r.name}`,
+                    genre: Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '',
+                    visited: 0, isPosted: 1,
+                    distance: '',
+                    videoUrl: r.videoUrl || '', photoEmoji: '',
+                    photoUrls: Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0 ? (r.photoUrls as string[])[0] : '',
+                    scene: '[]', priceRange: r.priceRange || '',
+                  },
+                }))
+              : [];
             stockSrc.setData({ type: 'FeatureCollection', features: [...stockFeatures, ...postedFeatures] });
           })
           .catch(() => { /* ignore */ })
@@ -962,6 +983,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       list = list.filter(r => r.visited);
     } else if (filterVisited === 'wishlist') {
       list = list.filter(r => !r.visited);
+    } else if (filterVisited === 'posted') {
+      // 投稿のみ表示モード → 保存リストのピンは出さない（紫ピンのみ）。
+      list = [];
     }
     if (filterDistance > 0 && userPosition) {
       list = list.filter(r => distanceMetres(userPosition.lat, userPosition.lng, r.lat, r.lng) <= filterDistance);
@@ -972,6 +996,15 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Refs for accessing latest data inside map event handlers
   const stocksRef = useRef(filteredStocks);
   stocksRef.current = filteredStocks;
+  // フィルタ前の全保存リスト。投稿（紫ピン）の「保存と重複してたら出さない」
+  // 判定に使う。filteredStocks ベースだと「行った」フィルタで除外された
+  // 保存店が投稿リスト側で「未ストック」と判定されて紫として復活してしまう。
+  const allStocksRef = useRef(stocks);
+  allStocksRef.current = stocks;
+  // visited フィルタ ref（updateData / async callback から最新値を読む）。
+  // 'all' 以外の時は投稿ピンを非表示にして、保存に対するフィルタの意味を保つ。
+  const filterVisitedRef = useRef(filterVisited);
+  filterVisitedRef.current = filterVisited;
   const userPosRef = useRef(userPosition);
   userPosRef.current = userPosition;
 
@@ -997,13 +1030,19 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         const posted = await getInfluencerRestaurants();
         myPostedRef.current = posted;
         myPostedLoaded.current = true;
+        setPostedCount(Array.isArray(posted) ? posted.length : 0);
       } catch { /* ignore */ }
       myPostedLoading.current = false;
     }
 
     const stockSrc = map.getSource('stocks') as mapboxgl.GeoJSONSource | undefined;
     if (stockSrc) {
-      const stockIds = new Set(s.map(r => r.id));
+      // 投稿除外用: フィルタ前の全保存リストの id を見る。filteredStocks ベース
+      // だと「行った」フィルタで保存から外れた店が投稿として紫で復活してしまう。
+      // 'posted' モードは保存ピンが出ないので除外せず全投稿を出す。
+      const excludeIds = filterVisitedRef.current === 'posted'
+        ? new Set<string>()
+        : new Set(allStocksRef.current.map(r => r.id));
       const stockFeatures = s.map(r => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [r.lng, r.lat] },
@@ -1016,9 +1055,15 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
         },
       }));
-      const postedFeatures = myPostedLoaded.current
+      // 投稿ピン表示判定:
+      //   'all'    → 保存 + 投稿 両方表示
+      //   'posted' → 投稿のみ（filteredStocks は空なので結果的に紫だけ）
+      //   'wishlist'/'visited' → 保存に対する絞り込み中なので投稿は隠す
+      const fv = filterVisitedRef.current;
+      const showPosted = fv === 'all' || fv === 'posted';
+      const postedFeatures = (showPosted && myPostedLoaded.current)
         ? myPostedRef.current
-          .filter((r: Record<string, unknown>) => r.lat && r.lng && !stockIds.has(r.restaurantId as string))
+          .filter((r: Record<string, unknown>) => r.lat && r.lng && !excludeIds.has(r.restaurantId as string))
           .map((r: Record<string, unknown>) => ({
             type: 'Feature' as const,
             geometry: { type: 'Point' as const, coordinates: [Number(r.lng), Number(r.lat)] },
@@ -1276,6 +1321,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           { key: 'all' as const, label: 'すべて', color: null, count: stocks.length },
           { key: 'wishlist' as const, label: 'まだ', color: 'var(--stg-red)', count: stocks.filter(s => !s.visited).length },
           { key: 'visited' as const, label: '行った', color: 'var(--stg-green)', count: stocks.filter(s => s.visited).length },
+          // 投稿: 自分が投稿したお店 (紫ピン) のみ表示する pill。保存とは
+          // 直交する概念なのでカウントは stocks ではなく myPostedRef を見る。
+          { key: 'posted' as const, label: '投稿', color: '#a855f7', count: postedCount },
           // 「気になる」フィルターは UI バランス + 機能要件の整理で削除
         ]).map((c) => (
           <button
@@ -1285,6 +1333,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               setCatFilter(c.key);
               if (c.key === 'visited') setFilterVisited('visited');
               else if (c.key === 'wishlist') setFilterVisited('wishlist');
+              else if (c.key === 'posted') setFilterVisited('posted');
               else setFilterVisited('all');
             }}
           >
@@ -1308,7 +1357,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           <button className="map-list-toggle" onClick={() => setListOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
             リストを表示
-            <span className="map-pill__count">{stocks.length}</span>
+            <span className="map-pill__count">{visibleCount}</span>
           </button>
         )}
       </div>
@@ -1348,7 +1397,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         <div className="map-list__head">
           <div>
             <div className="map-list__title">表示中のお店</div>
-            <div className="map-list__count">{stocks.length}件 · 地図上のピン</div>
+            <div className="map-list__count">{visibleCount}件 · 地図上のピン</div>
           </div>
           <button className="map-list__close" onClick={() => setListOpen(false)} aria-label="閉じる">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -1366,6 +1415,67 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
         </div>
         <div className="map-list__items">
           {(() => {
+            // 'posted' タブは投稿レストラン (myPostedRef) を表示。
+            // 保存リストとはデータ型が違うので個別に整形して同じ UI に流す。
+            if (catFilter === 'posted') {
+              const q = (listSearch || topSearch).toLowerCase();
+              const postedItems = (myPostedRef.current as Array<Record<string, unknown>>)
+                .filter((r) => {
+                  if (!q) return true;
+                  const name = String(r.name || '').toLowerCase();
+                  const genre = Array.isArray(r.genres) ? (r.genres as string[]).join(' ').toLowerCase() : '';
+                  return name.includes(q) || genre.includes(q);
+                });
+              if (postedItems.length === 0) {
+                return (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--stg-gray-600)', fontSize: 13 }}>
+                    投稿したお店がありません
+                  </div>
+                );
+              }
+              return postedItems.map((r, idx) => {
+                const id = String(r.restaurantId || r.id || '');
+                const photo = Array.isArray(r.photoUrls) && (r.photoUrls as string[]).length > 0
+                  ? (r.photoUrls as string[])[0] : '';
+                const lat = Number(r.lat), lng = Number(r.lng);
+                const dist = userPosition && lat && lng
+                  ? formatDistance(distanceMetres(userPosition.lat, userPosition.lng, lat, lng))
+                  : '';
+                const genre = Array.isArray(r.genres) ? (r.genres as string[])[0] || '' : '';
+                return (
+                  <div
+                    key={id || idx}
+                    className={`map-list__item ${selectedStockId === id ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      setSelectedStockId(id);
+                      if (lat && lng) mapRef.current?.flyTo({ center: [lng, lat], zoom: 16 });
+                    }}
+                  >
+                    <div className="map-list__item-rank">{idx + 1}</div>
+                    <div className="map-list__item-photo">
+                      {photo ? <img loading="lazy" src={photo} alt="" /> : null}
+                    </div>
+                    <div className="map-list__item-body">
+                      <div className="map-list__item-title">{String(r.name || '')}</div>
+                      <div className="map-list__item-meta">
+                        {r.address ? <span>{String(r.address)}</span> : null}
+                        {genre && <><span className="map-list__item-meta-dot" /><span>{genre}</span></>}
+                      </div>
+                      <div className="map-list__item-tags">
+                        <span className="map-list__item-tag" style={{ background: 'rgba(168,85,247,0.14)', color: '#a855f7' }}>
+                          投稿
+                        </span>
+                      </div>
+                    </div>
+                    {dist && (
+                      <div className="map-list__item-status">
+                        <div style={{ fontWeight: 700, color: 'var(--stg-gray-900)' }}>{dist}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            }
             const items = stocks
               .filter((s) => {
                 if (catFilter === 'visited') return s.visited;
@@ -1578,17 +1688,21 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
             {/* Visited */}
             <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('map.visitedFilter')}</p>
-            <div className="grid grid-cols-3 gap-1.5 mb-4">
+            <div className="grid grid-cols-4 gap-1.5 mb-4">
               {([
                 { v: 'all' as const, label: t('map.all') },
                 { v: 'wishlist' as const, label: t('map.visitedNotYet') },
                 { v: 'visited' as const, label: t('map.visitedDone') },
+                { v: 'posted' as const, label: '投稿' },
               ]).map(opt => {
                 const active = filterVisited === opt.v;
                 return (
                   <button
                     key={opt.v}
-                    onClick={() => setFilterVisited(opt.v)}
+                    onClick={() => {
+                      setFilterVisited(opt.v);
+                      setCatFilter(opt.v);
+                    }}
                     className={`py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
                       active ? 'bg-[var(--accent-orange)] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                     }`}
