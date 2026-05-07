@@ -2730,7 +2730,10 @@ function GenreListModal({
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-auto animate-fade-in" onClick={onClose}>
       <div
-        className="max-w-[860px] mx-auto px-4 sm:px-8 py-6 sm:py-10"
+        // 下端の bottom-tab (ホーム/マップ/保存/アカウント, 高さ ~80px + safe-area)
+        // にチップが隠れないよう、十分な padding-bottom と env(safe-area) を確保。
+        className="max-w-[860px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10"
+        style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

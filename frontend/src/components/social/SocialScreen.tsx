@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { distanceMetres } from '../../utils/distance';
+import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 
 type SubView = 'main' | 'notifications' | 'following' | 'requests';
 
@@ -58,6 +59,29 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
   // Profile modal
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // 検索結果カードタップで開くプレビューモーダル（home の RestaurantPreviewModal を流用）
+  const [previewRestaurant, setPreviewRestaurant] = useState<FeedRestaurant | null>(null);
+
+  // SearchResult.restaurants は最低限のフィールドしか無いので、プレビュー
+  // モーダル用に FeedRestaurant 形に整形するヘルパー。
+  function searchRestaurantToFeed(r: api.SearchResult['restaurants'][number]): FeedRestaurant {
+    return {
+      id: r.restaurantId,
+      name: r.name,
+      address: r.address ?? '',
+      lat: r.lat ?? 0,
+      lng: r.lng ?? 0,
+      genre: (r.genres && r.genres[0]) || '',
+      genres: r.genres ?? [],
+      scene: [],
+      priceRange: r.priceRange ?? '',
+      distance: '',
+      influencer: { name: r.influencer ?? '', handle: '', platform: 'instagram' },
+      videoUrl: '',
+      photoEmoji: '🍽️',
+      photoUrls: r.photoUrls ?? [],
+    };
+  }
 
   // Notifications
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
@@ -475,7 +499,11 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
             <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">登録済みのお店</h3>
             <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-3">
               {searchResults.restaurants.map(r => (
-                <div key={r.restaurantId} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
+                <div
+                  key={r.restaurantId}
+                  onClick={() => setPreviewRestaurant(searchRestaurantToFeed(r))}
+                  className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+                >
                   {/* Photo */}
                   <div className="w-full h-40 bg-gray-100 dark:bg-gray-700 relative">
                     {r.photoUrls?.[0] ? (
@@ -503,7 +531,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                       <span className="text-xs text-green-500 font-medium shrink-0">追加済み</span>
                     ) : (
                       <button
-                        onClick={() => handleStockRestaurant(r)}
+                        onClick={(e) => { e.stopPropagation(); handleStockRestaurant(r); }}
                         disabled={stockingRestaurant === r.restaurantId}
                         className="px-4 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg shrink-0 disabled:opacity-50"
                       >
@@ -597,6 +625,23 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
       {/* Profile modal */}
       {profileUserId && (
         <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+      )}
+
+      {/* 検索結果カードタップで開くプレビュー（PC と完全に同じ UI）。
+          stocks state は SocialScreen が管理してないので、保存ボタン callback
+          で「追加」ロジックに転送する。 */}
+      {previewRestaurant && (
+        <RestaurantPreviewModal
+          restaurant={previewRestaurant}
+          bookmarked={stockedRestaurants.has(previewRestaurant.id)}
+          userPosition={null}
+          onClose={() => setPreviewRestaurant(null)}
+          onBookmark={() => {
+            const found = searchResults.restaurants.find(x => x.restaurantId === previewRestaurant.id);
+            if (found) handleStockRestaurant(found);
+            setPreviewRestaurant(null);
+          }}
+        />
       )}
     </div>
   );
