@@ -17,7 +17,7 @@ interface Props {
   onRestaurantEdited?: () => void;
 }
 
-type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce' | 'editProfile';
+type Panel = null | 'password' | 'email' | 'deleteAccount' | 'logoutConfirm' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce' | 'editProfile';
 type ListPanel = null | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
@@ -726,7 +726,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
         <SectionLabel>{t('account.other')}</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button
-            onClick={logout}
+            onClick={() => setPanel('logoutConfirm')}
             className="group flex items-center gap-3.5 px-4 py-3.5 transition-all hover:-translate-y-px text-left"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--stg-gray-200)', borderRadius: 14 }}
           >
@@ -790,6 +790,12 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
       )}
       {panel === 'deleteAccount' && (
         <DeleteAccountPanel onClose={() => setPanel(null)} onDeleted={logout} />
+      )}
+      {panel === 'logoutConfirm' && (
+        <LogoutConfirmPanel
+          onClose={() => setPanel(null)}
+          onConfirm={() => { setPanel(null); logout(); }}
+        />
       )}
       {panel === 'theme' && (
         <ThemeSheet
@@ -1296,6 +1302,38 @@ function ChangeEmailPanel({ currentEmail, onSuccess, onClose }: { currentEmail: 
 /* ─── アカウント削除パネル (iOS DeleteAccountSheet 同等の 3 段階確認) ─── */
 
 type DeleteStep = 'warning' | 'typeConfirm' | 'finalConfirm';
+
+/* ─── ログアウト確認パネル ─── */
+/* ワンクリックで誤って logout してしまうのを防ぐ。
+   保存リストや投稿など破壊しないので警告色は使わず、
+   delete-account ほどの 3 ステップは不要。
+   1 step (確認 → confirm) で十分。 */
+function LogoutConfirmPanel({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Overlay title={t('account.logoutConfirmTitle')} onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+          {t('account.logoutConfirmDescription')}
+        </p>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+          >
+            {t('account.logoutConfirmAction')}
+          </button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
 
 function DeleteAccountPanel({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
   const { user } = useAuth();
