@@ -18,7 +18,7 @@ interface Props {
 }
 
 type Panel = null | 'password' | 'email' | 'deleteAccount' | 'theme' | 'language' | 'feedback' | 'support' | 'howto' | 'privacy' | 'terms' | 'cookie' | 'commerce' | 'editProfile';
-type ListPanel = null | 'stocks' | 'visited' | 'following' | 'followers';
+type ListPanel = null | 'visited' | 'following' | 'followers';
 
 export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const { user, logout, updateNickname, updateEmail } = useAuth();
@@ -38,9 +38,9 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
   const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  // editingNickname は EditProfilePanel に置き換えたので常に false。
-  // 既存 JSX の {!editingNickname && ...} ガードは互換のため残す。
-  const editingNickname = false;
+  // ニックネーム編集はすべて EditProfilePanel (右下のシート) に統合済み。
+  // 旧 inline 編集の editingNickname state / {!editingNickname && ...} ガードは
+  // 削除した。
   const [panel, setPanel] = useState<Panel>(null);
   const [listPanel, setListPanel] = useState<ListPanel>(null);
   const [followingCount, setFollowingCount] = useState(() => Number(localStorage.getItem('cache:followingCount')) || 0);
@@ -403,8 +403,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
               </div>
 
               {/* Action buttons — 上の行（avatar と同じ row）の右端 */}
-              {!editingNickname && (
-                <div className="flex flex-wrap gap-2 sm:pb-1.5">
+              <div className="flex flex-wrap gap-2 sm:pb-1.5">
                   <button
                     onClick={() => setPanel('editProfile')}
                     className="px-4 py-2 rounded-full border border-[var(--border-strong)] bg-[var(--card-bg)] text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-soft)] transition-colors"
@@ -438,13 +437,11 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                     {t('account.share')}
                   </button>
                 </div>
-              )}
             </div>
 
             {/* ─── avatar の下：name + verified + @handle + email + bio + chips。
                 Twitter 風プロフィール。プロフィール画像と同じ列に出す。 */}
-            {!editingNickname && (
-              <div className="mt-3">
+            <div className="mt-3">
                 <h1
                   className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
                   style={{ fontSize: 24, color: 'var(--text-primary)', lineHeight: 1.15 }}
@@ -515,8 +512,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                     </div>
                   );
                 })()}
-              </div>
-            )}
+            </div>
 
           </div>
           {/* Stats row — 3 セル等幅、間に縦罫、hover で薄いクリーム。
@@ -883,37 +879,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
           onClose={() => setPanel(null)}
         />
       )}
-      {/* List panels */}
-      {listPanel === 'stocks' && (
-        <Overlay title="保存" onClose={() => setListPanel(null)}>
-          {/* 「保存」カウントは safeStocks.length（行った含む全件）で出してるので
-              リストも全件を出して数字と中身を揃える。「行った」だけ見たい人は
-              隣の「行った」ステータスをタップ。 */}
-          {safeStocks.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">まだ保存がないよ</p>
-          ) : (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {safeStocks.map(s => (
-                <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
-                  <span className="text-xl">{s.photoEmoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
-                    <p className="text-[11px] text-gray-400">{s.genre}</p>
-                  </div>
-                  {s.visited && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                      style={{ color: 'var(--visited-green)', background: 'rgba(140,199,64,0.12)' }}
-                    >
-                      行った
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Overlay>
-      )}
+      {/* List panels — 旧「保存」カウントは stats から撤廃したので
+          listPanel === 'stocks' のオーバーレイも削除済み。 */}
       {listPanel === 'visited' && (
         <Overlay title="行った" onClose={() => setListPanel(null)}>
           {safeStocks.filter(s => s.visited).length === 0 ? (

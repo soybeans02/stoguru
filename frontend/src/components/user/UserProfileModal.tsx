@@ -3,6 +3,7 @@ import { MapPin, Star, X, UserPlus, UserMinus, Lock } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
+import { safeHttpUrl } from '../../utils/safeUrl';
 
 interface ProfileData {
   userId: string;
@@ -172,47 +173,57 @@ export function UserProfileModal({ userId, onClose }: Props) {
               </div>
 
               {/* SNS リンク (登録されているプラットフォームだけ icon を表示)。
-                  クリックで該当 SNS の URL を新規タブで開く。 */}
-              {!isLockedOut && (profile.instagramUrl || profile.tiktokUrl || profile.youtubeUrl) && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {profile.instagramUrl && (
-                    <a
-                      href={profile.instagramUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-400 text-white text-xs font-semibold shadow-sm hover:shadow transition-shadow"
-                      title={profile.instagramHandle ?? 'Instagram'}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                      {profile.instagramHandle ? `@${String(profile.instagramHandle).replace(/^@/, '')}` : 'Instagram'}
-                    </a>
-                  )}
-                  {profile.tiktokUrl && (
-                    <a
-                      href={profile.tiktokUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
-                      title={profile.tiktokHandle ?? 'TikTok'}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.1Z"/></svg>
-                      {profile.tiktokHandle ? `@${String(profile.tiktokHandle).replace(/^@/, '')}` : 'TikTok'}
-                    </a>
-                  )}
-                  {profile.youtubeUrl && (
-                    <a
-                      href={profile.youtubeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-semibold shadow-sm hover:bg-red-700 transition-colors"
-                      title={profile.youtubeHandle ?? 'YouTube'}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
-                      {profile.youtubeHandle ? `@${String(profile.youtubeHandle).replace(/^@/, '')}` : 'YouTube'}
-                    </a>
-                  )}
-                </div>
-              )}
+                  クリックで該当 SNS の URL を新規タブで開く。
+                  href には必ず safeHttpUrl で http(s) のみ許可。
+                  これを怠ると相手のプロフに javascript:alert(1) を仕込まれた時に
+                  click → XSS で全閲覧者にスクリプトが走る。 */}
+              {(() => {
+                if (isLockedOut) return null;
+                const igUrl = safeHttpUrl(profile.instagramUrl ?? undefined);
+                const ttUrl = safeHttpUrl(profile.tiktokUrl ?? undefined);
+                const ytUrl = safeHttpUrl(profile.youtubeUrl ?? undefined);
+                if (!igUrl && !ttUrl && !ytUrl) return null;
+                return (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {igUrl && (
+                      <a
+                        href={igUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-400 text-white text-xs font-semibold shadow-sm hover:shadow transition-shadow"
+                        title={profile.instagramHandle ?? 'Instagram'}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                        {profile.instagramHandle ? `@${String(profile.instagramHandle).replace(/^@/, '')}` : 'Instagram'}
+                      </a>
+                    )}
+                    {ttUrl && (
+                      <a
+                        href={ttUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
+                        title={profile.tiktokHandle ?? 'TikTok'}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.1Z"/></svg>
+                        {profile.tiktokHandle ? `@${String(profile.tiktokHandle).replace(/^@/, '')}` : 'TikTok'}
+                      </a>
+                    )}
+                    {ytUrl && (
+                      <a
+                        href={ytUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-semibold shadow-sm hover:bg-red-700 transition-colors"
+                        title={profile.youtubeHandle ?? 'YouTube'}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
+                        {profile.youtubeHandle ? `@${String(profile.youtubeHandle).replace(/^@/, '')}` : 'YouTube'}
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* bio 表示（インフルエンサープロフィールに登録されてる時だけ） */}
               {!isLockedOut && profile.bio && (

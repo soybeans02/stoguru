@@ -23,6 +23,17 @@ interface Props {
 
 const defaultCenter: [number, number] = [135.4959, 34.7025]; // [lng, lat] 梅田
 
+// 自分のピン / クラスタ表示の対象レイヤー一覧（show / hide で使い回す）。
+// レンダー毎に再生成しても無害だが module scope にして lint footgun を防ぐ。
+const MY_LAYER_IDS = [
+  'stocks-outline', 'stocks-circle', 'stocks-pin',
+  'stocks-cluster', 'stocks-cluster-count',
+] as const;
+const FOLLOWING_LAYER_IDS = [
+  'following-outline', 'following-circle', 'following-pin',
+  'following-cluster', 'following-cluster-count',
+] as const;
+
 // --- 時間帯テーマ ---
 interface Theme {
   label: string;
@@ -561,11 +572,23 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Nearby banner dismissal (so user can hide it)
   const [nearbyDismissed, setNearbyDismissed] = useState(false);
   // Explore-this-area UI は削除済み（state も不要）。
+  // モバイル幅 (≤800px) 判定 — orientation 変更や PWA / iPad split-view 等で
+  // 動的に変わるため state にして matchMedia の change を購読する。
+  // SSR 環境を想定して typeof window ガード。
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 800px)');
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
   // Nearby (100m) detection — banner には距離も出すので一緒に持って返す。
   // 他人マップ表示中は自分の店との距離を案内する意味が無いので null。
-  // モバイル幅 (≤800px) では UI が窮屈で被るので Nearby バナー自体を無効化。
-  // PC でだけ「すぐそこ」案内を出す方針に変更。
-  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches;
+  // モバイルは UI が窮屈で被るので Nearby バナー自体を無効化（PC 専用）。
   const nearbyMatch = useMemo(() => {
     if (!userPosition) return null;
     if (selectedFollowUser) return null;
@@ -829,7 +852,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 visited: r.visited ? 1 : 0, isPosted: 0,
                 distance: r.distance || '',
                 videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-                photoUrls: (r as any).photoUrls?.[0] || '',
+                photoUrls: r.photoUrls?.[0] || '',
                 scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
               },
             }));
@@ -899,7 +922,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
               id: r.id, name: r.name, genre: r.genre || '',
               visited: r.visited ? 1 : 0, distance: r.distance || '',
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-              photoUrls: (r as any).photoUrls?.[0] || '',
+              photoUrls: r.photoUrls?.[0] || '',
               scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
             } : { name: '選択した場所' },
           }],
@@ -915,7 +938,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             .setDOMContent(buildPopupNode({
               name: r.name, genre: r.genre || '', distance: r.distance || '',
               videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-              photoUrls: (r as any).photoUrls?.[0] || '',
+              photoUrls: r.photoUrls?.[0] || '',
               scene: r.scene || [], priceRange: r.priceRange || '',
               lat: r.lat, lng: r.lng,
             }, userPosRef.current))
@@ -939,8 +962,11 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
   // panTo-pin パルス animation（光の輪が広がる演出）。
   // panTo ピンが置かれてる間ずっと脈動させて、周りの店ピンに埋もれないように。
-  // 30fps 相当 (33ms) で OK だが requestAnimationFrame でブラウザに任せる。
+  // panTo が指定されてない時はループを回さず CPU/GPU を温存する
+  // (旧版は常時 requestAnimationFrame ループで毎フレーム 4 回 setPaintProperty
+  // を実行していた)。
   useEffect(() => {
+    if (!panTo) return;
     let raf = 0;
     let start = 0;
     const tick = (ts: number) => {
@@ -969,7 +995,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [panTo]);
 
   // Set initial center to user position
   useEffect(() => {
@@ -1064,7 +1090,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
           visited: r.visited ? 1 : 0, isPosted: 0,
           distance: r.distance || '',
           videoUrl: r.videoUrl || '', photoEmoji: r.photoEmoji || '',
-          photoUrls: (r as any).photoUrls?.[0] || '',
+          photoUrls: r.photoUrls?.[0] || '',
           scene: JSON.stringify(r.scene || []), priceRange: r.priceRange || '',
         },
       }));
@@ -1124,9 +1150,13 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     const map = mapRef.current;
     if (!map) return;
     map.flyTo({ center: [nearbyStock.lng, nearbyStock.lat], zoom: 17, duration: 800 });
-    // flyTo 完了後に popup を開く。すでに 17 ズームの近接状態でも反応するように
-    // moveend を 1 回だけ拾って popup を立てる（旧版は flyTo だけで何も起きないように見えた）。
+    // flyTo 完了後に popup を開く。すでに 17 ズームの近接状態 (moveend が
+    // 発火しないケース) の保険として 900ms 後にも一度試す。1 度開いたら他方は
+    // no-op になるよう opened フラグで二重発火を防ぐ。
+    let opened = false;
     const openPopup = () => {
+      if (opened) return;
+      opened = true;
       try {
         popupRef.current?.remove();
         popupRef.current = new mapboxgl.Popup({ offset: [0, -55], closeButton: false, maxWidth: '230px', className: 'stoguru-popup' })
@@ -1137,7 +1167,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             distance: nearbyStock.distance || '',
             videoUrl: nearbyStock.videoUrl || '',
             photoEmoji: nearbyStock.photoEmoji || '',
-            photoUrls: (nearbyStock as any).photoUrls?.[0] || '',
+            photoUrls: nearbyStock.photoUrls?.[0] || '',
             scene: nearbyStock.scene || [],
             priceRange: nearbyStock.priceRange || '',
             lat: nearbyStock.lat,
@@ -1148,8 +1178,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
       } catch { /* ignore */ }
     };
     map.once('moveend', openPopup);
-    // 既に flyTo が動かない（同じ座標タップ等）ケースの保険として 900ms 後にも一度
-    setTimeout(() => { if (popupRef.current?.isOpen?.() !== true) openPopup(); }, 900);
+    setTimeout(openPopup, 900);
   }, [nearbyStock]);
 
 
@@ -1192,16 +1221,6 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
     setMapMode(mode);
   }, []);
-
-  // 自分のピン / クラスタ表示の対象レイヤー一覧（show / hide で使い回す）
-  const MY_LAYER_IDS = [
-    'stocks-outline', 'stocks-circle', 'stocks-pin',
-    'stocks-cluster', 'stocks-cluster-count',
-  ];
-  const FOLLOWING_LAYER_IDS = [
-    'following-outline', 'following-circle', 'following-pin',
-    'following-cluster', 'following-cluster-count',
-  ];
 
   // Open following picker
   const handleOpenFollowingPicker = useCallback(async () => {

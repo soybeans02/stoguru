@@ -71,10 +71,20 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
 // ─── レストラン追加/更新（V2: Restaurants_v2に直接書き込み） ───
 // 投稿申請 / 管理者承認ゲートは撤廃済み。requireAuth のみで通す。
 
+// クライアントが UUID v4 として生成した restaurantId だけ受け付ける。
+// 任意文字列を許すと別 namespace（例: 旧 cognito sub 形式の id）を squat
+// したり、ID 衝突攻撃でテーブルを汚染できてしまう。crypto.randomUUID() の
+// 出力フォーマットに合わせた厳密な regex で弾く。
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
 
   const restaurantId = req.params.id as string;
+  if (!UUID_RE.test(restaurantId)) {
+    res.status(400).json({ error: '無効なお店 ID です' });
+    return;
+  }
   const v = validate(influencerRestaurantSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 

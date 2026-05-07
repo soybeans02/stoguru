@@ -64,13 +64,16 @@ export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, o
 
   // SearchResult.restaurants は最低限のフィールドしか無いので、プレビュー
   // モーダル用に FeedRestaurant 形に整形するヘルパー。
+  // 注意: lat/lng が無い行を 0,0 にフォールバックすると「ギニア湾」へ flyTo
+  // してしまう実害バグになるので、欠落時は明示的にゼロ落とし防止 (NaN) で
+  // 受け、表示側 (RestaurantPreviewModal) の有効座標チェックで弾けるようにする。
   function searchRestaurantToFeed(r: api.SearchResult['restaurants'][number]): FeedRestaurant {
     return {
       id: r.restaurantId,
       name: r.name,
       address: r.address ?? '',
-      lat: r.lat ?? 0,
-      lng: r.lng ?? 0,
+      lat: typeof r.lat === 'number' ? r.lat : NaN,
+      lng: typeof r.lng === 'number' ? r.lng : NaN,
       genre: (r.genres && r.genres[0]) || '',
       genres: r.genres ?? [],
       scene: [],

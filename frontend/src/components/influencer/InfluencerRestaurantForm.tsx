@@ -374,17 +374,22 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
           </div>
 
           {/* URLs */}
+          {(() => {
+            // trim 済みの非空 URL 件数を 1 度だけ計算 (旧版は label と各行で
+            // urls.length 回ずつ filter していた = O(n²) per render)。
+            const filledCount = urls.reduce((n, u) => n + (u.trim() ? 1 : 0), 0);
+            const hasMultiple = filledCount > 1;
+            return (
           <div>
             <label className="block text-xs text-gray-400 mb-1">
               動画リンク
-              {urls.filter(u => u.trim()).length > 1 && (
+              {hasMultiple && (
                 <span className="ml-1.5 text-[10px] text-gray-400">★ がカード/マップに表示されます</span>
               )}
             </label>
             <div className="flex flex-col gap-2">
               {urls.map((url, i) => {
                 const isPrimary = i === 0;
-                const hasMultiple = urls.filter(u => u.trim()).length > 1;
                 return (
                   <div key={i} className="flex items-center gap-2">
                     <span className="text-base w-5 text-center flex-shrink-0">{urlIcon(url)}</span>
@@ -436,6 +441,8 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
               )}
             </div>
           </div>
+            );
+          })()}
 
           {/* Description */}
           <div>
