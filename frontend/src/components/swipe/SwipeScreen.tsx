@@ -5,6 +5,7 @@ import { MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { fetchRestaurantFeed, getNotifications } from '../../utils/api';
 
 // 共有AudioContext（lazy初期化でリソースリーク防止）
@@ -228,12 +229,10 @@ export function SwipeScreen({ onStock, onRemoveStock, onShowOnMap, onOpenNotific
       filtered = filtered.filter((r) => selectedGenres.includes(r.genre));
     }
     if (selectedAreas.length > 0) {
-      // 住所の先頭が選択された都道府県名のいずれかと一致するかで絞り込み。
-      // 旧データに 都道府県 prefix が無い住所が混じる場合はマッチしないが
-      // 投稿フォームから入った住所は 通常 都道府県 から始まるのでこの単純判定で OK。
-      filtered = filtered.filter((r) =>
-        selectedAreas.some((p) => r.address?.startsWith(p)),
-      );
+      // 住所文字列から都道府県を抽出して選択 set に含まれてるかチェック。
+      // 旧 startsWith は postal-code prefix の住所で外れる事故があったので
+      // include ベースの matchesAnyPrefecture で正規化してから判定。
+      filtered = filtered.filter((r) => matchesAnyPrefecture(r.address, selectedAreas));
     }
     if (priceMin > 0 || priceMax < 10000) {
       filtered = filtered.filter((r) => {

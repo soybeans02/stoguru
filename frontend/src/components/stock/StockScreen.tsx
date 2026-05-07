@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
+import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import './stock-page.css';
@@ -93,11 +94,10 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
       if (selectedGenres.length === 0) return true;
       return selectedGenres.includes(s.genre);
     })
-    // エリア (住所が選んだ都道府県 prefix のいずれかで始まる)
-    .filter((s) => {
-      if (selectedAreas.length === 0) return true;
-      return selectedAreas.some((p) => s.address?.startsWith(p));
-    })
+    // エリア — 住所文字列から都道府県を抽出して厳密一致。
+    // 旧 startsWith は「〒530-... 大阪府...」のような postal-code prefix で
+    // 外れていたので matchesAnyPrefecture (include ベース) に置き換え。
+    .filter((s) => matchesAnyPrefecture(s.address, selectedAreas))
     // 価格帯 (priceRange の数字部分でレンジ判定)
     .filter((s) => {
       if (priceMin <= 0 && priceMax >= 10000) return true;
