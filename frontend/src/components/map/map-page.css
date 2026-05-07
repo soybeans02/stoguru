@@ -429,6 +429,18 @@
     bottom: 70px;
     max-width: calc(100% - 36px);
   }
+  /* 右の control stack (zoom +/- / 現在地 / フォロー) は top:80px だと
+     pill が wrap して 2 行になった時に重なる。mobile では下げる。 */
+  .map-right {
+    top: 180px;
+  }
+}
+
+/* さらに狭い iPhone (≤420px) は pill が更に折り返すので余裕を持たせる */
+@media (max-width: 420px) {
+  .map-right {
+    top: 200px;
+  }
 }
 
 /* さらに狭い viewport（〜420px くらい）では検索バーを 100% 幅にして

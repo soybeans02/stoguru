@@ -561,16 +561,20 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   // Explore-this-area UI は削除済み（state も不要）。
   // Nearby (100m) detection — banner には距離も出すので一緒に持って返す。
   // 他人マップ表示中は自分の店との距離を案内する意味が無いので null。
+  // モバイル幅 (≤800px) では UI が窮屈で被るので Nearby バナー自体を無効化。
+  // PC でだけ「すぐそこ」案内を出す方針に変更。
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches;
   const nearbyMatch = useMemo(() => {
     if (!userPosition) return null;
     if (selectedFollowUser) return null;
+    if (isMobile) return null;
     const matches = stocks
       .filter(s => s.lat && s.lng)
       .map(s => ({ s, d: distanceMetres(userPosition.lat, userPosition.lng, s.lat, s.lng) }))
       .filter(({ d }) => d <= 100)
       .sort((a, b) => a.d - b.d);
     return matches.length > 0 ? matches[0] : null;
-  }, [stocks, userPosition, selectedFollowUser]);
+  }, [stocks, userPosition, selectedFollowUser, isMobile]);
   const nearbyStock = nearbyMatch?.s ?? null;
   const nearbyDistance = nearbyMatch?.d ?? null;
 
