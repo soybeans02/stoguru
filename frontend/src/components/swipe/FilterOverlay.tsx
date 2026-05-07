@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { SCENES, GENRES, POPULAR_GENRES, GENRE_PHOTOS } from '../../data/mockRestaurants';
 
 interface Props {
@@ -13,8 +12,6 @@ interface Props {
   onApply?: () => void;
 }
 
-const VISIBLE_GENRE_COUNT = POPULAR_GENRES.length;
-
 export function FilterOverlay({
   selectedScenes,
   selectedGenres,
@@ -26,9 +23,9 @@ export function FilterOverlay({
   onClose,
   onApply,
 }: Props) {
-  // 「その他」展開フラグ。選択中のジャンルが先頭 5 件に無ければ自動で展開
-  const someSelectedHidden = selectedGenres.some((g) => !GENRES.slice(0, VISIBLE_GENRE_COUNT).includes(g as typeof GENRES[number]));
-  const [showAllGenres, setShowAllGenres] = useState(someSelectedHidden);
+  // 人気 8 と残りを分ける（home の GenreListModal と同じレイアウトに揃える）
+  const popularSet = new Set<string>(POPULAR_GENRES as readonly string[]);
+  const restGenres = GENRES.filter((g) => !popularSet.has(g));
 
   function toggleScene(id: string) {
     onScenesChange(
@@ -67,10 +64,7 @@ export function FilterOverlay({
     onScenesChange([]);
     onGenresChange([]);
     onPriceChange?.(0, 10000);
-    setShowAllGenres(false);
   }
-
-  const visibleGenres = showAllGenres ? GENRES : GENRES.slice(0, VISIBLE_GENRE_COUNT);
 
   return (
     <div className="absolute inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col">
@@ -125,25 +119,31 @@ export function FilterOverlay({
           })}
         </div>
 
-        {/* Genre */}
+        {/* Genre — home の GenreListModal と同じレイアウトに揃える。
+            人気 8 を写真タイル（2 列 16:10）、残りはテキストチップで。 */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">ジャンル</h3>
           {selectedGenres.length > 0 && (
             <span className="text-[11px] font-semibold text-orange-500">{selectedGenres.length} 選択中</span>
           )}
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
-          {visibleGenres.map((g) => {
+
+        {/* 人気 8（写真タイル） */}
+        <div className="text-[10px] uppercase tracking-[0.04em] font-bold text-gray-400 dark:text-gray-500 mb-2">
+          人気ジャンル
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          {POPULAR_GENRES.map((g) => {
             const active = selectedGenres.includes(g);
             const photo = GENRE_PHOTOS[g];
             return (
               <button
                 key={g}
                 onClick={() => toggleGenre(g)}
-                className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
+                className={`relative aspect-[16/10] rounded-2xl overflow-hidden transition-all ${
                   active
                     ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
-                    : 'hover:scale-[1.04]'
+                    : 'hover:-translate-y-0.5'
                 }`}
               >
                 {photo ? (
@@ -156,34 +156,46 @@ export function FilterOverlay({
                   style={{
                     background: active
                       ? 'linear-gradient(to top, rgba(249, 115, 22, 0.7), rgba(249, 115, 22, 0.35) 70%, rgba(249, 115, 22, 0.15))'
-                      : 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15))',
+                      : 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))',
                   }}
                 />
                 {active && (
-                  <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white grid place-items-center shadow-md">
+                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white grid place-items-center shadow-md">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </span>
                 )}
-                <span
-                  className="absolute inset-0 grid place-items-center text-white text-[15px] sm:text-[16px] font-extrabold tracking-[-0.01em] text-center leading-tight px-1.5"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65), 0 1px 3px rgba(0,0,0,0.5)' }}
-                >
+                <span className="absolute bottom-2 left-3 right-3 text-white text-[15px] font-extrabold tracking-[-0.01em] text-left drop-shadow">
                   {g}
                 </span>
               </button>
             );
           })}
         </div>
-        {GENRES.length > VISIBLE_GENRE_COUNT && (
-          <button
-            onClick={() => setShowAllGenres((v) => !v)}
-            className="w-full py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-8"
-          >
-            {showAllGenres ? '閉じる' : `その他のジャンルを見る (${GENRES.length - VISIBLE_GENRE_COUNT})`}
-          </button>
-        )}
+
+        {/* 残りジャンル（テキストチップ） */}
+        <div className="text-[10px] uppercase tracking-[0.04em] font-bold text-gray-400 dark:text-gray-500 mb-2">
+          すべてのジャンル
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-8">
+          {restGenres.map((g) => {
+            const active = selectedGenres.includes(g);
+            return (
+              <button
+                key={g}
+                onClick={() => toggleGenre(g)}
+                className={`px-4 py-3 rounded-xl text-[13px] font-medium text-left transition-colors ${
+                  active
+                    ? 'bg-orange-500 text-white border border-orange-500'
+                    : 'bg-orange-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-orange-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {g}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Price Range - free input */}
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">価格帯</h3>
