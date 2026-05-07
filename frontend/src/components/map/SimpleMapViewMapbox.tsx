@@ -521,7 +521,9 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
   const [simpleMode, setSimpleMode] = useState(false);
   const [modePickerOpen, setModePickerOpen] = useState(false);
   // Claude Design: 左の list panel + 上の cat フィルタ + 検索
-  const [listOpen, setListOpen] = useState(true);
+  // 初期状態は閉じた状態。マップを開いた瞬間に左パネルが画面の半分を
+  // 覆うのは邪魔だったので、明示的に「リストを表示」を押した時だけ開く。
+  const [listOpen, setListOpen] = useState(false);
   const [listSearch, setListSearch] = useState('');
   const [topSearch, setTopSearch] = useState('');
   const [catFilter, setCatFilter] = useState<'all' | 'visited' | 'wishlist' | 'posted'>('all');
