@@ -217,6 +217,32 @@ export async function getUserStock(userId: string, restaurantId: string): Promis
   return (result.Item as UserStock) ?? null;
 }
 
+/**
+ * 指定 restaurantId をストックしているユーザー id 一覧を返す。
+ * GSI-RestaurantStocks（PK: restaurantId, SK: userId, KEYS_ONLY）で
+ * Scan せずに引ける。1 ページ最大 1000 件を上限まで自動ページング。
+ * 削除カスケード（投稿者削除時に他人の保存リストから抜く）で使用。
+ */
+export async function getStockersForRestaurant(restaurantId: string): Promise<string[]> {
+  const userIds: string[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new QueryCommand({
+      TableName: TABLE.userStocks,
+      IndexName: 'GSI-RestaurantStocks',
+      KeyConditionExpression: 'restaurantId = :rid',
+      ExpressionAttributeValues: { ':rid': restaurantId },
+      ExclusiveStartKey: lastKey,
+      Limit: 1000,
+    }));
+    for (const it of (result.Items ?? []) as { userId: string }[]) {
+      if (it.userId) userIds.push(it.userId);
+    }
+    lastKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastKey);
+  return userIds;
+}
+
 // =============================================
 // URL逆引きインデックス
 // =============================================
@@ -975,8 +1001,11 @@ export async function loadActivity(): Promise<Record<string, { lastSeen: number;
  * アカウント削除：このユーザーに紐づくデータを徹底的に消す。
  * - 自分のストック・投稿・設定・プロフィール・フォロー関係・通知・シェア・
  *   フォローリクエスト（双方向）・フィードバックすべて削除
- * - 自分が投稿したレストラン V2 は他ユーザーのストックを壊さないよう
- *   visibility=hidden + postedBy='' に匿名化（論理削除）
+ * - 自分が投稿したレストラン V2 は **hard delete + 他人の UserStocks 連鎖削除**。
+ *   旧仕様は匿名化していたが、S3 写真は別経路で全削除されるので画像欠け
+ *   ゾンビカードが他人の保存リストに残るだけだった。プライバシーと
+ *   UI 整合性のため、レストラン本体・URL インデックス・被ストック関係まで
+ *   全部消す。
  * - 他ユーザーから自分への follow / follow request も逆引きで削除
  */
 export async function deleteAllUserData(userId: string) {
@@ -1005,23 +1034,44 @@ export async function deleteAllUserData(userId: string) {
     }));
   }
 
-  // 3. V2: 自分が投稿したレストランは匿名化＋hidden 化
-  //    （他ユーザーが保存している可能性があるため hard delete はしない）
+  // 3. V2: 自分が投稿したレストランは hard delete（カスケード）
+  //    旧仕様は匿名化（visibility=hidden + postedBy=空）で残してたが、
+  //    S3 写真は別ステップで全削除するので画像欠けゾンビカードが
+  //    他人の保存リストに残るだけだった。プライバシーと UI 整合のために
+  //    本体・URL インデックス・他人の UserStocks（被ストック）まで丸ごと消す。
+  //
+  //    手順（1 レストランごと）:
+  //      a. GSI-RestaurantStocks で被ストック userId 一覧を取得
+  //      b. 他ユーザーの UserStocks を batch delete
+  //      c. URL 逆引きインデックス削除
+  //      d. RestaurantsV2 本体を delete
   const postedV2 = await queryRestaurantsByPostedBy(userId);
   for (const r of postedV2) {
     try {
-      await db.send(new UpdateCommand({
-        TableName: TABLE.restaurantsV2,
-        Key: { restaurantId: r.restaurantId },
-        UpdateExpression: 'SET visibility = :v, postedBy = :p, updatedAt = :u',
-        ExpressionAttributeValues: { ':v': 'hidden', ':p': '', ':u': Date.now() },
-      }));
-      // URL インデックスも消す
+      // a. 被ストックの userId を全部引く（KEYS_ONLY GSI）
+      const stockers = await getStockersForRestaurant(r.restaurantId);
+      // b. 他人の UserStocks を消す（自分自身の分はステップ 1 でもう消えてる）
+      const otherStockers = stockers.filter((uid) => uid !== userId);
+      for (const chunk of chunkArray(otherStockers, 25)) {
+        await db.send(new BatchWriteCommand({
+          RequestItems: {
+            [TABLE.userStocks]: chunk.map((uid) => ({
+              DeleteRequest: { Key: { userId: uid, restaurantId: r.restaurantId } },
+            })),
+          },
+        })).catch((err) => console.error(`[deleteAllUserData] cascade UserStocks delete failed for ${r.restaurantId}:`, err));
+      }
+      // c. URL インデックス
       if (r.urls?.length) {
         await deleteUrlIndexEntries(r.urls).catch((err) => console.error('[deleteAllUserData] URL index delete failed:', err));
       }
+      // d. 本体
+      await db.send(new DeleteCommand({
+        TableName: TABLE.restaurantsV2,
+        Key: { restaurantId: r.restaurantId },
+      }));
     } catch (err) {
-      console.error(`[deleteAllUserData] Failed to anonymize restaurant ${r.restaurantId}:`, err);
+      console.error(`[deleteAllUserData] Failed to hard-delete restaurant ${r.restaurantId}:`, err);
     }
   }
   invalidateSearchCache();
