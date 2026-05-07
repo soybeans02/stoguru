@@ -58,21 +58,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
 
   const safeStocks = stocks ?? [];
   const visitedCount = safeStocks.filter((s) => s.visited).length;
-  // 7 日ストリーク（直近 7 日でお店を保存した日数）— Claude Design の活動バナー用
-  const streakDays = (() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const days = new Set<string>();
-    for (const s of safeStocks) {
-      const c = (s as { stockedAt?: string; createdAt?: string }).stockedAt
-        ?? (s as { stockedAt?: string; createdAt?: string }).createdAt;
-      if (!c) continue;
-      const d = new Date(c);
-      const diff = Math.floor((today.getTime() - d.getTime()) / 86400000);
-      if (diff >= 0 && diff < 7) days.add(d.toISOString().slice(0, 10));
-    }
-    return Math.min(7, days.size);
-  })();
+  // 7 日ストリーク / ストグルマスターバッジは廃止。アクセントバナーは
+  // 「プロアカウント申請」案内に置き換え（後ろの実装は近日公開予定）。
   // 認証バッジは「こちらが許可したユーザーだけに付ける」運用にする予定。
   // 本実装が入るまで全員 false（バッジ非表示）。承認制が入ったら
   // user.isVerified などのサーバー値に差し替える。
@@ -553,79 +540,64 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
             アプリに登録しているユーザーは「お店を編集」ボタンから
             直接 InfluencerDashboard で投稿・編集できる。 */}
 
-        {/* ─── ストリークバナー（7 日連続保存 + 炎ゲージ） ─── */}
-        {safeStocks.length > 0 && (
+        {/* ─── プロアカウント申請バナー ─── */}
+        {/* 旧 7 日ストリーク + 炎ゲージから差し替え。実装が来るまでは
+            CTA をグレーアウトして「近日公開」表示にする。 */}
+        <div
+          className="relative overflow-hidden mb-7 flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5"
+          style={{
+            background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
+            color: 'white',
+            borderRadius: 16,
+          }}
+        >
           <div
-            className="relative overflow-hidden mb-7 flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-5"
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 90% 50%, rgba(254,141,40,0.20) 0%, transparent 50%)' }}
+          />
+          <div
+            className="grid place-items-center flex-shrink-0 relative"
             style={{
-              background: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
-              color: 'white',
-              borderRadius: 16,
+              width: 56, height: 56, borderRadius: 14,
+              background: 'linear-gradient(135deg, var(--stg-orange-400), var(--stg-orange-600))',
+              boxShadow: '0 8px 20px rgba(254,141,40,0.40)',
             }}
           >
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'radial-gradient(circle at 90% 50%, rgba(254,141,40,0.20) 0%, transparent 50%)' }}
-            />
-            <div
-              className="grid place-items-center flex-shrink-0 relative"
-              style={{
-                width: 56, height: 56, borderRadius: 14,
-                background: 'linear-gradient(135deg, var(--stg-orange-400), var(--stg-orange-600))',
-                boxShadow: '0 8px 20px rgba(254,141,40,0.40)',
-              }}
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4c0 5-3 5-3 9a3 3 0 0 0 6 0c0-1.5-.5-2.5-1.5-3.5C16.5 11 18 12.5 18 15a6 6 0 0 1-12 0c0-3 2-5 3-7 .5-1 1-2 1-3 .5 0 4 1 4-1Z"/></svg>
-            </div>
-            <div className="relative flex-1 min-w-0">
-              <div className="text-[17px] font-bold mb-1">
-                {streakDays >= 7
-                  ? t('account.streakDaysReached')
-                  : t('account.streakDaysOngoing').replace('{days}', String(streakDays))}
-              </div>
-              <div className="text-[13px] leading-[1.5]" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                {streakDays >= 7
-                  ? t('account.streakMaster')
-                  : t('account.streakRemaining').replace('{days}', String(7 - streakDays))}
-              </div>
-              {/* 7-day flame indicator */}
-              <div className="flex gap-1 mt-2.5">
-                {[1, 2, 3, 4, 5, 6, 7].map((i) => {
-                  const lit = i <= streakDays;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        width: 22, height: 26,
-                        borderRadius: '50% 50% 50% 50% / 30% 30% 70% 70%',
-                        background: lit
-                          ? 'linear-gradient(180deg, #FBBF24, var(--stg-orange-500), #DC2626)'
-                          : 'rgba(255,255,255,0.20)',
-                        opacity: lit ? 0.92 : 0.18,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-            <button
-              className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2.5 flex-shrink-0"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                background: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.16)',
-                color: 'white',
-                borderRadius: 10,
-                cursor: 'pointer',
-              }}
-              onClick={() => alert(t('account.badgesComingSoon'))}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
-              {t('account.badgesView')}
-            </button>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              {/* シールド + チェック (verified-pro) */}
+              <path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
           </div>
-        )}
+          <div className="relative flex-1 min-w-0">
+            <div className="text-[17px] font-bold mb-1">
+              {t('account.proApplyTitle')}
+            </div>
+            <div className="text-[13px] leading-[1.5]" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              {t('account.proApplyDescription')}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2.5 flex-shrink-0"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(255,255,255,0.45)',
+              borderRadius: 10,
+              cursor: 'not-allowed',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            {t('account.proApplyComingSoon')}
+          </button>
+        </div>
 
         {/* PRO アップグレードカードは design に無いので削除（将来の有料プラン
             機能を実装するときに再導入する）。 */}
