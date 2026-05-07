@@ -375,24 +375,59 @@ export function InfluencerRestaurantForm({ editing, onSaved, onClose }: Props) {
 
           {/* URLs */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">動画リンク</label>
+            <label className="block text-xs text-gray-400 mb-1">
+              動画リンク
+              {urls.filter(u => u.trim()).length > 1 && (
+                <span className="ml-1.5 text-[10px] text-gray-400">★ がカード/マップに表示されます</span>
+              )}
+            </label>
             <div className="flex flex-col gap-2">
-              {urls.map((url, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-base w-5 text-center flex-shrink-0">{urlIcon(url)}</span>
-                  <input
-                    value={url}
-                    onChange={e => { const next = [...urls]; next[i] = e.target.value; setUrls(next); }}
-                    maxLength={500}
-                    placeholder="https://..."
-                    className="flex-1 rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm"
-                  />
-                  {urls.length > 1 && (
-                    <button type="button" onClick={() => setUrls(urls.filter((_, j) => j !== i))}
-                      className="text-red-400 hover:text-red-600 text-lg flex-shrink-0">−</button>
-                  )}
-                </div>
-              ))}
+              {urls.map((url, i) => {
+                const isPrimary = i === 0;
+                const hasMultiple = urls.filter(u => u.trim()).length > 1;
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-base w-5 text-center flex-shrink-0">{urlIcon(url)}</span>
+                    <input
+                      value={url}
+                      onChange={e => { const next = [...urls]; next[i] = e.target.value; setUrls(next); }}
+                      maxLength={500}
+                      placeholder="https://..."
+                      className="flex-1 rounded-lg bg-gray-50 text-gray-900 px-3 py-2.5 outline-none border border-gray-200 focus:border-gray-400 text-sm"
+                    />
+                    {/* メイン表示マーカー。複数 URL ある時だけ操作可能。
+                        星クリックで該当 URL を配列先頭に移動 → backend は urls[0]
+                        を videoUrl として配信する。 */}
+                    {hasMultiple && url.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isPrimary) return;
+                          const next = [...urls];
+                          const [picked] = next.splice(i, 1);
+                          next.unshift(picked);
+                          setUrls(next);
+                        }}
+                        title={isPrimary ? 'カード/マップに表示中' : 'メインに設定'}
+                        aria-label={isPrimary ? 'メイン表示' : 'メインに設定'}
+                        className={`flex-shrink-0 w-7 h-7 rounded-full grid place-items-center transition-colors ${
+                          isPrimary
+                            ? 'text-amber-500'
+                            : 'text-gray-300 hover:text-amber-400 hover:bg-amber-50'
+                        }`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={isPrimary ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      </button>
+                    )}
+                    {urls.length > 1 && (
+                      <button type="button" onClick={() => setUrls(urls.filter((_, j) => j !== i))}
+                        className="text-red-400 hover:text-red-600 text-lg flex-shrink-0">−</button>
+                    )}
+                  </div>
+                );
+              })}
               {urls.length < 20 && (
                 <button type="button" onClick={() => setUrls([...urls, ''])}
                   className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium py-1">

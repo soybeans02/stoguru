@@ -440,7 +440,7 @@ export function InfluencerDashboard({ onBack }: Props) {
           <p className="text-gray-300 text-xs">おすすめのレストランを追加しましょう</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {sortedRestaurants.map(r => (
             <div key={r.restaurantId} className="bg-white rounded-xl overflow-hidden shadow border border-gray-100 flex flex-col">
               {/* Photo area */}
