@@ -73,8 +73,10 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
     }
     return Math.min(7, days.size);
   })();
-  // 認証バッジは design 準拠で常時表示（後で本実装に差し替え予定）。
-  const isVerified = true;
+  // 認証バッジは「こちらが許可したユーザーだけに付ける」運用にする予定。
+  // 本実装が入るまで全員 false（バッジ非表示）。承認制が入ったら
+  // user.isVerified などのサーバー値に差し替える。
+  const isVerified = false;
 
   useEffect(() => {
     api.fetchSettings().then((s) => {
