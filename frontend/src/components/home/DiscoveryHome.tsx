@@ -71,6 +71,9 @@ interface Props {
   onStock: (r: SwipeRestaurant) => void;
   onRemoveStock: (id: string) => void;
   onOpenMap: () => void;
+  /** プレビューモーダルの「マップで見る」ボタンから呼ばれる。
+   *  指定座標にマップ画面で pan する（StockScreen / SwipeScreen と同じ仕組み）。 */
+  onShowOnMap?: (lat: number, lng: number) => void;
   onOpenSwipe: () => void;
   onOpenAccount?: () => void;
   onOpenSaved?: () => void;
@@ -173,6 +176,7 @@ export function DiscoveryHome({
   onStock,
   onRemoveStock,
   onOpenMap,
+  onShowOnMap,
   onOpenSwipe,
   onSearch,
   onReload,
@@ -852,6 +856,13 @@ export function DiscoveryHome({
             handleBookmark(previewRestaurant);
             setPreviewRestaurant(null);
           }}
+          /* マップで見るは onShowOnMap が親から来ている時だけ機能。
+             無い場合は disabled。座標が無いお店（lat/lng = 0）も無効化。 */
+          onShowOnMap={
+            onShowOnMap && previewRestaurant.lat && previewRestaurant.lng
+              ? () => onShowOnMap(previewRestaurant.lat, previewRestaurant.lng)
+              : undefined
+          }
           onClose={() => setPreviewRestaurant(null)}
         />
       )}

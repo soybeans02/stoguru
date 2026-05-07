@@ -345,6 +345,7 @@ function MainApp() {
               onStock={handleStock}
               onRemoveStock={handleRemoveStock}
               onOpenMap={() => setTab('map')}
+              onShowOnMap={(lat, lng) => handleShowOnMap(lat, lng)}
               onOpenSwipe={() => setTab('swipe')}
               onOpenAccount={() => setTab('account')}
               onOpenSaved={() => setTab('stock')}
