@@ -15,6 +15,7 @@ import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 // 別途定義しているので、衝突を避けるために import 側は alias で受ける。
 import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
 import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeThemeLabel, localizeProperNoun, localizePriceRange, localizeFreeText } from '../../utils/labelI18n';
+import { matchesTheme } from '../../utils/themeMatch';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -313,12 +314,12 @@ export function DiscoveryHome({
   const genreCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     GENRES_AS_THEMES.forEach((g) => { counts[g.id] = 0; });
+    // utils/themeMatch を共有することで、テーマ詳細画面側のフィルタと
+    // 完全に同じ判定式になる（ホーム「3件」 → タップ → 0 件 みたいな
+    // 不一致が出ないように）。
     feed.forEach((r) => {
-      const gtxt = String(r.genre ?? '').toLowerCase();
-      if (!gtxt) return;
       GENRES_AS_THEMES.forEach((g) => {
-        const matched = (g.keywords ?? []).some((kw) => gtxt.includes(kw.toLowerCase()));
-        if (matched) counts[g.id] += 1;
+        if (matchesTheme(r, g.keywords ?? [])) counts[g.id] += 1;
       });
     });
     return counts;

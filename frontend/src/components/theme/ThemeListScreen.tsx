@@ -13,6 +13,7 @@ import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/goog
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { useTranslation } from '../../context/LanguageContext';
 import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeProperNoun, localizeThemeLabel, localizeThemeDescription, localizePriceRange, localizeFreeText } from '../../utils/labelI18n';
+import { matchesTheme } from '../../utils/themeMatch';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -206,12 +207,9 @@ export function ThemeListScreen({ themeId }: Props) {
   // フィルタリング + ソート
   const matched = useMemo(() => {
     if (!theme) return [];
-    const kws = theme.keywords.map((k) => k.toLowerCase());
-    let out = feed.filter((r) => {
-      const text = [r.name, r.genre, r.description, ...(r.genres ?? []), ...(r.scene ?? [])]
-        .join(' ').toLowerCase();
-      return kws.some((kw) => text.includes(kw));
-    });
+    // utils/themeMatch をホームのジャンル件数バッジと共有しているので、
+    // ホーム「3件」と詳細画面のヒット数が必ず一致する。
+    let out = feed.filter((r) => matchesTheme(r, theme.keywords));
 
     // エリアフィルタ：選択された各エリアに対して、住所文字列マッチ または 緯度経度近傍（半径 2km）
     if (selectedAreas.length > 0) {
