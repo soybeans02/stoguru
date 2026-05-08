@@ -12,7 +12,7 @@ import { goBack, navigate } from '../../utils/navigate';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeProperNoun, localizeThemeLabel, localizeThemeDescription } from '../../utils/labelI18n';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -292,9 +292,9 @@ export function ThemeListScreen({ themeId }: Props) {
           <div className="max-w-[640px]">
             <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] opacity-80 mb-1.5">{t('theme.label')}</div>
             <h1 className="text-[26px] sm:text-[30px] lg:text-[36px] font-extrabold tracking-[-0.02em] leading-tight mb-1.5">
-              {theme.label}
+              {localizeThemeLabel(theme.id, theme.label, language)}
             </h1>
-            <p className="text-[12.5px] sm:text-[14px] opacity-90 leading-relaxed line-clamp-2">{theme.description}</p>
+            <p className="text-[12.5px] sm:text-[14px] opacity-90 leading-relaxed line-clamp-2">{localizeThemeDescription(theme.id, theme.description, language)}</p>
           </div>
         </div>
       </header>
@@ -561,7 +561,7 @@ export function ThemeListScreen({ themeId }: Props) {
         {/* Main */}
         <main>
           <div className="mb-5">
-            <h2 className="text-[20px] font-extrabold tracking-[-0.015em] mb-0.5">{t('theme.detailTitleTemplate').replace('{label}', theme.label)}</h2>
+            <h2 className="text-[20px] font-extrabold tracking-[-0.015em] mb-0.5">{t('theme.detailTitleTemplate').replace('{label}', localizeThemeLabel(theme.id, theme.label, language))}</h2>
             <p className="text-[12px] text-[var(--text-tertiary)]">
               {loading ? t('common.loading') : t('theme.foundCountTemplate').replace('{count}', String(matched.length))}
             </p>
@@ -759,7 +759,7 @@ function ThemeCard({
       </div>
 
       <div className="p-4 flex flex-col gap-2.5 flex-1">
-        <h3 className="text-[18px] font-extrabold tracking-[-0.015em] leading-[1.3] line-clamp-2">{restaurant.name}</h3>
+        <h3 className="text-[18px] font-extrabold tracking-[-0.015em] leading-[1.3] line-clamp-2">{localizeProperNoun(restaurant.name, language)}</h3>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[var(--text-secondary)]">
           {distance && (
             <span className="inline-flex items-center gap-1 text-[var(--text-primary)] font-semibold">

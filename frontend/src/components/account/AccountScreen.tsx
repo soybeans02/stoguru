@@ -12,6 +12,7 @@ import { Input } from '../ui/Input';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { LegalSheet } from '../legal/LegalDocs';
 import { navigate } from '../../utils/navigate';
+import { localizeProperNoun, localizeGenre } from '../../utils/labelI18n';
 
 interface Props {
   stocks: StockedRestaurant[];
@@ -436,7 +437,7 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                   className="font-extrabold tracking-[-0.025em] flex items-center gap-2.5"
                   style={{ fontSize: 24, color: 'var(--text-primary)', lineHeight: 1.15 }}
                 >
-                  <span className="truncate">{user?.nickname ?? t('account.userFallback')}</span>
+                  <span className="truncate">{user?.nickname ? localizeProperNoun(user.nickname, language) : t('account.userFallback')}</span>
                   {isVerified && (
                     <span
                       aria-label={t('account.verifiedAriaLabel')}
@@ -852,8 +853,8 @@ export function AccountScreen({ stocks, onRestaurantEdited }: Props) {
                 <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50">
                   <span className="text-xl">{s.photoEmoji}</span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
-                    <p className="text-[11px] text-gray-400">{s.genre}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{localizeProperNoun(s.name, language)}</p>
+                    <p className="text-[11px] text-gray-400">{localizeGenre(s.genre, language)}</p>
                   </div>
                 </div>
               ))}
@@ -1506,10 +1507,11 @@ function FollowListRow({
   profilePhotoUrl?: string | null;
   onOpen: () => void;
 }) {
-  const { t } = useTranslation();
-  const safeName = nickname?.trim() || t('account.userFallback');
+  const { t, language } = useTranslation();
+  const rawName = nickname?.trim() || t('account.userFallback');
+  const safeName = localizeProperNoun(rawName, language);
   // ニックネーム未設定時は UUID 先頭 8 文字を fake handle にして "生 UUID 全部" よりはマシに。
-  const handle = nickname?.trim() || `u_${userId.slice(0, 8)}`;
+  const handle = nickname?.trim() ? localizeProperNoun(nickname.trim(), language) : `u_${userId.slice(0, 8)}`;
   const initial = safeName.charAt(0).toUpperCase();
   return (
     <button

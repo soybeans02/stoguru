@@ -6,7 +6,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { navigate, goBack } from '../../utils/navigate';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { safeHttpUrl } from '../../utils/safeUrl';
-import { localizeGenre, localizeTag } from '../../utils/labelI18n';
+import { localizeGenre, localizeTag, localizeProperNoun } from '../../utils/labelI18n';
 
 interface PublicProfile {
   influencerId: string;
@@ -189,7 +189,7 @@ export function PublicProfileScreen({ userId }: Props) {
                     <div className="sm:pb-1.5 min-w-0">
                       <div className="flex items-center gap-2">
                         <h1 className="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] truncate">
-                          {profile.displayName || t('publicProfile.userFallback')}
+                          {profile.displayName ? localizeProperNoun(profile.displayName, language) : t('publicProfile.userFallback')}
                         </h1>
                         {profile.isVerified && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--accent-blue)' }}>
@@ -336,7 +336,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
 
         {/* Info column */}
         <div className="p-4 sm:p-5 flex flex-col">
-          <h3 className="text-[16px] sm:text-[17px] font-bold tracking-[-0.01em] mb-1.5">{restaurant.name}</h3>
+          <h3 className="text-[16px] sm:text-[17px] font-bold tracking-[-0.01em] mb-1.5">{localizeProperNoun(restaurant.name, language)}</h3>
 
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] mb-2 flex-wrap">
             {restaurant.address && <span>{restaurant.address}</span>}

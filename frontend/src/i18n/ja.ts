@@ -195,6 +195,12 @@ export const ja = {
     rankingSubtitle: '一番保存されてるお店たち',
     posterRankingTitle: '投稿者ランキング',
     posterRankingSubtitle: '投稿したお店が一番保存されてる人たち',
+    // ホームのセクションヘッダ（追加）
+    themesTitle: 'テーマで探す',
+    themesSubtitle: '気分に合わせてサクッと探す',
+    featuresTitle: '特集',
+    featuresSubtitle: '編集部が書いてる、読み物寄りのお店紹介',
+    itemCountSuffix: '件',
     // Themes-all modal
     themesAllTitle: 'テーマ一覧',
     themesAllSubtitle: '気分・シーンで選ぶ、編集部のおすすめまとめ',
@@ -306,6 +312,8 @@ export const ja = {
     footerContact: 'お問い合わせ',
     footerPrivacy: 'プライバシーポリシー',
     footerTerms: '利用規約',
+    footerCookie: 'クッキーポリシー',
+    footerCommerce: '特定商取引法に基づく表記',
     footerLegal: '特商法表記',
     footerCopyright: '© 2026 stoguru',
     footerLove: 'Made with 🧡 in Osaka',

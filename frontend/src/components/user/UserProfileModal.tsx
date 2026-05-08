@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as api from '../../utils/api';
 import { safeHttpUrl } from '../../utils/safeUrl';
 import { useTranslation } from '../../context/LanguageContext';
+import { localizeProperNoun } from '../../utils/labelI18n';
 
 interface ProfileData {
   userId: string;
@@ -131,11 +132,11 @@ export function UserProfileModal({ userId, onClose }: Props) {
                     ? 'bg-gradient-to-br from-red-400 to-orange-300'
                     : 'bg-gradient-to-br from-blue-400 to-cyan-300'
                 }`}>
-                  {profile.nickname.charAt(0)}
+                  {localizeProperNoun(profile.nickname, language).charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-gray-900 text-lg truncate">{profile.nickname}</p>
+                    <p className="font-bold text-gray-900 text-lg truncate">{localizeProperNoun(profile.nickname, language)}</p>
                     {isMyself && (
                       <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">{t('account.profileYouBadge')}</span>
                     )}
@@ -272,7 +273,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                               style={{ backgroundColor: r.hasReview ? '#86efac' : '#ef4444', opacity: r.hasReview ? 0.85 : 1 }}
                             />
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-800 truncate">{r.name}</p>
+                              <p className="text-sm font-medium text-gray-800 truncate">{localizeProperNoun(r.name, language)}</p>
                               {r.address && (
                                 <p className="text-xs text-gray-400 truncate flex items-center gap-1">
                                   <MapPin size={10} /> {r.address}

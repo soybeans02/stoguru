@@ -3,6 +3,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import './sidebar.css';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './context/LanguageContext';
+import { localizeProperNoun } from './utils/labelI18n';
 import { useGPS } from './hooks/useGPS';
 import { OnboardingScreen } from './components/onboarding/OnboardingScreen';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -87,7 +88,7 @@ function Sidebar({
   stockCount: number;
   profileImage?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const items: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'home', label: t('tabs.home'), icon: <IconHome /> },
     { key: 'map', label: t('tabs.map'), icon: <IconMap /> },
@@ -96,8 +97,9 @@ function Sidebar({
   ];
 
   // ユーザーのアバター文字（ニックネーム先頭 1 文字を大文字化）
-  const avatarChar = (user?.nickname ?? 'g').charAt(0).toUpperCase();
-  const handle = user ? user.nickname : 'guest';
+  const displayName = user?.nickname ? localizeProperNoun(user.nickname, language) : '';
+  const avatarChar = (displayName || 'g').charAt(0).toUpperCase();
+  const handle = displayName || 'guest';
 
   return (
     <aside className="stg-sidebar">
@@ -142,7 +144,7 @@ function Sidebar({
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="sidebar__user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.nickname ?? t('common.guest')}
+            {displayName || t('common.guest')}
           </div>
           <div className="sidebar__user-handle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             @{handle}

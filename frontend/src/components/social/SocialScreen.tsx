@@ -4,6 +4,7 @@ import * as api from '../../utils/api';
 import { UserProfileModal } from '../user/UserProfileModal';
 import { distanceMetres } from '../../utils/distance';
 import { useTranslation } from '../../context/LanguageContext';
+import { localizeProperNoun } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 
 type SubView = 'main' | 'notifications' | 'following' | 'requests';
@@ -28,7 +29,7 @@ interface Props {
 
 export function SocialScreen({ onUnreadCount, initialView, onInitViewConsumed, onGoHome, initialQuery, onInitQueryConsumed, initialGeo, onInitGeoConsumed }: Props) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const myId = user?.userId ?? '';
   const [view, setView] = useState<SubView>(() => {
     if (initialView === 'notifications') return 'notifications';
@@ -528,7 +529,7 @@ const handleStockRestaurant = useCallback(async (r: api.SearchResult['restaurant
                   {/* Info + Save button */}
                   <div className="px-4 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">{r.name}</h4>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">{localizeProperNoun(r.name, language)}</h4>
                       <p className="text-[11px] text-gray-400 truncate">
                         {[r.genres?.slice(0, 2).join('・'), r.priceRange].filter(Boolean).join(' · ')}
                       </p>

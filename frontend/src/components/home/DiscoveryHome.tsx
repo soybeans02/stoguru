@@ -14,7 +14,7 @@ import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 // `GENRE_PHOTOS` はこのファイル下方で genre keyword → 写真の解決用 const として
 // 別途定義しているので、衝突を避けるために import 側は alias で受ける。
 import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
-import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeThemeLabel, localizeProperNoun } from '../../utils/labelI18n';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -188,7 +188,7 @@ export function DiscoveryHome({
   refreshKey,
 }: Props) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isAnonymous = !user;
   const [authModal, setAuthModal] = useState<null | 'signup' | 'login'>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -437,8 +437,8 @@ export function DiscoveryHome({
         {/* ─── テーマで探す — Claude Design 風 4:5 アスペクトのオーバーレイカード ─── */}
         <section className="py-12 sm:py-16">
           <SectionHead
-            title="テーマで探す"
-            subtitle="気分に合わせてサクッと探す"
+            title={t('home.themesTitle')}
+            subtitle={t('home.themesSubtitle')}
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-3.5 mt-2">
             {THEMES.map((th) => (
@@ -457,7 +457,7 @@ export function DiscoveryHome({
                   className="absolute left-3.5 right-3.5 bottom-3.5 text-white flex items-end justify-between gap-2"
                   style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
                 >
-                  <span className="text-[15px] sm:text-[16px] font-bold tracking-[-0.01em] leading-[1.2]">{th.label}</span>
+                  <span className="text-[15px] sm:text-[16px] font-bold tracking-[-0.01em] leading-[1.2]">{localizeThemeLabel(th.id, th.label, language)}</span>
                 </div>
               </button>
             ))}
@@ -535,9 +535,9 @@ export function DiscoveryHome({
                     className="font-semibold flex flex-col items-center gap-0.5"
                     style={{ fontSize: 13, color: 'var(--text-primary)' }}
                   >
-                    <span>{g.label}</span>
+                    <span>{localizeThemeLabel(g.id, g.label, language)}</span>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                      {count}件
+                      {count}{t('home.itemCountSuffix')}
                     </span>
                   </span>
                 </a>
@@ -550,8 +550,8 @@ export function DiscoveryHome({
         {themeConfigs.length > 0 && (
           <section className="py-12 sm:py-16">
             <SectionHead
-              title="特集"
-              subtitle="編集部が書いてる、読み物寄りのお店紹介"
+              title={t('home.featuresTitle')}
+              subtitle={t('home.featuresSubtitle')}
               link={themeConfigs.length > 3 ? t('home.feedViewAll') : undefined}
               onLinkClick={() => setShowThemes(true)}
             />
@@ -808,8 +808,8 @@ export function DiscoveryHome({
               items={[
                 { label: t('home.footerPrivacy'), onClick: () => setLegalPanel('privacy') },
                 { label: t('home.footerTerms'), onClick: () => setLegalPanel('terms') },
-                { label: 'クッキーポリシー', onClick: () => setLegalPanel('cookie') },
-                { label: '特定商取引法に基づく表記', onClick: () => setLegalPanel('commerce') },
+                { label: t('home.footerCookie'), onClick: () => setLegalPanel('cookie') },
+                { label: t('home.footerCommerce'), onClick: () => setLegalPanel('commerce') },
               ]}
             />
           </div>
@@ -1858,7 +1858,8 @@ function RankCard({
   user: api.RankedUser;
   onClick: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const displayName = localizeProperNoun(user.nickname, language);
   const photo = user.profilePhotoUrl;
   // 順位ごとに avatar アクセント色を変える（1=金、2=シルバー、3=オレンジ、それ以降=パープル/ブルー）
   const accentBg =
@@ -1883,17 +1884,17 @@ function RankCard({
           style={{ background: accentBg }}
         >
           {photo ? (
-            <img loading="lazy" src={photo} alt={user.nickname} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            <img loading="lazy" src={photo} alt={displayName} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           ) : (
-            <span style={{ fontSize: 16 }}>{user.nickname.charAt(0).toUpperCase()}</span>
+            <span style={{ fontSize: 16 }}>{displayName.charAt(0).toUpperCase()}</span>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-bold truncate" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
-            {user.nickname}
+            {displayName}
           </div>
           <div className="truncate" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            @{user.nickname}
+            @{displayName}
           </div>
         </div>
         <span
@@ -2074,9 +2075,9 @@ function RestaurantCard({
       <div className="px-3.5 py-3 flex-1 flex flex-col">
         <div
           className="text-[14.5px] font-bold tracking-[-0.01em] leading-snug mb-1.5 line-clamp-1"
-          title={restaurant.name}
+          title={localizeProperNoun(restaurant.name, language)}
         >
-          {restaurant.name}
+          {localizeProperNoun(restaurant.name, language)}
         </div>
         <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)] mb-2 flex-wrap">
           {distance && <span className="font-medium">{distance}</span>}
@@ -2569,7 +2570,7 @@ export function RestaurantPreviewModal({
           {/* ── 情報エリア ── */}
           <div className="px-5 sm:px-6 pt-5 pb-6">
             <h2 className="font-extrabold tracking-[-0.01em]" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {restaurant.name}
+              {localizeProperNoun(restaurant.name, language)}
             </h2>
             {/* 細い字の行は住所のみ。ジャンルと価格帯は下の 2x2 グリッドに
                 同じ情報があるので重複を削る。コメント（description）は次の段で出す。 */}

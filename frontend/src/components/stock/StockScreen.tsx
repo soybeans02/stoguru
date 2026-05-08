@@ -5,7 +5,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { priceRangeMatches } from '../../utils/price';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene, localizePrefecture, localizeTag } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizePrefecture, localizeTag, localizeProperNoun } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { getTranslation, STORAGE_KEY, type Language } from '../../i18n';
@@ -344,7 +344,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   </button>
                 </div>
                 <div className="stock-card__body">
-                  <h3 className="stock-card__title">{s.name}</h3>
+                  <h3 className="stock-card__title">{localizeProperNoun(s.name, language)}</h3>
                   <div className="stock-card__meta">
                     {dist && <><span>{dist}</span><span className="stock-card__meta-dot"></span></>}
                     {s.genre && <><span>{localizeGenre(s.genre, language)}</span></>}
@@ -430,7 +430,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   {photo && <img loading="lazy" src={photo} alt={s.name} />}
                 </div>
                 <div className="stock-row__body">
-                  <div className="stock-row__title">{s.name}</div>
+                  <div className="stock-row__title">{localizeProperNoun(s.name, language)}</div>
                   <div className="stock-row__meta">
                     <span className={`stock-card__source-dot ${src}`}>{src.toUpperCase()}</span>
                     {s.address && <span className="stock-row__meta-address">{s.address}</span>}

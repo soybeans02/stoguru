@@ -6,7 +6,7 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizeProperNoun } from '../../utils/labelI18n';
 import { GENRE_TAGS } from '../../constants/genre';
 import { POPULAR_GENRES } from '../../data/mockRestaurants';
 import './map-page.css';
@@ -1558,10 +1558,10 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                     {photo ? <img loading="lazy" src={photo} alt="" /> : null}
                   </div>
                   <div className="map-list__item-body">
-                    <div className="map-list__item-title">{s.name}</div>
+                    <div className="map-list__item-title">{localizeProperNoun(s.name, language)}</div>
                     <div className="map-list__item-meta">
                       {s.address && <span>{s.address}</span>}
-                      {s.genre && <><span className="map-list__item-meta-dot" /><span>{s.genre}</span></>}
+                      {s.genre && <><span className="map-list__item-meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
                       {s.priceRange && <><span className="map-list__item-meta-dot" /><span>{s.priceRange}</span></>}
                     </div>
                     <div className="map-list__item-tags">
@@ -1604,7 +1604,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
             </div>
             <div className="map-card__body">
               <div className="map-card__top">
-                <h3 className="map-card__title">{s.name}</h3>
+                <h3 className="map-card__title">{localizeProperNoun(s.name, language)}</h3>
                 <button className="map-card__close" onClick={() => setSelectedStockId(null)} aria-label={t('common.close')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
