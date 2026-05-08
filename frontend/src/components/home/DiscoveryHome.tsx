@@ -1862,12 +1862,15 @@ function RankCard({
   const { t, language } = useTranslation();
   const displayName = localizeProperNoun(user.nickname, language);
   const photo = user.profilePhotoUrl;
-  // 順位ごとに avatar アクセント色を変える（1=金、2=シルバー、3=オレンジ、それ以降=パープル/ブルー）
-  const accentBg =
+  // 順位の色 — 「番号バッジ」に当てる（金=1、シルバー=2、ブロンズ=3、4 位以降パープル）。
+  // 旧仕様では avatar 全体に金/銀/銅を被せていたが、ユーザーが設定した
+  // プロフィール画像と競合するので avatar からは外して順位ピル側に寄せた。
+  const rankBg =
     rank === 1 ? 'var(--stg-yellow)' :
     rank === 2 ? 'var(--stg-gray-400)' :
     rank === 3 ? 'var(--stg-orange-500)' :
     'var(--stg-purple)';
+  const rankColor = rank === 1 ? '#5a3e00' : 'white';
   return (
     <button
       onClick={onClick}
@@ -1880,9 +1883,14 @@ function RankCard({
       }}
     >
       <div className="flex items-center gap-3">
+        {/* avatar — profilePhotoUrl があればそれ、無ければ FollowListRow と同じ
+            cream→orange グラデの頭文字に統一（順位 accent から切り離す）。 */}
         <div
-          className="w-11 h-11 rounded-full overflow-hidden grid place-items-center font-extrabold text-white flex-shrink-0"
-          style={{ background: accentBg }}
+          className="w-11 h-11 rounded-full overflow-hidden grid place-items-center font-extrabold flex-shrink-0"
+          style={photo ? undefined : {
+            background: 'linear-gradient(135deg, var(--stg-cream-100, #FFF1E0), var(--stg-orange-100, #FFE4C7))',
+            color: 'var(--stg-orange-600, #C2410C)',
+          }}
         >
           {photo ? (
             <img loading="lazy" src={photo} alt={displayName} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
@@ -1900,7 +1908,7 @@ function RankCard({
         </div>
         <span
           className="inline-flex items-center justify-center text-[11px] font-bold px-2.5 py-1 rounded-full"
-          style={{ background: 'var(--bg-soft)', color: 'var(--text-primary)' }}
+          style={{ background: rankBg, color: rankColor }}
         >
           {rank}{t('home.rankSuffix')}
         </span>
