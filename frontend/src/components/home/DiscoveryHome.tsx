@@ -978,7 +978,7 @@ function HeroDeck({
   tStatRestaurants, tStatUsers, tStatSaves,
   statRestaurantsCount, statUsersCount, statSavesCount,
 }: HeroDeckProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // ユーザーデータと無関係の「見本」カードを使う。
   const cards = HERO_SAMPLE_CARDS;
   // 数値の表示整形：1000 以上なら "1.2k" 形式、1万以上は "1.2万" 形式。
@@ -1163,10 +1163,10 @@ function HeroDeck({
                       className="font-bold text-[20px] lg:text-[22px] tracking-[-0.01em] leading-[1.15] mb-1"
                       style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
                     >
-                      {c.name}
+                      {localizeProperNoun(c.name, language)}
                     </div>
                     <div className="text-[12px] opacity-90" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-                      {c.priceRange}
+                      {localizePriceRange(c.priceRange, language)}
                     </div>
                     {c.scene.length > 0 && (
                       <div className="flex gap-1.5 mt-2.5">
@@ -1176,7 +1176,7 @@ function HeroDeck({
                             className="text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur"
                             style={{ background: 'rgba(255,255,255,0.22)' }}
                           >
-                            {sc}
+                            {localizeSceneFn(sc, language)}
                           </span>
                         ))}
                       </div>
@@ -1198,7 +1198,7 @@ function HeroDeck({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 1.4 14 6.7l5.8.8-4.2 4 1 5.7-5.1-2.7L6.4 17.3l1-5.7-4.2-4 5.8-.8z"/></svg>
             </span>
             4.8
-            <span className="text-[11px] font-medium" style={{ color: 'var(--stg-ink-muted)' }}>大阪・北区</span>
+            <span className="text-[11px] font-medium" style={{ color: 'var(--stg-ink-muted)' }}>{localizeProperNoun('大阪・北区', language)}</span>
           </div>
 
           {/* action ring — 完全に装飾のみ。クリックしても何もしない（noop）。
@@ -1778,9 +1778,9 @@ function SpotRankCard({
         <div
           className="font-bold tracking-[-0.01em] truncate"
           style={{ fontSize: 15, color: 'var(--text-primary)' }}
-          title={spot.name}
+          title={localizeProperNoun(spot.name, language)}
         >
-          {spot.name}
+          {localizeProperNoun(spot.name, language)}
         </div>
         <div
           className="flex items-center gap-2 mt-1 flex-wrap"
@@ -1788,7 +1788,7 @@ function SpotRankCard({
         >
           {spot.genres?.[0] && <span>{localizeGenreFn(spot.genres[0], language)}</span>}
           {spot.genres?.[0] && spot.priceRange && <span className="opacity-50">·</span>}
-          {spot.priceRange && <span>{spot.priceRange}</span>}
+          {spot.priceRange && <span>{localizePriceRange(spot.priceRange, language)}</span>}
         </div>
         {/* ジャンルチップ（クリームベース） */}
         {spot.genres && spot.genres.length > 1 && (
