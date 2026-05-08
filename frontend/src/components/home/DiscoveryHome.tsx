@@ -2601,8 +2601,8 @@ export function RestaurantPreviewModal({
               {[
                 { label: t('home.previewLabelDistance'), value: distance || '—' },
                 { label: t('home.previewLabelGenre'), value: genre ? localizeGenreFn(genre, language) : '—' },
-                { label: t('home.previewLabelPrice'), value: restaurant.priceRange || '—' },
-                { label: t('home.previewLabelArea'), value: area || '—' },
+                { label: t('home.previewLabelPrice'), value: restaurant.priceRange ? localizePriceRange(restaurant.priceRange, language) : '—' },
+                { label: t('home.previewLabelArea'), value: area ? localizeProperNoun(area, language) : '—' },
               ].map((row) => (
                 <div key={row.label}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: 'var(--text-tertiary)' }}>
