@@ -5,7 +5,7 @@ import * as api from '../../utils/api';
 import { useGPS } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
-import { GENRES } from '../../data/mockRestaurants';
+import { GENRES, MOCK_RESTAURANTS } from '../../data/mockRestaurants';
 import { AuthModal } from '../auth/AuthModal';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { goBack, navigate } from '../../utils/navigate';
@@ -84,20 +84,28 @@ export function ThemeListScreen({ themeId }: Props) {
   const bucketLat = position ? Math.round(position.lat * 100) / 100 : null;
   const bucketLng = position ? Math.round(position.lng * 100) / 100 : null;
 
-  // フィードを広めの半径で取得
+  // フィードを広めの半径で取得。
+  // ホーム（DiscoveryHome）と完全に同じパラメータ＆同じ mock フォールバックに
+  // 揃えてある — 揃えないとホームのジャンル件数（mock fallback で N 件）と
+  // テーマ詳細（実 API 0 件）で表示が食い違って「3件と書いてあるのに開くと
+  // 0 件」というユーザー混乱を起こす。
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const lat = position?.lat ?? 34.7025;
     const lng = position?.lng ?? 135.4959;
-    // 半径 5km × 50 件で取得（旧 20km × 100 件 → 9 geohash セル × 1000 件
-    // Query になっていた。バックの geohash4 セル換算で大幅にコスト削減）
-    api.fetchRestaurantFeed(lat, lng, 5000, 50)
+    api.fetchRestaurantFeed(lat, lng, 20000, 40)
       .then((data: unknown) => {
         if (cancelled) return;
-        setFeed(Array.isArray(data) ? (data as Restaurant[]) : []);
+        if (Array.isArray(data) && data.length > 0) {
+          setFeed(data as Restaurant[]);
+        } else {
+          setFeed(MOCK_RESTAURANTS as unknown as Restaurant[]);
+        }
       })
-      .catch(() => { if (!cancelled) setFeed([]); })
+      .catch(() => {
+        if (!cancelled) setFeed(MOCK_RESTAURANTS as unknown as Restaurant[]);
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
