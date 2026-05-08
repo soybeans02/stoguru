@@ -433,7 +433,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   <div className="stock-row__title">{localizeProperNoun(s.name, language)}</div>
                   <div className="stock-row__meta">
                     <span className={`stock-card__source-dot ${src}`}>{src.toUpperCase()}</span>
-                    {s.address && <span className="stock-row__meta-address">{s.address}</span>}
+                    {s.address && <span className="stock-row__meta-address">{localizeProperNoun(s.address, language)}</span>}
                     {dist && <><span className="stock-card__meta-dot"></span><span>{dist}</span></>}
                     {s.genre && <><span className="stock-card__meta-dot"></span><span>{localizeGenre(s.genre, language)}</span></>}
                     {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}

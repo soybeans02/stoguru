@@ -339,7 +339,7 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
           <h3 className="text-[16px] sm:text-[17px] font-bold tracking-[-0.01em] mb-1.5">{localizeProperNoun(restaurant.name, language)}</h3>
 
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] mb-2 flex-wrap">
-            {restaurant.address && <span>{restaurant.address}</span>}
+            {restaurant.address && <span>{localizeProperNoun(restaurant.address, language)}</span>}
             {restaurant.address && (genre || restaurant.priceRange) && <span className="opacity-50">·</span>}
             {genre && <span>{localizeGenre(genre, language)}</span>}
             {genre && restaurant.priceRange && <span className="opacity-50">·</span>}

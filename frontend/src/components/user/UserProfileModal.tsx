@@ -276,7 +276,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
                               <p className="text-sm font-medium text-gray-800 truncate">{localizeProperNoun(r.name, language)}</p>
                               {r.address && (
                                 <p className="text-xs text-gray-400 truncate flex items-center gap-1">
-                                  <MapPin size={10} /> {r.address}
+                                  <MapPin size={10} /> {localizeProperNoun(r.address, language)}
                                 </p>
                               )}
                             </div>

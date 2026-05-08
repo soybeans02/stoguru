@@ -1,17 +1,19 @@
 /**
- * 仮名 → ヘボン式ローマ字 ベストエフォート変換。
+ * 仮名 / 漢字 → ローマ字 ベストエフォート変換。
  *
- * - ひらがな / カタカナだけ変換し、漢字 / ASCII / 記号 はそのまま残す。
- * - っ/ッ（促音）→ 次子音重ね（っか → kka）。
- * - ー（長音）→ 直前の母音をもう 1 文字。
- * - 拗音（きゃ / シェ など）はテーブル先引きで 2 文字をまとめて処理。
+ * パイプライン:
+ *   1. 漢字複合語（KANJI_COMPOUNDS, longest match first）でまず置換
+ *   2. 残った仮名（kana）を Hepburn 寄りで音節変換
+ *      - っ/ッ → 次子音重ね（っか → kka）
+ *      - ー → 直前母音をもう 1 文字（アー → aa）
+ *      - 拗音（きゃ / シェ / ファ / ティ 等）は 2 文字テーブル先引き
+ *   3. それでも残った 1 字漢字（KANJI_SINGLE）を音読み中心の単表で救済
  *
- * 漢字の読みは内部辞書を持っていないので変換できない。漢字混じりの
- * 店名は中途半端な出力になる前提（ユーザーは「無理やり」OK と明言）。
- *
- * 依存ライブラリを足したくなかったので手書き。Hepburn 寄り（しちつ →
- * shi/chi/tsu, じゃ → ja, ふ → fu）。
+ * 形態素解析エンジン (kuromoji 等) は ~3MB 級の辞書を持ち込むので不採用。
+ * 飲食アプリで実用的な範囲のみ手書きで網羅。未収録の語は素通り。
+ * 「無理やり OK」方針 — 多少崩れても EN 寄せを優先。
  */
+import { KANJI_COMPOUNDS, KANJI_SINGLE, COMPOUND_KEYS_DESC } from './kanjiDict';
 
 const HIRA: Record<string, string> = {
   'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
@@ -92,8 +94,39 @@ function isVowel(ch: string): boolean {
   return ch === 'a' || ch === 'i' || ch === 'u' || ch === 'e' || ch === 'o';
 }
 
-/** kana を含む文字列をベストエフォートで romaji 化。 */
-export function kanaToRomaji(input: string): string {
+/**
+ * 内部用：漢字複合語マッチ。
+ * 入力をスキャンしながら、各位置で「最長一致する複合語キー」が KANJI_COMPOUNDS
+ * にあれば差し替える。ヒットしなかった文字は変換せず素通り。
+ * 結果は `[token, isReplaced]` の配列で返す（後段の kana 変換に流し込みやすくするため）。
+ */
+function applyKanjiCompounds(input: string): Array<[string, boolean]> {
+  const tokens: Array<[string, boolean]> = [];
+  let i = 0;
+  while (i < input.length) {
+    let matched: string | null = null;
+    let matchedKey = '';
+    for (const key of COMPOUND_KEYS_DESC) {
+      if (key.length > input.length - i) continue;
+      if (input.startsWith(key, i)) {
+        matched = KANJI_COMPOUNDS[key]!;
+        matchedKey = key;
+        break; // 既に長い順なので最初のヒットが最長
+      }
+    }
+    if (matched) {
+      tokens.push([matched, true]);
+      i += matchedKey.length;
+    } else {
+      tokens.push([input[i]!, false]);
+      i += 1;
+    }
+  }
+  return tokens;
+}
+
+/** 仮名→romaji の音節レベル変換（漢字は素通り）。 */
+function syllableConvert(input: string): string {
   if (!input) return '';
   let out = '';
   let i = 0;
@@ -132,6 +165,41 @@ export function kanaToRomaji(input: string): string {
     i++;
   }
   return out;
+}
+
+/** 単漢字フォールバック：仮名変換後にまだ残ってる漢字 1 字を表からそれっぽく拾う。 */
+function applySingleKanjiFallback(input: string): string {
+  let out = '';
+  for (const ch of input) {
+    const r = KANJI_SINGLE[ch];
+    out += r ?? ch;
+  }
+  return out;
+}
+
+/** kana / 漢字を含む文字列をベストエフォートで romaji 化。 */
+export function kanaToRomaji(input: string): string {
+  if (!input) return '';
+  // 1. 漢字複合語を最長一致で先に英語へ
+  const tokens = applyKanjiCompounds(input);
+  // 2. トークン単位で：置換済みはそのまま、未置換は仮名変換にかける
+  let mid = '';
+  for (let idx = 0; idx < tokens.length; idx++) {
+    const [tok, replaced] = tokens[idx]!;
+    if (replaced) {
+      // 置換済み英語の前後にスペースを差し込む（前の語と詰まらないように）
+      const needLeftSpace = mid.length > 0 && !/\s$/.test(mid);
+      mid += (needLeftSpace ? ' ' : '') + tok;
+    } else {
+      mid += tok;
+    }
+  }
+  // 3. 残った仮名を音節変換
+  const afterKana = syllableConvert(mid);
+  // 4. それでも残った漢字 1 字を救済
+  const afterSingle = applySingleKanjiFallback(afterKana);
+  // 5. 余計な連続スペースを 1 個に圧縮
+  return afterSingle.replace(/\s{2,}/g, ' ').trim();
 }
 
 /** 単語頭を大文字化（ASCII 範囲のみ）。固有名詞向け。 */

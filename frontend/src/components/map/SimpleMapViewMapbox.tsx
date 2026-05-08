@@ -163,7 +163,34 @@ function getBlendedTheme(): Theme {
   return themes.night;
 }
 
-function buildStyle(t: Theme): mapboxgl.StyleSpecification {
+/**
+ * 言語に応じた `text-field` 式を作る。
+ * - ja: name_ja → name の順で fallback
+ * - en: name_en → name の順で fallback（地名 / 駅名 / POI 全部英訳）
+ * Mapbox vector tile に既に多言語フィールドが入ってるので side-effect なしで切替可能。
+ */
+function nameExprFor(lang: 'ja' | 'en'): mapboxgl.ExpressionSpecification {
+  if (lang === 'en') {
+    return ['coalesce', ['get', 'name_en'], ['get', 'name']];
+  }
+  return ['coalesce', ['get', 'name_ja'], ['get', 'name']];
+}
+
+/** 言語切替時に text-field を貼り替えるラベルレイヤー一覧。buildStyle と同期させる。 */
+const LABEL_LAYER_IDS = ['place-label', 'transit-label', 'poi-label', 'building-label'] as const;
+
+function applyLabelLanguage(map: mapboxgl.Map, lang: 'ja' | 'en') {
+  if (!map.isStyleLoaded()) return;
+  const expr = nameExprFor(lang);
+  for (const id of LABEL_LAYER_IDS) {
+    try {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'text-field', expr);
+    } catch { /* レイヤー消えてた等は無視 */ }
+  }
+}
+
+function buildStyle(t: Theme, lang: 'ja' | 'en' = 'ja'): mapboxgl.StyleSpecification {
+  const nameExpr = nameExprFor(lang);
   return {
     version: 8,
     name: 'Stoguru Zenly',
@@ -210,7 +237,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
       { id: 'place-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'place_label',
         filter: ['match', ['get', 'class'], ['city', 'town', 'suburb', 'neighbourhood'], true, false],
         layout: {
-          'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+          'text-field': nameExpr,
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 10, 9, 16, 13],
           'text-anchor': 'center',
@@ -219,7 +246,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
         paint: { 'text-color': t.labelColor, 'text-halo-color': t.labelHalo, 'text-halo-width': 1.5 } },
       { id: 'transit-label', type: 'symbol', source: 'mapbox-streets', 'source-layer': 'transit_stop_label',
         layout: {
-          'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+          'text-field': nameExpr,
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': 10,
           'symbol-z-elevate': true,
@@ -229,7 +256,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
         minzoom: 14,
         filter: ['match', ['get', 'class'], ['landmark', 'place_of_worship', 'park_like', 'college', 'hospital'], true, false],
         layout: {
-          'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+          'text-field': nameExpr,
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 14, 9, 18, 11],
           'text-anchor': 'center', 'text-max-width': 8, 'text-allow-overlap': false,
@@ -241,7 +268,7 @@ function buildStyle(t: Theme): mapboxgl.StyleSpecification {
         minzoom: 14.5,
         filter: ['match', ['get', 'class'], ['commercial', 'lodging', 'public_facility', 'general', 'motorist', 'parking', 'parking_garage'], true, false],
         layout: {
-          'text-field': ['coalesce', ['get', 'name_ja'], ['get', 'name']],
+          'text-field': nameExpr,
           'text-font': ['DIN Pro Regular', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 14.5, 9, 18, 12],
           'text-anchor': 'center', 'text-max-width': 7, 'text-allow-overlap': false,
@@ -647,7 +674,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     const t = getBlendedTheme();
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: buildStyle(t),
+      style: buildStyle(t, language),
       center: defaultCenter,
       zoom: 15.5,
       pitch: 50,
@@ -916,6 +943,20 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
 
     return () => { clearInterval(timer); map.remove(); mapRef.current = null; mapLoadedRef.current = false; };
   }, []);
+
+  // 言語切替時にラベルレイヤーの text-field を貼り替え。
+  // 初期化済みの map インスタンスをそのまま使うので、再描画 / GeoJSON ソース
+  // の作り直しは発生しない。スタイル未ロード時は load イベントで遅延適用。
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (map.isStyleLoaded()) {
+      applyLabelLanguage(map, language);
+    } else {
+      const onLoad = () => applyLabelLanguage(map, language);
+      map.once('idle', onLoad);
+    }
+  }, [language]);
 
   // Pan to location + show popup
   useEffect(() => {
@@ -1560,7 +1601,8 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                   <div className="map-list__item-body">
                     <div className="map-list__item-title">{localizeProperNoun(s.name, language)}</div>
                     <div className="map-list__item-meta">
-                      {s.address && <span>{s.address}</span>}
+                      {s.address && <span>{localizeProperNoun(s.address, language)}</span>}
+                      {/* genre は localizeGenre で置換済 */}
                       {s.genre && <><span className="map-list__item-meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
                       {s.priceRange && <><span className="map-list__item-meta-dot" /><span>{s.priceRange}</span></>}
                     </div>
@@ -1610,7 +1652,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 </button>
               </div>
               <div className="map-card__meta">
-                {s.address && <span>{s.address}</span>}
+                {s.address && <span>{localizeProperNoun(s.address, language)}</span>}
                 {dist && <><span className="map-card__meta-dot" /><span style={{ color: 'var(--stg-gray-900)', fontWeight: 600 }}>{dist}</span></>}
                 {s.genre && <><span className="map-card__meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
                 {s.priceRange && <><span className="map-card__meta-dot" /><span>{s.priceRange}</span></>}
