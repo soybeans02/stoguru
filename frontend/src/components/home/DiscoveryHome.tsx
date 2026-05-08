@@ -14,7 +14,7 @@ import { THEMES, GENRES_AS_THEMES } from '../../data/themes';
 // `GENRE_PHOTOS` はこのファイル下方で genre keyword → 写真の解決用 const として
 // 別途定義しているので、衝突を避けるために import 側は alias で受ける。
 import { POPULAR_GENRES, GENRES, GENRE_PHOTOS as ALL_GENRE_PHOTOS } from '../../data/mockRestaurants';
-import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeThemeLabel, localizeProperNoun } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeThemeLabel, localizeProperNoun, localizePriceRange, localizeFreeText } from '../../utils/labelI18n';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { LogoMark } from '../ui/LogoMark';
 import { LegalSheet, type LegalDocType } from '../legal/LegalDocs';
@@ -2084,7 +2084,7 @@ function RestaurantCard({
           {distance && restaurant.genre && <span className="opacity-40">·</span>}
           {restaurant.genre && <span>{localizeGenreFn(restaurant.genre, language)}</span>}
           {restaurant.priceRange && <span className="opacity-40">·</span>}
-          {restaurant.priceRange && <span className="text-[var(--text-primary)] font-semibold tabular-nums">{restaurant.priceRange}</span>}
+          {restaurant.priceRange && <span className="text-[var(--text-primary)] font-semibold tabular-nums">{localizePriceRange(restaurant.priceRange, language)}</span>}
         </div>
         {restaurant.scene && restaurant.scene.length > 0 && (
           <div className="flex gap-1 flex-wrap mt-auto">
@@ -2589,7 +2589,7 @@ export function RestaurantPreviewModal({
                 className="leading-[1.6] mt-3"
                 style={{ fontSize: 14, color: 'var(--text-secondary)' }}
               >
-                {restaurant.description}
+                {localizeFreeText(restaurant.description, language)}
               </p>
             )}
 

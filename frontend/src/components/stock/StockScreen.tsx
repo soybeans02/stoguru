@@ -5,7 +5,7 @@ import { distanceMetres, formatDistance } from '../../utils/distance';
 import { matchesAnyPrefecture } from '../../utils/prefecture';
 import { priceRangeMatches } from '../../utils/price';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene, localizePrefecture, localizeTag, localizeProperNoun } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizePrefecture, localizeTag, localizeProperNoun, localizePriceRange } from '../../utils/labelI18n';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { FilterOverlay } from '../swipe/FilterOverlay';
 import { getTranslation, STORAGE_KEY, type Language } from '../../i18n';
@@ -348,7 +348,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                   <div className="stock-card__meta">
                     {dist && <><span>{dist}</span><span className="stock-card__meta-dot"></span></>}
                     {s.genre && <><span>{localizeGenre(s.genre, language)}</span></>}
-                    {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}
+                    {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{localizePriceRange(s.priceRange, language)}</span></>}
                   </div>
                   {handle && (
                     <div className="stock-card__source">
@@ -436,7 +436,7 @@ export function StockScreen({ stocks, onMarkVisited, onUnmarkVisited, onRemoveSt
                     {s.address && <span className="stock-row__meta-address">{localizeProperNoun(s.address, language)}</span>}
                     {dist && <><span className="stock-card__meta-dot"></span><span>{dist}</span></>}
                     {s.genre && <><span className="stock-card__meta-dot"></span><span>{localizeGenre(s.genre, language)}</span></>}
-                    {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{s.priceRange}</span></>}
+                    {s.priceRange && <><span className="stock-card__meta-dot"></span><span>{localizePriceRange(s.priceRange, language)}</span></>}
                   </div>
                 </div>
                 <div className="stock-row__date">{formatDate(s.stockedAt)}</div>

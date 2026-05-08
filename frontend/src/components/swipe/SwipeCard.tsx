@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { SwipeRestaurant } from '../../data/mockRestaurants';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene, localizeProperNoun } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizeProperNoun, localizePriceRange } from '../../utils/labelI18n';
 
 interface Props {
   restaurant: SwipeRestaurant;
@@ -281,7 +281,7 @@ export function SwipeCard({ restaurant, distance, onSwipeComplete, active, flyOu
           <div className="flex items-baseline gap-2 mb-2">
             <h3 className="text-xl font-bold text-white drop-shadow-lg">{localizeProperNoun(restaurant.name, language)}</h3>
             <span className="text-xs text-white/55 whitespace-nowrap">
-              {distance}{restaurant.priceRange ? ` · ${restaurant.priceRange}` : ''}
+              {distance}{restaurant.priceRange ? ` · ${localizePriceRange(restaurant.priceRange, language)}` : ''}
             </span>
           </div>
           <div className="flex gap-1.5 flex-wrap">

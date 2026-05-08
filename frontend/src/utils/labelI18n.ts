@@ -225,3 +225,25 @@ export function localizeThemeDescription(themeId: string, jp: string, lang: Lang
 export function localizeProperNoun(jp: string, lang: Language): string {
   return romanizeProperNoun(jp, lang);
 }
+
+/**
+ * 価格レンジ文字列を EN 用に整える。
+ * 例: "¥1,000〜2,000" → "¥1,000–2,000"。
+ * 全角 〜 (U+301C / U+FF5E) と半角 ~ を en-dash に置換するだけのシンプル変換。
+ */
+export function localizePriceRange(jp: string | undefined | null, lang: Language): string {
+  if (!jp) return '';
+  if (lang === 'ja') return jp;
+  return jp.replace(/[〜～~]/g, '–');
+}
+
+/**
+ * 店紹介・コメント等のフリーフォーム文を EN 時に romaji 化。
+ * description は本来「文章」なので漢字フォールバックでも崩れやすい。
+ * 単漢字未収録は元のまま残るので最低限読める形に落とす。
+ */
+export function localizeFreeText(jp: string | undefined | null, lang: Language): string {
+  if (!jp) return '';
+  if (lang === 'ja') return jp;
+  return romanizeProperNoun(jp, lang);
+}

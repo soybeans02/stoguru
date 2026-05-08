@@ -6,7 +6,7 @@ import type { GPSPosition } from '../../hooks/useGPS';
 import { distanceMetres, formatDistance } from '../../utils/distance';
 import { fetchFollowingRestaurants, getFollowing, getUserProfile, getInfluencerRestaurants } from '../../utils/api';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre, localizeScene, localizeProperNoun } from '../../utils/labelI18n';
+import { localizeGenre, localizeScene, localizeProperNoun, localizePriceRange } from '../../utils/labelI18n';
 import { GENRE_TAGS } from '../../constants/genre';
 import { POPULAR_GENRES } from '../../data/mockRestaurants';
 import './map-page.css';
@@ -454,12 +454,23 @@ function safeHttpUrl(raw: string | null | undefined): string | null {
 function buildPopupNode(
   p: { name: string; genre: string; distance: string; videoUrl: string; photoEmoji: string; photoUrls?: string; scene: string[]; priceRange: string; lat: number; lng: number; ownerNickname?: string },
   userPos: GPSPosition | null,
-  labels?: { video: string; navigate: string; localizeScene?: (s: string) => string; localizeGenre?: (g: string) => string },
+  labels?: {
+    video: string;
+    navigate: string;
+    localizeScene?: (s: string) => string;
+    localizeGenre?: (g: string) => string;
+    /** 店名 / オーナーニックネームを表示直前に整形（EN 時 romaji 化）。 */
+    localizeName?: (n: string) => string;
+    /** "¥1,000〜2,000" の 〜 を en-dash に置き換え等。 */
+    localizePrice?: (p: string) => string;
+  },
 ): HTMLElement {
   const videoText = labels?.video ?? '▶ 動画';
   const navText = labels?.navigate ?? 'ナビ';
   const sceneLoc = labels?.localizeScene ?? ((s: string) => s);
   const genreLoc = labels?.localizeGenre ?? ((g: string) => g);
+  const nameLoc = labels?.localizeName ?? ((n: string) => n);
+  const priceLoc = labels?.localizePrice ?? ((p: string) => p);
   const dist = userPos ? formatDistance(distanceMetres(userPos.lat, userPos.lng, p.lat, p.lng)) : p.distance;
   const h = new Date().getHours() + new Date().getMinutes() / 60;
   const dark = h < sunTimes.sunrise || h >= sunTimes.sunset;
@@ -500,19 +511,19 @@ function buildPopupNode(
 
   const nameEl = document.createElement('div');
   nameEl.style.cssText = `font-size:13px;font-weight:700;color:${nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
-  nameEl.textContent = p.name;
+  nameEl.textContent = nameLoc(p.name);
   textCol.appendChild(nameEl);
 
   if (p.ownerNickname) {
     const nick = document.createElement('div');
     nick.style.cssText = 'font-size:9px;color:#a855f7;margin-top:1px;font-weight:600';
-    nick.textContent = '@' + p.ownerNickname;
+    nick.textContent = '@' + nameLoc(p.ownerNickname);
     textCol.appendChild(nick);
   }
 
   const metaEl = document.createElement('div');
   metaEl.style.cssText = `font-size:10px;color:${metaColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
-  metaEl.textContent = `${dist} · ${genreLoc(p.genre)}${p.priceRange ? ' · ' + p.priceRange : ''}`;
+  metaEl.textContent = `${dist} · ${genreLoc(p.genre)}${p.priceRange ? ' · ' + priceLoc(p.priceRange) : ''}`;
   textCol.appendChild(metaEl);
 
   // ─── scene tags ───
@@ -565,12 +576,16 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
     navigate: language === 'ja' ? 'ナビ' : 'Directions',
     localizeScene: (s: string) => localizeScene(s, language),
     localizeGenre: (g: string) => localizeGenre(g, language),
+    localizeName: (n: string) => localizeProperNoun(n, language),
+    localizePrice: (p: string) => localizePriceRange(p, language),
   });
   popupLabelsRef.current = {
     video: language === 'ja' ? '▶ 動画' : '▶ Video',
     navigate: language === 'ja' ? 'ナビ' : 'Directions',
     localizeScene: (s: string) => localizeScene(s, language),
     localizeGenre: (g: string) => localizeGenre(g, language),
+    localizeName: (n: string) => localizeProperNoun(n, language),
+    localizePrice: (p: string) => localizePriceRange(p, language),
   };
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -1604,7 +1619,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                       {s.address && <span>{localizeProperNoun(s.address, language)}</span>}
                       {/* genre は localizeGenre で置換済 */}
                       {s.genre && <><span className="map-list__item-meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
-                      {s.priceRange && <><span className="map-list__item-meta-dot" /><span>{s.priceRange}</span></>}
+                      {s.priceRange && <><span className="map-list__item-meta-dot" /><span>{localizePriceRange(s.priceRange, language)}</span></>}
                     </div>
                     <div className="map-list__item-tags">
                       <span className={`map-list__item-tag ${s.visited ? 'is-visited' : ''}`}>
@@ -1655,7 +1670,7 @@ export function SimpleMapViewMapbox({ stocks, panTo, onPanComplete, userPosition
                 {s.address && <span>{localizeProperNoun(s.address, language)}</span>}
                 {dist && <><span className="map-card__meta-dot" /><span style={{ color: 'var(--stg-gray-900)', fontWeight: 600 }}>{dist}</span></>}
                 {s.genre && <><span className="map-card__meta-dot" /><span>{localizeGenre(s.genre, language)}</span></>}
-                {s.priceRange && <><span className="map-card__meta-dot" /><span>{s.priceRange}</span></>}
+                {s.priceRange && <><span className="map-card__meta-dot" /><span>{localizePriceRange(s.priceRange, language)}</span></>}
               </div>
               <div className="map-card__actions">
                 {s.videoUrl ? (

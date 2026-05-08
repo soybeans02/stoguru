@@ -12,7 +12,7 @@ import { goBack, navigate } from '../../utils/navigate';
 import { loadGoogleMapsPlaces, createPlacesSessionToken } from '../../utils/googleMaps';
 import { RestaurantPreviewModal, type FeedRestaurant } from '../home/DiscoveryHome';
 import { useTranslation } from '../../context/LanguageContext';
-import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeProperNoun, localizeThemeLabel, localizeThemeDescription } from '../../utils/labelI18n';
+import { localizeGenre as localizeGenreFn, localizeScene as localizeSceneFn, localizeProperNoun, localizeThemeLabel, localizeThemeDescription, localizePriceRange, localizeFreeText } from '../../utils/labelI18n';
 
 interface Restaurant extends SwipeRestaurant {
   description?: string;
@@ -774,11 +774,11 @@ function ThemeCard({
             </span>
           )}
           {restaurant.priceRange && (
-            <span className="text-[var(--text-primary)] font-bold tabular-nums">{restaurant.priceRange}</span>
+            <span className="text-[var(--text-primary)] font-bold tabular-nums">{localizePriceRange(restaurant.priceRange, language)}</span>
           )}
         </div>
         {restaurant.description && (
-          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2">{restaurant.description}</p>
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2">{localizeFreeText(restaurant.description, language)}</p>
         )}
         {restaurant.scene && restaurant.scene.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2 mt-auto border-t border-[var(--border)]">

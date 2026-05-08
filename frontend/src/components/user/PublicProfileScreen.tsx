@@ -6,7 +6,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { navigate, goBack } from '../../utils/navigate';
 import { FooterStrip } from '../feature/FeatureArticleScreen';
 import { safeHttpUrl } from '../../utils/safeUrl';
-import { localizeGenre, localizeTag, localizeProperNoun } from '../../utils/labelI18n';
+import { localizeGenre, localizeTag, localizeProperNoun, localizePriceRange, localizeFreeText } from '../../utils/labelI18n';
 
 interface PublicProfile {
   influencerId: string;
@@ -343,12 +343,12 @@ function RichRestaurantCard({ restaurant }: { restaurant: PublicRestaurant }) {
             {restaurant.address && (genre || restaurant.priceRange) && <span className="opacity-50">·</span>}
             {genre && <span>{localizeGenre(genre, language)}</span>}
             {genre && restaurant.priceRange && <span className="opacity-50">·</span>}
-            {restaurant.priceRange && <span>{restaurant.priceRange}</span>}
+            {restaurant.priceRange && <span>{localizePriceRange(restaurant.priceRange, language)}</span>}
           </div>
 
           {restaurant.description && (
             <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3 line-clamp-2">
-              {restaurant.description}
+              {localizeFreeText(restaurant.description, language)}
             </p>
           )}
 
