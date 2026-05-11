@@ -20,6 +20,7 @@ import {
   getInfluencerProfile,
   batchGetInfluencerProfiles,
   saveGenreRequest,
+  getSearchCache,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
 import type { RestaurantV2 } from '../types';
@@ -139,6 +140,107 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
     total: feed.length,
     limit,
     hasMore: feed.length > limit,
+  });
+});
+
+/**
+ * GET /api/restaurants/filter?q=ラーメン&exclude=id1,id2&limit=10
+ *
+ * ホーム画面の「ジャンルで探す」「テーマで探す」カードタップ用。
+ * `q` が genres[] または scene[] に含まれるレストランを返す。
+ * 5 枚目スワイプで次の 10 件を取りに来る lazy paging を想定。
+ * search cache (5min TTL, in-memory) を流用するので DynamoDB read は発生しない。
+ */
+router.get('/restaurants/filter', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const q = ((req.query.q as string) ?? '').trim().slice(0, 50);
+  if (!q) {
+    res.status(400).json({ error: 'q は必須' });
+    return;
+  }
+  const limit = Math.min(Number(req.query.limit) || 10, 60);
+  const excludeIds = new Set(
+    ((req.query.exclude as string) ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+  const userId = req.user?.userId ?? '';
+
+  const cache = await getSearchCache();
+
+  const matched = cache.filter((r) => {
+    if (r.visibility === 'hidden' || r.visibility === 'private') return false;
+    if (!Array.isArray(r.photoUrls) || r.photoUrls.length === 0) return false;
+    if (excludeIds.has(r.restaurantId)) return false;
+    if (r.postedBy && r.postedBy === userId) return false; // 自分の投稿除外
+    const inGenres = (r.genres ?? []).includes(q);
+    const inScene = (r.scene ?? []).includes(q);
+    return inGenres || inScene;
+  });
+
+  // ランダム順 (同じ q でも違う体験。excludeIds でページネーション)
+  for (let i = matched.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [matched[i], matched[j]] = [matched[j], matched[i]];
+  }
+
+  const slice = matched.slice(0, limit);
+
+  // インフルエンサープロフィール (feed と同じ形式に揃える)
+  const influencerIds = [...new Set(slice.map((r) => r.postedBy).filter(Boolean))];
+  const profileMap = await batchGetInfluencerProfiles(influencerIds);
+
+  const items = slice.map((r) => {
+    const profile = profileMap.get(r.postedBy);
+    const selectedPlatform = profile?.platform || (
+      profile?.instagramHandle ? 'instagram'
+      : profile?.tiktokHandle ? 'tiktok'
+      : profile?.youtubeHandle ? 'youtube'
+      : 'instagram'
+    );
+    const handleMap: Record<string, string | undefined> = {
+      instagram: profile?.instagramHandle,
+      tiktok: profile?.tiktokHandle,
+      youtube: profile?.youtubeHandle,
+    };
+    const urlMap: Record<string, string | undefined> = {
+      instagram: profile?.instagramUrl,
+      tiktok: profile?.tiktokUrl,
+      youtube: profile?.youtubeUrl,
+    };
+    const handle = handleMap[selectedPlatform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
+    const profileUrl = urlMap[selectedPlatform] || profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '';
+    return {
+      id: r.restaurantId,
+      name: r.name,
+      address: r.address || '',
+      lat: r.lat ?? 0,
+      lng: r.lng ?? 0,
+      genre: (r.genres || [])[0] || '',
+      genres: r.genres || [],
+      scene: r.scene || [],
+      priceRange: r.priceRange || '',
+      distance: '',
+      influencer: {
+        name: profile?.displayName || '',
+        handle: handle ? `@${handle.replace(/^@/, '')}` : '',
+        platform: selectedPlatform,
+        url: profileUrl,
+      },
+      influencerUserId: r.postedBy,
+      influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
+      videoUrl: (r.urls || [])[0] || '',
+      photoEmoji: '🍽️',
+      photoUrls: r.photoUrls || [],
+      description: r.description || '',
+    };
+  });
+
+  res.json({
+    items,
+    total: matched.length,
+    limit,
+    hasMore: matched.length > limit,
   });
 });
 

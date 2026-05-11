@@ -544,19 +544,21 @@ const SEARCH_CACHE_TTL = 5 * 60_000; // 5分
 // （thundering herd）。inflight Promise を共有して 1 回にまとめる。
 let searchCacheInflight: Promise<RestaurantV2[]> | null = null;
 
-async function getSearchCache(): Promise<RestaurantV2[]> {
+export async function getSearchCache(): Promise<RestaurantV2[]> {
   if (Date.now() < searchCacheExpiry && searchCache.length > 0) return searchCache;
   if (searchCacheInflight) return searchCacheInflight;
 
   searchCacheInflight = (async () => {
     try {
       // 全件スキャン（V2テーブルが小さいうちはOK、将来はStreams+ESに移行）
+      // scene / lat / lng / description / urls もホームの genre/theme フィルタや
+      // SwipeRestaurant decode で必要なので含める (~1-2MB の cache サイズで済む)
       const items: RestaurantV2[] = [];
       let lastKey: Record<string, unknown> | undefined;
       do {
         const result = await db.send(new ScanCommand({
           TableName: TABLE.restaurantsV2,
-          ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, priceRange, photoUrls, postedBy, visibility',
+          ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, scene, priceRange, photoUrls, postedBy, visibility, lat, lng, description, urls',
           ExpressionAttributeNames: { '#n': 'name' },
           ExclusiveStartKey: lastKey,
         }));
