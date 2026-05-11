@@ -169,9 +169,19 @@ router.get('/restaurants/filter', optionalAuth, async (req: AuthRequest, res: Re
   );
   const userId = req.user?.userId ?? '';
 
+  // 位置情報による距離 filter (任意)。lat/lng が両方来た時のみ有効。
+  // 将来全国データが入った時に「ラーメン → 東京のラーメンも出る」を防ぐ。
+  // radius のデフォルトは 50km、上限 100km。
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const radius = Math.min(Number(req.query.radius) || 50000, 100000);
+  const hasLocation =
+    !Number.isNaN(lat) && !Number.isNaN(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
   const cache = await getSearchCache();
 
-  const matched = cache.filter((r) => {
+  let matched = cache.filter((r) => {
     if (r.visibility === 'hidden' || r.visibility === 'private') return false;
     if (!Array.isArray(r.photoUrls) || r.photoUrls.length === 0) return false;
     if (excludeIds.has(r.restaurantId)) return false;
@@ -180,6 +190,14 @@ router.get('/restaurants/filter', optionalAuth, async (req: AuthRequest, res: Re
     const inScene = (r.scene ?? []).includes(q);
     return inGenres || inScene;
   });
+
+  // 位置情報があれば distance ≤ radius でさらに絞る
+  if (hasLocation) {
+    matched = matched.filter((r) => {
+      if (r.lat == null || r.lng == null) return false;
+      return haversineDistance(lat, lng, r.lat, r.lng) <= radius;
+    });
+  }
 
   // ランダム順 (同じ q でも違う体験。excludeIds でページネーション)
   for (let i = matched.length - 1; i > 0; i--) {
