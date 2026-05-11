@@ -126,6 +126,9 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
       influencerUserId: r.postedBy,
       influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
       videoUrl: (r.urls || [])[0] || '',
+      // 複数 URL (TikTok / Instagram / YouTube 等) を全部送る。
+      // iOS の動画マークタップ時に複数あれば選択肢を出すため。
+      videoUrls: (r.urls || []).filter(Boolean),
       photoEmoji: '🍽️',
       photoUrls: r.photoUrls || [],
       description: r.description || '',
@@ -230,6 +233,9 @@ router.get('/restaurants/filter', optionalAuth, async (req: AuthRequest, res: Re
       influencerUserId: r.postedBy,
       influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
       videoUrl: (r.urls || [])[0] || '',
+      // 複数 URL (TikTok / Instagram / YouTube 等) を全部送る。
+      // iOS の動画マークタップ時に複数あれば選択肢を出すため。
+      videoUrls: (r.urls || []).filter(Boolean),
       photoEmoji: '🍽️',
       photoUrls: r.photoUrls || [],
       description: r.description || '',
@@ -270,6 +276,7 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
       priceRange: r?.priceRange,
       photoUrls: r?.photoUrls || [],
       videoUrl: (r?.urls || [])[0],
+      videoUrls: (r?.urls || []).filter(Boolean),
       photoEmoji: stock.photoEmoji || '🍽️',
       pinned: stock.pinned,
       notes: stock.notes,
