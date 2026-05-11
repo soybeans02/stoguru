@@ -102,46 +102,59 @@ export async function recommendRestaurants(
   const chipText = req.chips.length > 0 ? `選択タグ: ${req.chips.join(', ')}` : '選択タグ: なし';
   const queryText = req.query.trim().length > 0 ? `自由入力: 「${req.query.trim()}」` : '自由入力: なし';
 
-  // 候補を JSON Lines 風に詰める (トークン節約)
-  const candidatesList = req.candidates.map((c) => {
-    const parts = [
-      `id=${c.id}`,
-      `name=${c.name}`,
-      c.genre ? `genre=${c.genre}` : null,
-      c.priceRange ? `price=${c.priceRange}` : null,
-      c.distance ? `dist=${c.distance}` : null,
-      c.scene && c.scene.length > 0 ? `scene=${c.scene.join('|')}` : null,
-      c.description ? `desc=${c.description.slice(0, 80)}` : null,
-    ].filter(Boolean);
-    return `- ${parts.join(' / ')}`;
-  }).join('\n');
+  // 候補を読みやすい行で詰める。description は 200 字まで使う (店の個性が大事)
+  const candidatesList = req.candidates.map((c, i) => {
+    const lines: string[] = [`[${i + 1}] id=${c.id}  ${c.name}`];
+    const meta: string[] = [];
+    if (c.genre) meta.push(c.genre);
+    if (c.priceRange) meta.push(c.priceRange);
+    if (c.distance) meta.push(c.distance);
+    if (c.scene && c.scene.length > 0) meta.push(`シーン: ${c.scene.join(', ')}`);
+    if (meta.length > 0) lines.push(`    ${meta.join(' / ')}`);
+    if (c.description) lines.push(`    紹介: ${c.description.slice(0, 200)}`);
+    return lines.join('\n');
+  }).join('\n\n');
 
-  const systemPrompt = `あなたは「ストグル」というレストラン発見アプリの AI コンシェルジュです。
-ユーザーの気分・タグ・自由入力を読み取り、候補レストラン一覧の中から最大 ${maxResults} 件を選んで推薦します。
+  const systemPrompt = `あなたは「ストグル」のレストラン・コンシェルジュ。食通の友人として、ユーザーの気分にぴったり寄り添う 1 軒を見つけるのが仕事。
 
-出力ルール:
-- 出力は必ず以下の JSON フォーマット (それ以外は一切書かない、コードブロックも禁止):
+# 推薦の流儀
+- **その店ならでは** の点に着目する。「美味しい」「人気店」「コスパ良い」みたいな誰でも言えるテンプレは禁止。
+- 紹介文に書かれた具体的な要素（料理名、立地、雰囲気、シーン、価格帯）から、ユーザーの状況に**結びつく一点**を抽出する。
+- 「失恋」「ご褒美」「深夜」みたいな気分タグは、店の雰囲気・席種・価格帯と紐付けて読み解く。
+
+# 出力フォーマット
+最初に <thinking> ... </thinking> で 2-4 行考えてから、その後に JSON を出力。
+JSON 以外の文字は thinking 以外には書かない。コードブロックも禁止。
+
 {
-  "intro": "全体への一言コメント (40字以内、敬語)",
+  "intro": "ユーザーへの一言コメント (50-80字、敬語、感情に寄り添う)",
   "recommendations": [
-    { "restaurantId": "<候補にあった id>", "reason": "なぜこの店か (40字以内、敬語)" }
+    { "restaurantId": "<候補の id をそのまま>", "reason": "その店を選んだ具体的理由 (60-100字、敬語、ならでは要素を必ず含める)" }
   ]
 }
-- restaurantId は必ず候補リスト中の id をそのままコピーする (捏造禁止)。
-- 該当が無さそうなら recommendations を空配列にして intro でその旨を伝える。
-- reason はその店ならではの理由を簡潔に。一般論は避ける。`;
 
-  const userPrompt = `${chipText}
+# reason の良い例
+- "京橋という街の温度感とカウンター 4 席という距離感が、人と話したくない夜の沈黙に向いています。"
+- "あっさり醤油の沁み方が定評で、深夜まで開いている希少なラーメン店です。お一人様カウンター席が落ち着きます。"
+
+# reason の悪い例（こうは書かないこと）
+- "美味しいお店です。"     ← 一般論
+- "人気店なのでおすすめ。" ← 中身ゼロ
+- "あなたにぴったりです。" ← 根拠なし`;
+
+  const userPrompt = `# ユーザーの状況
+${chipText}
 ${queryText}
 
-候補レストラン (${req.candidates.length} 件):
+# 候補 (${req.candidates.length} 軒)
 ${candidatesList}
 
-上記から最大 ${maxResults} 件を選んで JSON で返してください。`;
+候補の中から最大 ${maxResults} 軒を選び、上の流儀に従って推薦してください。`;
 
   const resp = await client.messages.create({
     model: 'claude-haiku-4-5',
-    max_tokens: 1024,
+    max_tokens: 1500,
+    temperature: 1.0,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });
@@ -178,16 +191,24 @@ ${candidatesList}
   };
 }
 
-/** JSON.parse の safe wrapper (前後の改行・空白を吸収) */
+/** JSON.parse の safe wrapper。<thinking> や ```json``` を剥がして
+ *  最初の { から最後の } までを抽出してパースする。 */
 function safeParseJSON(s: string): Record<string, unknown> | null {
-  const trimmed = s.trim();
-  // たまにモデルが ```json ... ``` で囲ってくる対策
-  const stripped = trimmed
+  // <thinking>...</thinking> を全部除去
+  let cleaned = s.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+  // ```json ... ``` を剥がす
+  cleaned = cleaned
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '')
     .trim();
+  // それでも前後にゴミがあった時に備えて最初の { 〜 最後の } を取る
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    cleaned = cleaned.slice(start, end + 1);
+  }
   try {
-    const v = JSON.parse(stripped);
+    const v = JSON.parse(cleaned);
     return typeof v === 'object' && v !== null ? v : null;
   } catch {
     return null;
@@ -207,8 +228,18 @@ export async function pickTodayCached(
   const hit = getCached<ConciergeResponse>(key);
   if (hit) return hit;
 
+  // 時刻に応じた文脈を AI に渡す
+  const hour = new Date().getHours();
+  const timeContext: string =
+    hour < 6  ? '深夜帯、まだ食事を探している人向け' :
+    hour < 11 ? '朝の時間帯、ゆっくり始めたい人向け' :
+    hour < 14 ? '昼食の時間帯' :
+    hour < 17 ? '午後の中休み、カフェやおやつの時間' :
+    hour < 21 ? '夕食の時間帯' :
+                '夜遅く、晩酌や〆を求める時間帯';
+
   const result = await recommendRestaurants({
-    query: '今日のおすすめを 1 軒選んで',
+    query: `今は ${timeContext}。この時間に行くなら、と一押しを 1 軒。妥当性より「この時間にこの店」という納得感を重視。`,
     chips: [],
     candidates,
     maxResults: 1,
@@ -229,8 +260,8 @@ export async function recommendSavedCached(
   if (hit) return hit;
 
   const result = await recommendRestaurants({
-    query: '保存済みの未訪問から、次に行くべき店を 3 軒',
-    chips: ['未訪問', 'おすすめ'],
+    query: 'これらはユーザーが「気になって保存」してまだ行けてない店たち。背中を押す感じで、次に足を運ぶべき 3 軒を選んでください。「保存したからには行ってほしい」という温度感で。',
+    chips: ['未訪問'],
     candidates,
     maxResults: 3,
   });
