@@ -248,6 +248,35 @@ export async function pickTodayCached(
   return result;
 }
 
+export type DaySlot = 'morning' | 'lunch' | 'dinner';
+
+/**
+ * 朝/昼/夜 のスロット別 PICK。各 slot ごとにキャッシュ。
+ */
+export async function pickBySlotCached(
+  slot: DaySlot,
+  candidates: ConciergeCandidate[]
+): Promise<ConciergeResponse> {
+  if (candidates.length === 0) return { recommendations: [] };
+  const key = makeDailyKey(`pick-${slot}`, candidates.map((c) => c.id));
+  const hit = getCached<ConciergeResponse>(key);
+  if (hit) return hit;
+
+  const slotContext: Record<DaySlot, string> = {
+    morning: '朝の時間帯。モーニング・喫茶・朝食向き。あっさり / 軽め / コーヒー / 卵料理 など朝の気分。',
+    lunch:   '昼の時間帯。ランチ・定食・がっつり / さっぱり 昼飯向き。混雑時の回転や手早さも意識。',
+    dinner:  '夜の時間帯。ディナー・居酒屋・お酒に合う料理・ゆっくり過ごす席。',
+  };
+  const result = await recommendRestaurants({
+    query: `${slotContext[slot]} この時間帯にぴったりの 1 軒を、納得感重視で選んでください。`,
+    chips: [],
+    candidates,
+    maxResults: 1,
+  });
+  setCached(key, result);
+  return result;
+}
+
 /**
  * 保存タブ AI 推薦: 未訪問候補から 3 軒。候補+日付で cache。
  */

@@ -13,10 +13,12 @@ import { Router, Request, Response } from 'express';
 import {
   recommendRestaurants,
   pickTodayCached,
+  pickBySlotCached,
   recommendSavedCached,
   analyzeUserInsights,
   type ConciergeCandidate,
   type InsightStockEntry,
+  type DaySlot,
 } from '../services/concierge';
 
 /**
@@ -107,6 +109,37 @@ router.post('/today-pick', async (req: Request, res: Response) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[today-pick] error:', err);
+    res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
+  }
+});
+
+/**
+ * POST /api/concierge/pick-slot
+ * { slot: "morning" | "lunch" | "dinner", candidates: [...] }
+ * 時間帯別に AI が 1 軒選定。24h cache (slot 別)。
+ */
+router.post('/pick-slot', async (req: Request, res: Response) => {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
+    return;
+  }
+  const body = req.body as { slot?: unknown; candidates?: unknown };
+  const slot = body.slot;
+  if (slot !== 'morning' && slot !== 'lunch' && slot !== 'dinner') {
+    res.status(400).json({ error: 'slot は morning / lunch / dinner のいずれか' });
+    return;
+  }
+  const candidates = normalizeCandidates(body.candidates);
+  if (candidates.length === 0) {
+    res.json({ recommendations: [] });
+    return;
+  }
+  try {
+    const result = await pickBySlotCached(slot as DaySlot, candidates);
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[pick-slot] error:', err);
     res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
   }
 });
