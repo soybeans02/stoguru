@@ -17,6 +17,7 @@ import featuresRouter from './routes/features';
 import influencerRouter from './routes/influencer';
 import feedbackRouter from './routes/feedback';
 import publicRouter from './routes/public';
+import conciergeRouter from './routes/concierge';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 import { stats, userActivity } from './state';
 import { peekVerifiedUserId } from './middleware/auth';
@@ -209,6 +210,7 @@ app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 app.use('/api', featuresRouter); // /features (匿名アクセス可)
+app.use('/api/concierge', conciergeRouter); // AI 推薦 (匿名アクセス可)
 
 // ─── ヘルスチェック ───
 app.get('/health', (_req, res) => {
