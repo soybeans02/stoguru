@@ -16,6 +16,7 @@ import {
   pickBySlotCached,
   recommendSavedCached,
   analyzeUserInsights,
+  isLLMAvailable,
   type ConciergeCandidate,
   type InsightStockEntry,
   type DaySlot,
@@ -47,7 +48,7 @@ function normalizeCandidates(raw: unknown): ConciergeCandidate[] {
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isLLMAvailable()) {
     res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
     return;
   }
@@ -93,7 +94,7 @@ router.post('/', async (req: Request, res: Response) => {
  * Home の TODAY'S PICK 用。候補から AI が 1 軒選ぶ。24h キャッシュ。
  */
 router.post('/today-pick', async (req: Request, res: Response) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isLLMAvailable()) {
     res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
     return;
   }
@@ -119,7 +120,7 @@ router.post('/today-pick', async (req: Request, res: Response) => {
  * 時間帯別に AI が 1 軒選定。24h cache (slot 別)。
  */
 router.post('/pick-slot', async (req: Request, res: Response) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isLLMAvailable()) {
     res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
     return;
   }
@@ -149,7 +150,7 @@ router.post('/pick-slot', async (req: Request, res: Response) => {
  * 保存タブの AI 推薦用。未訪問候補から 3 軒。24h キャッシュ。
  */
 router.post('/saved-rec', async (req: Request, res: Response) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isLLMAvailable()) {
     res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
     return;
   }
@@ -174,7 +175,7 @@ router.post('/saved-rec', async (req: Request, res: Response) => {
  * 保存履歴から食の傾向を AI に分析させる (You タブの AI 傾向)
  */
 router.post('/insights', async (req: Request, res: Response) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isLLMAvailable()) {
     res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
     return;
   }

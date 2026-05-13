@@ -1,23 +1,88 @@
 /**
  * AI Concierge service.
  *
- * Claude 3 Haiku を使って「ユーザーの気分 + 候補レストラン」から
- * 推薦リスト (restaurantId + reason) を返す。
- *
- * - キー: process.env.ANTHROPIC_API_KEY
- * - モデル: claude-3-haiku-20240307 (最安、$0.25/M in, $1.25/M out)
- * - 入力: 自由テキスト query + chip[] + 候補 restaurants[]
- * - 出力: { recommendations: [{ restaurantId, reason }] }
+ * 「ユーザーの気分 + 候補レストラン」から推薦リスト (restaurantId + reason)
+ * を返す。LLM provider は env var `AI_PROVIDER` で切替:
+ *   - `anthropic` (default): Claude Haiku 4.5 ($1/M in, $5/M out)
+ *   - `gemini`:              Gemini 2.0 Flash ($0.075/M in, $0.30/M out)
  *
  * TODAY'S PICK と insights は 24h キャッシュ (in-memory)。
  * Concierge 検索はリアルタイム (キャッシュなし)。
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// MARK: - LLM provider abstraction
+//
+// Anthropic / Gemini の差を吸収して、上位レイヤは text だけ受け取れるように。
+// PROVIDER=gemini && GEMINI_API_KEY あれば Gemini、無ければ Anthropic にフォールバック。
+
+type LLMOpts = {
+  system: string;
+  user: string;
+  maxTokens: number;
+  temperature?: number;
+};
+
+const PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
+const HAS_GEMINI = !!process.env.GEMINI_API_KEY;
+const HAS_ANTHROPIC = !!process.env.ANTHROPIC_API_KEY;
+
+const anthropicClient = HAS_ANTHROPIC
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+const geminiClient = HAS_GEMINI
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  : null;
+
+/**
+ * AI provider が一個も設定されてないとアプリを動かす意味がない。
+ * route 側で 503 を返すために isLLMAvailable() を export。
+ */
+export function isLLMAvailable(): boolean {
+  return HAS_ANTHROPIC || HAS_GEMINI;
+}
+
+/** 実際にどっちで叩くかの最終判断。env と key の有無を見る。 */
+function resolveProvider(): 'anthropic' | 'gemini' {
+  if (PROVIDER === 'gemini' && HAS_GEMINI) return 'gemini';
+  if (PROVIDER === 'anthropic' && HAS_ANTHROPIC) return 'anthropic';
+  // フォールバック: 有る方を使う
+  if (HAS_ANTHROPIC) return 'anthropic';
+  if (HAS_GEMINI) return 'gemini';
+  throw new Error('No LLM provider configured (set ANTHROPIC_API_KEY or GEMINI_API_KEY)');
+}
+
+async function callLLM({ system, user, maxTokens, temperature }: LLMOpts): Promise<string> {
+  const provider = resolveProvider();
+  if (provider === 'gemini') {
+    // Gemini: systemInstruction で system prompt、generateContent で user 部分。
+    const model = geminiClient!.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: system,
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        ...(temperature !== undefined ? { temperature } : {}),
+      },
+    });
+    const result = await model.generateContent(user);
+    return result.response.text();
+  }
+  // Anthropic (default)
+  const resp = await anthropicClient!.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: maxTokens,
+    ...(temperature !== undefined ? { temperature } : {}),
+    system,
+    messages: [{ role: 'user', content: user }],
+  });
+  return resp.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+}
 
 // MARK: - 24h in-memory cache (TODAY'S PICK / insights 用)
 //
@@ -91,8 +156,8 @@ export interface ConciergeResponse {
 export async function recommendRestaurants(
   req: ConciergeRequest
 ): Promise<ConciergeResponse> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+  if (!isLLMAvailable()) {
+    throw new Error('No LLM provider configured');
   }
   if (req.candidates.length === 0) {
     return { recommendations: [] };
@@ -151,19 +216,12 @@ ${candidatesList}
 
 候補の中から最大 ${maxResults} 軒を選び、上の流儀に従って推薦してください。`;
 
-  const resp = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 1500,
-    temperature: 1.0,
+  const text = await callLLM({
     system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+    user: userPrompt,
+    maxTokens: 1500,
+    temperature: 1.0,
   });
-
-  // text content を取り出して JSON parse
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
 
   const parsed = safeParseJSON(text);
   if (!parsed) {
@@ -330,8 +388,8 @@ export interface InsightsResponse {
 export async function analyzeUserInsights(
   req: InsightsRequest
 ): Promise<InsightsResponse> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+  if (!isLLMAvailable()) {
+    throw new Error('No LLM provider configured');
   }
   if (req.stocks.length === 0) {
     return { insights: [], intro: 'まだ保存履歴がありません' };
@@ -379,17 +437,11 @@ ${stocksList}
 
 上記から食の傾向を分析して JSON で返してください。`;
 
-  const resp = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 800,
+  const text = await callLLM({
     system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+    user: userPrompt,
+    maxTokens: 800,
   });
-
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
 
   const parsed = safeParseJSON(text);
   if (!parsed) {
