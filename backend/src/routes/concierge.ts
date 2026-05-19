@@ -21,6 +21,8 @@ import {
   type InsightStockEntry,
   type DaySlot,
 } from '../services/concierge';
+import { getSearchCache } from '../services/dynamo';
+import { haversineDistance } from '../utils/geo';
 
 /**
  * body.candidates の生 input を正規化する共通処理。
@@ -214,5 +216,105 @@ router.post('/insights', async (req: Request, res: Response) => {
     res.status(500).json({ error: `AI 分析に失敗: ${msg}` });
   }
 });
+
+/**
+ * POST /api/concierge/recall
+ * iOS 検索タブの「TikTok で観た あの店、思い出す」AI 記憶検索。
+ *
+ * body: { q: string, lat?: number, lng?: number, radius?: number }
+ *
+ * 手順:
+ *  1. search cache (全 1086 件) から photoUrls あり / visibility OK で絞る
+ *  2. lat/lng があれば distance ≤ radius (default 50km) でさらに絞る
+ *  3. q のトークンが name/genres/scene/address に多く一致する順で sort → 上位 30 件
+ *  4. その 30 件を AI に投げて、最終候補 3 軒に絞らせる
+ */
+router.post('/recall', async (req: Request, res: Response) => {
+  if (!isLLMAvailable()) {
+    res.status(503).json({ error: 'AI 検索は現在オフラインです' });
+    return;
+  }
+  const body = req.body as {
+    q?: unknown;
+    lat?: unknown;
+    lng?: unknown;
+    radius?: unknown;
+  };
+  const q = typeof body.q === 'string' ? body.q.trim().slice(0, 300) : '';
+  if (!q) {
+    res.status(400).json({ error: 'q は必須' });
+    return;
+  }
+  const lat = Number(body.lat);
+  const lng = Number(body.lng);
+  const radius = Math.min(Number(body.radius) || 50000, 100000);
+  const hasLocation =
+    !Number.isNaN(lat) && !Number.isNaN(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+  try {
+    const cache = await getSearchCache();
+    let candidates = cache.filter((r) =>
+      r.visibility !== 'hidden' &&
+      r.visibility !== 'private' &&
+      Array.isArray(r.photoUrls) && r.photoUrls.length > 0
+    );
+
+    // 位置情報があれば距離フィルタ
+    if (hasLocation) {
+      candidates = candidates.filter((r) => {
+        if (r.lat == null || r.lng == null) return false;
+        return haversineDistance(lat, lng, r.lat, r.lng) <= radius;
+      });
+    }
+
+    // q のトークンとの一致数で前ソート (= AI に渡す前のリランキング)
+    const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+    candidates.sort((a, b) => {
+      const ah = matchScore(a, tokens);
+      const bh = matchScore(b, tokens);
+      return bh - ah;
+    });
+
+    // 上位 30 件を AI に渡す
+    const top = candidates.slice(0, 30);
+    if (top.length === 0) {
+      res.json({ recommendations: [], intro: '近くに該当しそうなお店が見つかりませんでした。' });
+      return;
+    }
+
+    const aiCandidates: ConciergeCandidate[] = top.map((r) => ({
+      id: r.restaurantId,
+      name: r.name,
+      genre: (r.genres ?? [])[0],
+      scene: r.scene,
+      priceRange: r.priceRange,
+      description: r.description,
+    }));
+
+    const result = await recommendRestaurants({
+      query: `ユーザーが TikTok / Instagram で観たお店を断片情報から思い出そうとしています:「${q}」。この記憶に最も近そうなお店を 3 軒、なぜそれが該当しそうか具体的に説明しながら選んでください。「思い出のあの店、これかもしれません」という温度感で。`,
+      chips: ['記憶検索'],
+      candidates: aiCandidates,
+      maxResults: 3,
+    });
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[recall] error:', err);
+    res.status(500).json({ error: `AI 検索に失敗: ${msg}` });
+  }
+});
+
+/** name / genres / scene / address に token がいくつ含まれるか数える */
+function matchScore(r: { name?: string; genres?: string[]; scene?: string[]; address?: string }, tokens: string[]): number {
+  const hay = [
+    r.name ?? '',
+    (r.genres ?? []).join(' '),
+    (r.scene ?? []).join(' '),
+    r.address ?? '',
+  ].join(' ').toLowerCase();
+  return tokens.reduce((acc, tok) => acc + (hay.includes(tok) ? 1 : 0), 0);
+}
 
 export default router;
