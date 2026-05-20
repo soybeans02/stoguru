@@ -60,8 +60,9 @@ async function callLLM({ system, user, maxTokens, temperature }: LLMOpts): Promi
   if (provider === 'gemini') {
     // Gemini: systemInstruction で system prompt、generateContent で user 部分。
     const model = geminiClient!.getGenerativeModel({
-      // gemini-2.0-flash は 2026 年に deprecated。新規ユーザーは 2.5-flash 必須。
-      model: 'gemini-2.5-flash',
+      // 2.5-flash-lite はコスト 1/4 (input $0.10/M, output $0.40/M)。
+      // stoguru の reason 生成・短文 JSON 出力には十分な品質。
+      model: 'gemini-2.5-flash-lite',
       systemInstruction: system,
       generationConfig: {
         maxOutputTokens: maxTokens,
