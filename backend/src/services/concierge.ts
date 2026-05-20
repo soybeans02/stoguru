@@ -60,7 +60,8 @@ async function callLLM({ system, user, maxTokens, temperature }: LLMOpts): Promi
   if (provider === 'gemini') {
     // Gemini: systemInstruction で system prompt、generateContent で user 部分。
     const model = geminiClient!.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      // gemini-2.0-flash は 2026 年に deprecated。新規ユーザーは 2.5-flash 必須。
+      model: 'gemini-2.5-flash',
       systemInstruction: system,
       generationConfig: {
         maxOutputTokens: maxTokens,
