@@ -164,12 +164,24 @@ export const influencerRestaurantSchema = z.object({
   // photoUrls / urls は href / src に流れるため必ず http(s) スキームを強制
   photoUrls: z.array(httpUrl()).max(10, '写真は10枚まで').default([]),
   videoUrl: httpUrl().optional(),
+  // CloudFlare Stream の playback URL (HLS .m3u8)。アプリ内 AVPlayer で再生。
+  stoguruVideoUrl: httpUrl().optional(),
   instagramUrl: httpUrl().optional(),
   tiktokUrl: httpUrl().optional(),
   youtubeUrl: httpUrl().optional(),
   urls: z.array(httpUrl()).max(20).optional(),
   description: z.string().max(1000).optional(),
   visibility: z.enum(['public', 'mutual', 'hidden']).default('public'),
+  // メニュー: 手打ちで複数登録
+  menus: z.array(z.object({
+    id: z.string().min(1).max(80),
+    name: z.string().min(1, '料理名は必須').max(80, '料理名は80字以内').trim(),
+    price: z.number().int().min(0).max(1_000_000).optional(),
+    photoUrl: httpUrl().optional(),
+    description: z.string().max(300).optional(),
+  })).max(50).optional(),
+  // メニュー: 写真モード (メニュー表 / 看板を最大 5 枚)
+  menuPhotoUrls: z.array(httpUrl()).max(5).optional(),
 });
 
 // ─── 一括同期（localStorage 移行用）───

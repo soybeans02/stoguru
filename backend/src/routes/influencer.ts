@@ -133,7 +133,11 @@ router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Respon
     stockCount: existing?.stockCount ?? 0,
     createdAt: existing?.createdAt ?? Date.now(),
     updatedAt: Date.now(),
-  });
+    // Phase 7: CloudFlare Stream の playback URL + メニュー
+    stoguruVideoUrl: v.data.stoguruVideoUrl,
+    menus: v.data.menus,
+    menuPhotoUrls: v.data.menuPhotoUrls,
+  } as Parameters<typeof putRestaurantV2>[0]);
 
   invalidateSearchCache();
   res.json({ ok: true });

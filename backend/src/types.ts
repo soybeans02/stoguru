@@ -22,6 +22,22 @@ export interface RestaurantV2 {
   stockCount: number;          // 保存された回数（アトミックカウンター）
   createdAt: number;
   updatedAt: number;
+  // ─── Phase 7 (動画 + メニュー) ───
+  /// CloudFlare Stream の HLS playback URL (= アプリ内 AVPlayer ネイティブ再生用)
+  stoguruVideoUrl?: string;
+  /// 手打ちで登録された料理一覧
+  menus?: MenuItem[];
+  /// メニュー表 / 看板の写真 (最大 5 枚)
+  menuPhotoUrls?: string[];
+}
+
+/// 料理 1 件 (= クリエイターが手打ちで登録するメニュー)
+export interface MenuItem {
+  id: string;
+  name: string;
+  price?: number;          // 円 (税込)
+  photoUrl?: string;
+  description?: string;
 }
 
 // ─── V2: ユーザー⇔レストランの紐付け ───
