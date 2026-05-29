@@ -331,6 +331,7 @@ router.post('/recall', async (req: Request, res: Response) => {
           platform,
           url: profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '',
         },
+        influencerUserId: r.postedBy,
         videoUrl: (r.urls || [])[0] || '',
         videoUrls: (r.urls || []).filter(Boolean),
         stoguruVideoUrl: r.stoguruVideoUrl,
