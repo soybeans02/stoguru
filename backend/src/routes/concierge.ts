@@ -20,6 +20,7 @@ import {
   type ConciergeCandidate,
   type InsightStockEntry,
   type DaySlot,
+  type UserHistoryEntry,
 } from '../services/concierge';
 import { getSearchCache, batchGetInfluencerProfiles } from '../services/dynamo';
 import { haversineDistance } from '../utils/geo';
@@ -47,6 +48,24 @@ function normalizeCandidates(raw: unknown): ConciergeCandidate[] {
     .slice(0, 30);
 }
 
+/** body.userHistory を正規化 (= パーソナライズ用の履歴、最大 40 件)。 */
+function normalizeHistory(raw: unknown): UserHistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((h): h is Record<string, unknown> => typeof h === 'object' && h !== null)
+    .map((h) => ({
+      name: String(h.name ?? ''),
+      genre: typeof h.genre === 'string' ? h.genre : undefined,
+      scene: Array.isArray(h.scene)
+        ? h.scene.filter((s): s is string => typeof s === 'string')
+        : undefined,
+      priceRange: typeof h.priceRange === 'string' ? h.priceRange : undefined,
+      liked: h.liked === true,
+    }))
+    .filter((h) => h.name.length > 0)
+    .slice(0, 40);
+}
+
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
@@ -61,6 +80,7 @@ router.post('/', async (req: Request, res: Response) => {
     chips?: unknown;
     candidates?: unknown;
     maxResults?: unknown;
+    userHistory?: unknown;
   };
 
   const query = typeof body.query === 'string' ? body.query.slice(0, 200) : '';
@@ -79,9 +99,12 @@ router.post('/', async (req: Request, res: Response) => {
     ? Math.max(1, Math.min(10, Math.floor(body.maxResults)))
     : 6;
 
+  // ユーザーの好み履歴 (パーソナライズ用、最大 40 件)
+  const userHistory = normalizeHistory(body.userHistory);
+
   try {
     const result = await recommendRestaurants({
-      query, chips, candidates, maxResults,
+      query, chips, candidates, maxResults, userHistory,
     });
     res.json(result);
   } catch (err) {

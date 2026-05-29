@@ -147,11 +147,21 @@ export interface ConciergeCandidate {
   description?: string;
 }
 
+/** ユーザーの嗜好を表す履歴 1 件 (= 保存 or 訪問した店の要約) */
+export interface UserHistoryEntry {
+  name: string;
+  genre?: string;
+  scene?: string[];
+  priceRange?: string;
+  liked?: boolean;          // 訪問して高評価 (★4-5) なら true
+}
+
 export interface ConciergeRequest {
   query: string;            // 自由入力 (空でも可)
   chips: string[];          // 選択チップ (気分 / 食べたい / 時間帯 / シーン)
   candidates: ConciergeCandidate[]; // 候補レストラン (最大 30 件くらい想定)
   maxResults?: number;      // 返す件数 (default 6)
+  userHistory?: UserHistoryEntry[]; // ユーザーの保存/訪問履歴 (= パーソナライズ用)
 }
 
 export interface ConciergeRecommendation {
@@ -182,6 +192,7 @@ export async function recommendRestaurants(
   const maxResults = req.maxResults ?? 6;
   const chipText = req.chips.length > 0 ? `選択タグ: ${req.chips.join(', ')}` : '選択タグ: なし';
   const queryText = req.query.trim().length > 0 ? `自由入力: 「${req.query.trim()}」` : '自由入力: なし';
+  const historyText = summarizeHistory(req.userHistory);
 
   // 候補を読みやすい行で詰める。description は 200 字まで使う (店の個性が大事)
   const candidatesList = req.candidates.map((c, i) => {
@@ -226,11 +237,12 @@ JSON 以外の文字は thinking 以外には書かない。コードブロッ�
   const userPrompt = `# ユーザーの状況
 ${chipText}
 ${queryText}
+${historyText}
 
 # 候補 (${req.candidates.length} 軒)
 ${candidatesList}
 
-候補の中から最大 ${maxResults} 軒を選び、上の流儀に従って推薦してください。`;
+候補の中から最大 ${maxResults} 軒を選び、上の流儀に従って推薦してください。${req.userHistory && req.userHistory.length > 0 ? "ユーザーの好み傾向も考慮しつつ、今の状況を最優先で。" : ""}`;
 
   const text = await callLLM({
     system: systemPrompt,
@@ -263,6 +275,32 @@ ${candidatesList}
     recommendations: recs,
     intro: typeof parsed.intro === 'string' ? parsed.intro : undefined,
   };
+}
+
+/** ユーザー履歴を AI 用の短いサマリ文字列にする (= トークン節約しつつ嗜好を伝える)。
+ *  頻出ジャンル / シーン + 高評価店を集計。履歴なしなら空文字。 */
+function summarizeHistory(history?: UserHistoryEntry[]): string {
+  if (!history || history.length === 0) return '';
+
+  const tally = (arr: (string | undefined)[]) => {
+    const m = new Map<string, number>();
+    for (const x of arr) {
+      if (!x) continue;
+      m.set(x, (m.get(x) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  };
+
+  const genres = tally(history.map((h) => h.genre)).slice(0, 3);
+  const scenes = tally(history.flatMap((h) => h.scene ?? [])).slice(0, 3);
+  const liked = history.filter((h) => h.liked).map((h) => h.name).slice(0, 5);
+
+  const parts: string[] = [];
+  if (genres.length) parts.push(`よく選ぶジャンル: ${genres.join(' / ')}`);
+  if (scenes.length) parts.push(`よく行くシーン: ${scenes.join(' / ')}`);
+  if (liked.length) parts.push(`過去に高評価: ${liked.join(' / ')}`);
+  if (parts.length === 0) return '';
+  return `\n# このユーザーの好み傾向 (参考)\n${parts.join('\n')}`;
 }
 
 /** JSON.parse の safe wrapper。<thinking> や ```json``` を剥がして
