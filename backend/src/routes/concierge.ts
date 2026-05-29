@@ -275,6 +275,7 @@ router.post('/recall', async (req: Request, res: Response) => {
     let candidates = cache.filter((r) =>
       r.visibility !== 'hidden' &&
       r.visibility !== 'private' &&
+      r.shadowBanned !== true &&
       Array.isArray(r.photoUrls) && r.photoUrls.length > 0
     );
 

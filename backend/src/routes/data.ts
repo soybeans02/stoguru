@@ -6,7 +6,7 @@ import {
   putRestaurantV2, getRestaurantV2, batchGetRestaurantsV2,
   queryRestaurantsByGeohash, queryRestaurantsByPostedBy,
   putUserStock, getUserStocks, deleteUserStock, getUserStock,
-  incrementStockCount, invalidateSearchCache,
+  incrementStockCount, invalidateSearchCache, recordVideoFeedback,
   lookupRestaurantByUrl, searchRestaurantsV2,
   getStockRankingV2,
   getTopRestaurantsByStockCount,
@@ -29,6 +29,9 @@ import { haversineDistance } from '../utils/geo';
 import { encode as geohashEncode, neighbors as geohashNeighbors } from '../utils/geohash';
 
 const router = Router();
+
+// crypto.randomUUID() 形式の restaurantId のみ許可 (influencer.ts と同じ)
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ─── スワイプ用フィード（geohashベース、スキャン不要） ───
 
@@ -62,6 +65,7 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
       r.postedBy !== userId &&
       r.visibility !== 'hidden' &&
       r.visibility !== 'private' &&
+      r.shadowBanned !== true &&
       Array.isArray(r.photoUrls) && r.photoUrls.length > 0 &&
       !excludeIds.has(r.restaurantId)
     )
@@ -397,6 +401,7 @@ router.get('/restaurants/following-posts', requireAuth, async (req: AuthRequest,
   const all = perCreator.flat().filter((r) =>
     r.visibility !== 'hidden' &&
     r.visibility !== 'private' &&
+    r.shadowBanned !== true &&
     Array.isArray(r.photoUrls) && r.photoUrls.length > 0
   );
   // 新しい順
@@ -408,6 +413,31 @@ router.get('/restaurants/following-posts', requireAuth, async (req: AuthRequest,
   );
   const items = sliced.map((r) => toSwipeShape(r, profileMap.get(r.postedBy)));
   res.json({ items });
+});
+
+/**
+ * POST /api/restaurants/:id/feedback  { kind: "good" | "bad" }
+ * 動画への 👍 / 👎。bad 率が高い投稿は自動でシャドウバン (= フィード露出減)。
+ * 匿名でも押せる (optionalAuth)。rate limit はグローバルに乗る。
+ */
+router.post('/restaurants/:id/feedback', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const restaurantId = req.params.id as string;
+  if (!UUID_RE.test(restaurantId)) {
+    res.status(400).json({ error: '無効なお店 ID です' });
+    return;
+  }
+  const kind = (req.body as { kind?: unknown }).kind;
+  if (kind !== 'good' && kind !== 'bad') {
+    res.status(400).json({ error: 'kind は good / bad のいずれか' });
+    return;
+  }
+  try {
+    const result = await recordVideoFeedback(restaurantId, kind);
+    res.json({ ok: true, shadowBanned: result.shadowBanned });
+  } catch (err) {
+    console.error('[feedback] error:', err);
+    res.status(500).json({ error: 'フィードバックの記録に失敗しました' });
+  }
 });
 
 // ─── レストラン保存/更新 ───

@@ -29,6 +29,13 @@ export interface RestaurantV2 {
   menus?: MenuItem[];
   /// メニュー表 / 看板の写真 (最大 5 枚)
   menuPhotoUrls?: string[];
+  // ─── 品質シグナル (Good/Bad → シャドウバン) ───
+  /// 👍 (この店良い) の累計
+  goodCount?: number;
+  /// 👎 (興味なし/微妙) の累計
+  badCount?: number;
+  /// シャドウバン中か (= bad 率が高くフィード露出を絞られている)
+  shadowBanned?: boolean;
 }
 
 /// 料理 1 件 (= クリエイターが手打ちで登録するメニュー)

@@ -160,6 +160,52 @@ export async function incrementStockCount(restaurantId: string, delta: number) {
 }
 
 /**
+ * 動画の Good/Bad フィードバックを記録し、bad 率が高ければシャドウバン。
+ * ATOMIC にカウンタを増やし、更新後の値でシャドウバン状態を判定する。
+ *
+ * シャドウバン条件: 合計 12 票以上 かつ bad 率 70% 以上。
+ * (少数票での誤判定を防ぐため最低票数を設ける)
+ * 一度シャドウバンされたら、bad 率が 50% 未満に戻れば解除。
+ */
+export async function recordVideoFeedback(
+  restaurantId: string,
+  kind: 'good' | 'bad'
+): Promise<{ shadowBanned: boolean }> {
+  const field = kind === 'good' ? 'goodCount' : 'badCount';
+  const result = await db.send(new UpdateCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+    UpdateExpression: `ADD ${field} :one`,
+    ExpressionAttributeValues: { ':one': 1 },
+    ReturnValues: 'ALL_NEW',
+  }));
+  const item = result.Attributes as RestaurantV2 | undefined;
+  const good = item?.goodCount ?? 0;
+  const bad = item?.badCount ?? 0;
+  const total = good + bad;
+  const badRate = total > 0 ? bad / total : 0;
+  const currentlyBanned = item?.shadowBanned === true;
+
+  let shouldBan = currentlyBanned;
+  if (!currentlyBanned && total >= 12 && badRate >= 0.7) {
+    shouldBan = true;
+  } else if (currentlyBanned && badRate < 0.5) {
+    shouldBan = false; // 評価が持ち直したら解除
+  }
+
+  if (shouldBan !== currentlyBanned) {
+    await db.send(new UpdateCommand({
+      TableName: TABLE.restaurantsV2,
+      Key: { restaurantId },
+      UpdateExpression: 'SET shadowBanned = :b',
+      ExpressionAttributeValues: { ':b': shouldBan },
+    }));
+    invalidateSearchCache(); // フィード/検索の cache を更新
+  }
+  return { shadowBanned: shouldBan };
+}
+
+/**
  * レストランのvisibilityを更新
  */
 export async function updateRestaurantV2Visibility(restaurantId: string, visibility: string) {
@@ -558,7 +604,7 @@ export async function getSearchCache(): Promise<RestaurantV2[]> {
       do {
         const result = await db.send(new ScanCommand({
           TableName: TABLE.restaurantsV2,
-          ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, scene, priceRange, photoUrls, postedBy, visibility, lat, lng, description, urls',
+          ProjectionExpression: 'restaurantId, #n, nameLower, address, genres, scene, priceRange, photoUrls, postedBy, visibility, lat, lng, description, urls, shadowBanned, stoguruVideoUrl, menus, menuPhotoUrls',
           ExpressionAttributeNames: { '#n': 'name' },
           ExclusiveStartKey: lastKey,
         }));
