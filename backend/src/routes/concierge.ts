@@ -21,7 +21,7 @@ import {
   type InsightStockEntry,
   type DaySlot,
 } from '../services/concierge';
-import { getSearchCache } from '../services/dynamo';
+import { getSearchCache, batchGetInfluencerProfiles } from '../services/dynamo';
 import { haversineDistance } from '../utils/geo';
 
 /**
@@ -85,9 +85,8 @@ router.post('/', async (req: Request, res: Response) => {
     });
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[concierge] error:', err);
-    res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
+    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
   }
 });
 
@@ -110,9 +109,8 @@ router.post('/today-pick', async (req: Request, res: Response) => {
     const result = await pickTodayCached(candidates);
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[today-pick] error:', err);
-    res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
+    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
   }
 });
 
@@ -141,9 +139,8 @@ router.post('/pick-slot', async (req: Request, res: Response) => {
     const result = await pickBySlotCached(slot as DaySlot, candidates);
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[pick-slot] error:', err);
-    res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
+    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
   }
 });
 
@@ -166,9 +163,8 @@ router.post('/saved-rec', async (req: Request, res: Response) => {
     const result = await recommendSavedCached(candidates);
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[saved-rec] error:', err);
-    res.status(500).json({ error: `AI 呼び出しに失敗: ${msg}` });
+    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
   }
 });
 
@@ -211,9 +207,8 @@ router.post('/insights', async (req: Request, res: Response) => {
     const result = await analyzeUserInsights({ stocks });
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[insights] error:', err);
-    res.status(500).json({ error: `AI 分析に失敗: ${msg}` });
+    res.status(500).json({ error: "AI の分析に失敗しました。少し待って再度お試しください。" });
   }
 });
 
@@ -298,11 +293,59 @@ router.post('/recall', async (req: Request, res: Response) => {
       candidates: aiCandidates,
       maxResults: 3,
     });
-    res.json(result);
+
+    // AI が選んだ id を full restaurant data (= iOS SwipeRestaurant 形) に解決して
+    // 一緒に返す。これがないと iOS 側で 60 件の feed からしか解決できず、
+    // recall の大半が表示できない (= 記憶検索が機能しない) 問題を防ぐ。
+    const byId = new Map(top.map((r) => [r.restaurantId, r]));
+    const chosen = result.recommendations
+      .map((rec) => byId.get(rec.restaurantId))
+      .filter((r): r is NonNullable<typeof r> => r != null);
+    const profileMap = await batchGetInfluencerProfiles(
+      [...new Set(chosen.map((r) => r.postedBy).filter(Boolean))]
+    );
+    const restaurants = chosen.map((r) => {
+      const profile = profileMap.get(r.postedBy);
+      const platform = profile?.platform
+        || (profile?.instagramHandle ? 'instagram'
+          : profile?.tiktokHandle ? 'tiktok'
+          : profile?.youtubeHandle ? 'youtube' : 'instagram');
+      const handleMap: Record<string, string | undefined> = {
+        instagram: profile?.instagramHandle, tiktok: profile?.tiktokHandle, youtube: profile?.youtubeHandle,
+      };
+      const handle = handleMap[platform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
+      return {
+        id: r.restaurantId,
+        name: r.name,
+        address: r.address || '',
+        lat: r.lat ?? 0,
+        lng: r.lng ?? 0,
+        genre: (r.genres || [])[0] || '',
+        genres: r.genres || [],
+        scene: r.scene || [],
+        priceRange: r.priceRange || '',
+        distance: '',
+        influencer: {
+          name: profile?.displayName || '',
+          handle: handle ? `@${handle.replace(/^@/, '')}` : '',
+          platform,
+          url: profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '',
+        },
+        videoUrl: (r.urls || [])[0] || '',
+        videoUrls: (r.urls || []).filter(Boolean),
+        stoguruVideoUrl: r.stoguruVideoUrl,
+        photoEmoji: '🍽️',
+        photoUrls: r.photoUrls || [],
+        description: r.description || '',
+        menus: r.menus,
+        menuPhotoUrls: r.menuPhotoUrls,
+      };
+    });
+
+    res.json({ ...result, restaurants });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     console.error('[recall] error:', err);
-    res.status(500).json({ error: `AI 検索に失敗: ${msg}` });
+    res.status(500).json({ error: "AI 検索に失敗しました。少し待って再度お試しください。" });
   }
 });
 

@@ -119,8 +119,22 @@ function setCached<T>(key: string, value: T, ttlMs = DAY_MS): void {
 function makeDailyKey(prefix: string, items: string[]): string {
   const joined = items.slice().sort().join(',');
   const hash = crypto.createHash('md5').update(joined).digest('hex').slice(0, 12);
-  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
-  return `${prefix}:${hash}:${date}`;
+  return `${prefix}:${hash}:${jstDateString()}`;
+}
+
+/** JST (Asia/Tokyo) の "YYYY-MM-DD"。Render は UTC なので +9h して算出。
+ *  これがないと「日付」が UTC 0:00 (= JST 9:00) で切り替わり、朝の利用者が
+ *  前日の pick を見る等のズレが起きる。 */
+function jstDateString(): string {
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return jst.toISOString().slice(0, 10);
+}
+
+/** JST の時 (0-23)。pickTodayCached の朝/昼/夜 文脈判定に使う。
+ *  getHours() は server TZ (= UTC) を返すため JST と 9h ズレるのを補正。 */
+function jstHour(): number {
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return jst.getUTCHours();
 }
 
 export interface ConciergeCandidate {
@@ -289,7 +303,7 @@ export async function pickTodayCached(
   if (hit) return hit;
 
   // 時刻に応じた文脈を AI に渡す
-  const hour = new Date().getHours();
+  const hour = jstHour();
   const timeContext: string =
     hour < 6  ? '深夜帯、まだ食事を探している人向け' :
     hour < 11 ? '朝の時間帯、ゆっくり始めたい人向け' :

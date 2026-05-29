@@ -106,6 +106,33 @@ const feedbackLimit = rateLimit({
   message: { error: 'フィードバック送信が多すぎます。少し待ってからお試しください。' },
 });
 
+// AI (LLM) 呼び出し: 有料 API を叩くので厳しめに絞る。
+// /concierge と /recall は認証不要 (= IP キー) かつ非キャッシュなので、
+// 分散 IP からの課金攻撃を防ぐため 1 分 8 回 + 1 時間 60 回に制限。
+// キャッシュ付きエンドポイント (today-pick/pick-slot/saved-rec/insights) も
+// 念のため同じ limiter に乗せる (= 初回ミス時のみ LLM を叩くので実害は薄いが保険)。
+const llmLimit = rateLimit({
+  ...rateLimitBase,
+  windowMs: 60 * 1000,
+  max: 8,
+  message: { error: 'AI リクエストが多すぎます。少し待ってください。' },
+});
+const llmHourlyLimit = rateLimit({
+  ...rateLimitBase,
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  message: { error: 'AI リクエストの 1 時間あたり上限に達しました。' },
+});
+
+// 動画アップロード URL 発行: CloudFlare Stream は保存/配信で課金されるので、
+// 1 ユーザー 1 時間 10 本まで (= 投稿用途には十分、無限発行を防ぐ)。
+const videoUploadLimit = rateLimit({
+  ...rateLimitBase,
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: '動画アップロードのリクエストが多すぎます。少し待ってください。' },
+});
+
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
@@ -202,6 +229,8 @@ app.use('/api', (req, _res, next) => {
   writeLimit(req, _res, next);
 });
 app.use('/api', dataRouter);
+// 動画 upload URL 発行だけ専用 limiter (= CloudFlare 課金保護)
+app.use('/api/upload/video', videoUploadLimit);
 app.use('/api', uploadRouter);
 app.use('/api/influencer', influencerRouter);
 app.use('/api/feedback', feedbackLimit);
@@ -210,7 +239,9 @@ app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 app.use('/api', featuresRouter); // /features (匿名アクセス可)
-app.use('/api/concierge', conciergeRouter); // AI 推薦 (匿名アクセス可)
+// AI 推薦 (匿名アクセス可) — 有料 LLM を叩くので専用 limiter で厳しめに
+app.use('/api/concierge', llmLimit, llmHourlyLimit);
+app.use('/api/concierge', conciergeRouter);
 
 // ─── ヘルスチェック ───
 app.get('/health', (_req, res) => {
