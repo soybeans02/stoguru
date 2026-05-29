@@ -23,7 +23,7 @@ import {
   getSearchCache,
 } from '../services/dynamo';
 import { searchUsers, getUserById } from '../services/cognito';
-import type { RestaurantV2 } from '../types';
+import type { RestaurantV2, InfluencerProfile } from '../types';
 import { validate, restaurantSchema, settingsSchema, shareSchema, nearbySchema, syncBatchSchema } from '../validators';
 import { haversineDistance } from '../utils/geo';
 import { encode as geohashEncode, neighbors as geohashNeighbors } from '../utils/geohash';
@@ -373,6 +373,41 @@ router.get('/restaurants/following', requireAuth, async (req: AuthRequest, res: 
   );
 
   res.json(allItems.flat());
+});
+
+/**
+ * GET /api/restaurants/following-posts
+ * ホームの「フォロー中」フィード用。
+ * フォロー中クリエイターが「投稿した」お店 (= postedBy が followee) を、
+ * 新しい順に SwipeRestaurant 形で返す。/restaurants/following は
+ * 「フォロー中ユーザーが保存した店」なので別物。
+ */
+router.get('/restaurants/following-posts', requireAuth, async (req: AuthRequest, res: Response) => {
+  const limit = Math.min(Number(req.query.limit) || 30, 60);
+  const following = await getFollowing(req.user!.userId);
+  if (following.length === 0) {
+    res.json({ items: [] });
+    return;
+  }
+
+  // フォロー中クリエイターそれぞれの投稿店を集約 (= postedBy GSI)
+  const perCreator = await Promise.all(
+    following.map((f) => queryRestaurantsByPostedBy(f.followeeId))
+  );
+  const all = perCreator.flat().filter((r) =>
+    r.visibility !== 'hidden' &&
+    r.visibility !== 'private' &&
+    Array.isArray(r.photoUrls) && r.photoUrls.length > 0
+  );
+  // 新しい順
+  all.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const sliced = all.slice(0, limit);
+
+  const profileMap = await batchGetInfluencerProfiles(
+    [...new Set(sliced.map((r) => r.postedBy).filter(Boolean))]
+  );
+  const items = sliced.map((r) => toSwipeShape(r, profileMap.get(r.postedBy)));
+  res.json({ items });
 });
 
 // ─── レストラン保存/更新 ───
@@ -1074,5 +1109,50 @@ router.get('/ranking/spots', optionalAuth, async (_req: AuthRequest, res: Respon
 
 // UserStock type import for sync
 import type { UserStock } from '../types';
+
+/**
+ * RestaurantV2 + InfluencerProfile → iOS SwipeRestaurant 形の JSON。
+ * feed / recall / following-posts で共通利用 (整形ロジックの重複を解消)。
+ */
+function toSwipeShape(r: RestaurantV2, profile?: InfluencerProfile) {
+  const platform = profile?.platform
+    || (profile?.instagramHandle ? 'instagram'
+      : profile?.tiktokHandle ? 'tiktok'
+      : profile?.youtubeHandle ? 'youtube' : 'instagram');
+  const handleMap: Record<string, string | undefined> = {
+    instagram: profile?.instagramHandle,
+    tiktok: profile?.tiktokHandle,
+    youtube: profile?.youtubeHandle,
+  };
+  const handle = handleMap[platform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
+  return {
+    id: r.restaurantId,
+    name: r.name,
+    address: r.address || '',
+    lat: r.lat ?? 0,
+    lng: r.lng ?? 0,
+    genre: (r.genres || [])[0] || '',
+    genres: r.genres || [],
+    scene: r.scene || [],
+    priceRange: r.priceRange || '',
+    distance: '',
+    influencer: {
+      name: profile?.displayName || '',
+      handle: handle ? `@${handle.replace(/^@/, '')}` : '',
+      platform,
+      url: profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '',
+    },
+    influencerUserId: r.postedBy,
+    influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
+    videoUrl: (r.urls || [])[0] || '',
+    videoUrls: (r.urls || []).filter(Boolean),
+    stoguruVideoUrl: r.stoguruVideoUrl,
+    photoEmoji: '🍽️',
+    photoUrls: r.photoUrls || [],
+    description: r.description || '',
+    menus: r.menus,
+    menuPhotoUrls: r.menuPhotoUrls,
+  };
+}
 
 export default router;
