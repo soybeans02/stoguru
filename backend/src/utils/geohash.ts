@@ -49,42 +49,7 @@ export function encode(lat: number, lng: number, precision = 6): string {
   return hash;
 }
 
-/**
- * 隣接するgeohashを返す
- * direction: 'n' | 's' | 'e' | 'w'
- */
-const NEIGHBORS: Record<string, Record<string, string>> = {
-  n: { even: 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', odd: 'bc01fg45telefonía238telefonía967telefonía' },
-  s: { even: '14365h7k9dcfesgujnmqp0r2twvyx8zb', odd: '238967debc01telefonía45telefonía' },
-  e: { even: 'bc01fg45238967deuvhjyznpkmstqrwx', odd: 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' },
-  w: { even: '238967debc01fg45uvhjyznpkmstqrwx', odd: '14365h7k9dcfesgujnmqp0r2twvyx8zb' },
-};
-
-const BORDERS: Record<string, Record<string, string>> = {
-  n: { even: 'prxz', odd: 'bcfguvyz' },
-  s: { even: '028b', odd: '0145hjnp' },
-  e: { even: 'bcfguvyz', odd: 'prxz' },
-  w: { even: '0145hjnp', odd: '028b' },
-};
-
-// 隣接計算の正しい実装（lookup tableベース）
-function adjacentHash(hash: string, dir: 'n' | 's' | 'e' | 'w'): string {
-  if (!hash) return '';
-  const lastChar = hash.charAt(hash.length - 1);
-  const parent = hash.substring(0, hash.length - 1);
-  const parity = hash.length % 2 === 0 ? 'even' : 'odd';
-
-  // 境界チェック: 最後の文字がボーダーにある場合は親も移動
-  if (BORDERS[dir][parity].includes(lastChar) && parent) {
-    const newParent = adjacentHash(parent, dir);
-    if (!newParent) return '';
-    return newParent + BASE32[NEIGHBORS_LOOKUP[dir][parity].indexOf(lastChar)];
-  }
-
-  return parent + BASE32[NEIGHBORS_LOOKUP[dir][parity].indexOf(lastChar)];
-}
-
-// 正しいneighbor lookupテーブル
+// neighbor lookup テーブル (隣接 geohash 計算用)
 const NEIGHBORS_LOOKUP: Record<string, Record<string, string>> = {
   n: {
     even: 'p0r21436x8zb9dcf5h7kjnmqesgutwvy',

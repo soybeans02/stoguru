@@ -144,28 +144,6 @@ export interface InfluencerProfile {
   updatedAt: number;
 }
 
-export interface InfluencerRestaurant {
-  influencerId: string;
-  restaurantId: string;
-  name: string;
-  address?: string;
-  lat?: number;
-  lng?: number;
-  placeId?: string;
-  genres: string[];
-  priceRange?: string;
-  photoUrls: string[];
-  videoUrl?: string;
-  instagramUrl?: string;
-  tiktokUrl?: string;
-  youtubeUrl?: string;
-  urls?: string[];
-  description?: string;
-  visibility?: 'public' | 'mutual' | 'hidden' | 'private';
-  createdAt: number;
-  updatedAt: number;
-}
-
 export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted';
 
 export interface Notification {

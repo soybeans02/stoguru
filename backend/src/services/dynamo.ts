@@ -22,7 +22,6 @@ import type {
   Notification,
   NotificationType,
   InfluencerProfile,
-  InfluencerRestaurant,
 } from '../types';
 import { encode as geohashEncode } from '../utils/geohash';
 
@@ -981,43 +980,6 @@ export async function batchGetInfluencerProfiles(
     }
   }
   return out;
-}
-
-// =============================================
-// 旧インフルエンサーレストラン（マイグレーション用）
-// =============================================
-
-export async function putInfluencerRestaurant(influencerId: string, restaurant: Partial<InfluencerRestaurant> & { restaurantId: string }) {
-  await db.send(new PutCommand({
-    TableName: TABLE.influencerRestaurants,
-    Item: { influencerId, ...restaurant, updatedAt: Date.now() },
-  }));
-}
-
-export async function getInfluencerRestaurants(influencerId: string): Promise<InfluencerRestaurant[]> {
-  const result = await db.send(new QueryCommand({
-    TableName: TABLE.influencerRestaurants,
-    KeyConditionExpression: 'influencerId = :iid',
-    ExpressionAttributeValues: { ':iid': influencerId },
-    Limit: 500,
-  }));
-  return (result.Items ?? []) as InfluencerRestaurant[];
-}
-
-export async function updateRestaurantVisibility(influencerId: string, restaurantId: string, visibility: string) {
-  await db.send(new UpdateCommand({
-    TableName: TABLE.influencerRestaurants,
-    Key: { influencerId, restaurantId },
-    UpdateExpression: 'SET visibility = :v, updatedAt = :u',
-    ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
-  }));
-}
-
-export async function deleteInfluencerRestaurant(influencerId: string, restaurantId: string) {
-  await db.send(new DeleteCommand({
-    TableName: TABLE.influencerRestaurants,
-    Key: { influencerId, restaurantId },
-  }));
 }
 
 // =============================================

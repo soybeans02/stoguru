@@ -13,14 +13,8 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import {
   recommendRestaurants,
-  pickTodayCached,
-  pickBySlotCached,
-  recommendSavedCached,
-  analyzeUserInsights,
   isLLMAvailable,
   type ConciergeCandidate,
-  type InsightStockEntry,
-  type DaySlot,
   type UserHistoryEntry,
 } from '../services/concierge';
 import { getSearchCache, batchGetInfluencerProfiles } from '../services/dynamo';
@@ -115,128 +109,6 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[concierge] error:', err);
     res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
-  }
-});
-
-/**
- * POST /api/concierge/today-pick
- * Home の TODAY'S PICK 用。候補から AI が 1 軒選ぶ。24h キャッシュ。
- */
-router.post('/today-pick', async (req: Request, res: Response) => {
-  if (!isLLMAvailable()) {
-    res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
-    return;
-  }
-  const body = req.body as { candidates?: unknown };
-  const candidates = normalizeCandidates(body.candidates);
-  if (candidates.length === 0) {
-    res.json({ recommendations: [] });
-    return;
-  }
-  try {
-    const result = await pickTodayCached(candidates);
-    res.json(result);
-  } catch (err) {
-    console.error('[today-pick] error:', err);
-    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
-  }
-});
-
-/**
- * POST /api/concierge/pick-slot
- * { slot: "morning" | "lunch" | "dinner", candidates: [...] }
- * 時間帯別に AI が 1 軒選定。24h cache (slot 別)。
- */
-router.post('/pick-slot', async (req: Request, res: Response) => {
-  if (!isLLMAvailable()) {
-    res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
-    return;
-  }
-  const body = req.body as { slot?: unknown; candidates?: unknown };
-  const slot = body.slot;
-  if (slot !== 'morning' && slot !== 'lunch' && slot !== 'dinner') {
-    res.status(400).json({ error: 'slot は morning / lunch / dinner のいずれか' });
-    return;
-  }
-  const candidates = normalizeCandidates(body.candidates);
-  if (candidates.length === 0) {
-    res.json({ recommendations: [] });
-    return;
-  }
-  try {
-    const result = await pickBySlotCached(slot as DaySlot, candidates);
-    res.json(result);
-  } catch (err) {
-    console.error('[pick-slot] error:', err);
-    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
-  }
-});
-
-/**
- * POST /api/concierge/saved-rec
- * 保存タブの AI 推薦用。未訪問候補から 3 軒。24h キャッシュ。
- */
-router.post('/saved-rec', async (req: Request, res: Response) => {
-  if (!isLLMAvailable()) {
-    res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
-    return;
-  }
-  const body = req.body as { candidates?: unknown };
-  const candidates = normalizeCandidates(body.candidates);
-  if (candidates.length === 0) {
-    res.json({ recommendations: [] });
-    return;
-  }
-  try {
-    const result = await recommendSavedCached(candidates);
-    res.json(result);
-  } catch (err) {
-    console.error('[saved-rec] error:', err);
-    res.status(500).json({ error: "AI の呼び出しに失敗しました。少し待って再度お試しください。" });
-  }
-});
-
-/**
- * POST /api/concierge/insights
- * 保存履歴から食の傾向を AI に分析させる (You タブの AI 傾向)
- */
-router.post('/insights', async (req: Request, res: Response) => {
-  if (!isLLMAvailable()) {
-    res.status(503).json({ error: 'AI コンシェルジュは現在オフラインです' });
-    return;
-  }
-
-  const body = req.body as { stocks?: unknown };
-  if (!Array.isArray(body.stocks)) {
-    res.status(400).json({ error: 'stocks は配列で必須' });
-    return;
-  }
-
-  const stocks: InsightStockEntry[] = body.stocks
-    .filter((s): s is Record<string, unknown> => typeof s === 'object' && s !== null)
-    .map((s) => ({
-      name: String(s.name ?? ''),
-      genre: typeof s.genre === 'string' ? s.genre : undefined,
-      scene: Array.isArray(s.scene)
-        ? s.scene.filter((x): x is string => typeof x === 'string')
-        : undefined,
-      priceRange: typeof s.priceRange === 'string' ? s.priceRange : undefined,
-      visited: s.visited === true,
-    }))
-    .filter((s) => s.name.length > 0)
-    .slice(0, 60);
-
-  if (stocks.length === 0) {
-    res.json({ insights: [], intro: 'まだ保存履歴がありません' });
-    return;
-  }
-
-  try {
-    const result = await analyzeUserInsights({ stocks });
-    res.json(result);
-  } catch (err) {
-    console.error('[insights] error:', err);
-    res.status(500).json({ error: "AI の分析に失敗しました。少し待って再度お試しください。" });
   }
 });
 

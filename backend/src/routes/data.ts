@@ -1,3 +1,20 @@
+/**
+ * data.ts — アプリの中核データ API (最大のルートファイル)。
+ *
+ * エンドポイント群:
+ *  - レストラン: feed / filter / following-posts / nearby / :id (保存・更新・削除)
+ *  - フィードバック: :id/feedback (Good/Bad → シャドウバン)
+ *  - ストック(保存): /restaurants の取得・同期
+ *  - フォロー: follow / followers / following / follow-requests
+ *  - 通知: notifications
+ *  - 検索: /search /users/search
+ *  - シェア / ランキング / ジャンルリクエスト
+ *
+ * 共通:
+ *  - レスポンスは feed 系 = {items,total,limit,hasMore}、list 系 = 素の配列。
+ *  - 一部ハンドラは try/catch 無しで index.ts の global error handler に委譲。
+ *  - RestaurantV2 → iOS SwipeRestaurant の整形は末尾の toSwipeShape() に集約。
+ */
 import { Router, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { randomUUID } from 'crypto';
@@ -98,58 +115,11 @@ router.get('/restaurants/feed', optionalAuth, async (req: AuthRequest, res: Resp
   const influencerIds = [...new Set(nearby.map((r) => r.postedBy))];
   const profileMap = await batchGetInfluencerProfiles(influencerIds);
 
-  const feed = nearby.map((r) => {
-    const profile = profileMap.get(r.postedBy);
-    const selectedPlatform = profile?.platform || (
-      profile?.instagramHandle ? 'instagram'
-      : profile?.tiktokHandle ? 'tiktok'
-      : profile?.youtubeHandle ? 'youtube'
-      : 'instagram'
-    );
-    const handleMap: Record<string, string | undefined> = {
-      instagram: profile?.instagramHandle,
-      tiktok: profile?.tiktokHandle,
-      youtube: profile?.youtubeHandle,
-    };
-    const urlMap: Record<string, string | undefined> = {
-      instagram: profile?.instagramUrl,
-      tiktok: profile?.tiktokUrl,
-      youtube: profile?.youtubeUrl,
-    };
-    const handle = handleMap[selectedPlatform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
-    const profileUrl = urlMap[selectedPlatform] || profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '';
-    return {
-      id: r.restaurantId,
-      name: r.name,
-      address: r.address || '',
-      lat: r.lat!,
-      lng: r.lng!,
-      genre: (r.genres || [])[0] || '',
-      genres: r.genres || [],
-      scene: r.scene || [],
-      priceRange: r.priceRange || '',
-      distance: '',
-      influencer: {
-        name: profile?.displayName || '',
-        handle: handle ? `@${handle.replace(/^@/, '')}` : '',
-        platform: selectedPlatform,
-        url: profileUrl,
-      },
-      // 投稿者の Cognito sub。フロントの「@handle タップで投稿者プロフィール
-      // を開く」のために必要。これが無いと onInfluencerClick(undefined) で
-      // ハンドルがクリックできても何も起きない無反応バグになる。
-      influencerUserId: r.postedBy,
-      influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
-      videoUrl: (r.urls || [])[0] || '',
-      // 複数 URL (TikTok / Instagram / YouTube 等) を全部送る。
-      // iOS の動画マークタップ時に複数あれば選択肢を出すため。
-      videoUrls: (r.urls || []).filter(Boolean),
-      photoEmoji: '🍽️',
-      photoUrls: r.photoUrls || [],
-      description: r.description || '',
-      distanceMeters: r.distanceMeters,
-    };
-  });
+  // SwipeRestaurant 形に整形 (toSwipeShape で共通化) + 距離を付与
+  const feed = nearby.map((r) => ({
+    ...toSwipeShape(r, profileMap.get(r.postedBy)),
+    distanceMeters: r.distanceMeters,
+  }));
 
   // シャッフル済みの先頭 limit 件を返す
   const paged = feed.slice(0, limit);
@@ -226,54 +196,7 @@ router.get('/restaurants/filter', optionalAuth, async (req: AuthRequest, res: Re
   const influencerIds = [...new Set(slice.map((r) => r.postedBy).filter(Boolean))];
   const profileMap = await batchGetInfluencerProfiles(influencerIds);
 
-  const items = slice.map((r) => {
-    const profile = profileMap.get(r.postedBy);
-    const selectedPlatform = profile?.platform || (
-      profile?.instagramHandle ? 'instagram'
-      : profile?.tiktokHandle ? 'tiktok'
-      : profile?.youtubeHandle ? 'youtube'
-      : 'instagram'
-    );
-    const handleMap: Record<string, string | undefined> = {
-      instagram: profile?.instagramHandle,
-      tiktok: profile?.tiktokHandle,
-      youtube: profile?.youtubeHandle,
-    };
-    const urlMap: Record<string, string | undefined> = {
-      instagram: profile?.instagramUrl,
-      tiktok: profile?.tiktokUrl,
-      youtube: profile?.youtubeUrl,
-    };
-    const handle = handleMap[selectedPlatform] || profile?.instagramHandle || profile?.tiktokHandle || profile?.youtubeHandle || '';
-    const profileUrl = urlMap[selectedPlatform] || profile?.instagramUrl || profile?.tiktokUrl || profile?.youtubeUrl || '';
-    return {
-      id: r.restaurantId,
-      name: r.name,
-      address: r.address || '',
-      lat: r.lat ?? 0,
-      lng: r.lng ?? 0,
-      genre: (r.genres || [])[0] || '',
-      genres: r.genres || [],
-      scene: r.scene || [],
-      priceRange: r.priceRange || '',
-      distance: '',
-      influencer: {
-        name: profile?.displayName || '',
-        handle: handle ? `@${handle.replace(/^@/, '')}` : '',
-        platform: selectedPlatform,
-        url: profileUrl,
-      },
-      influencerUserId: r.postedBy,
-      influencerHandle: handle ? `@${handle.replace(/^@/, '')}` : '',
-      videoUrl: (r.urls || [])[0] || '',
-      // 複数 URL (TikTok / Instagram / YouTube 等) を全部送る。
-      // iOS の動画マークタップ時に複数あれば選択肢を出すため。
-      videoUrls: (r.urls || []).filter(Boolean),
-      photoEmoji: '🍽️',
-      photoUrls: r.photoUrls || [],
-      description: r.description || '',
-    };
-  });
+  const items = slice.map((r) => toSwipeShape(r, profileMap.get(r.postedBy)));
 
   res.json({
     items,

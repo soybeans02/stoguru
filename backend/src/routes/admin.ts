@@ -1,3 +1,10 @@
+/**
+ * admin.ts — 運営者専用 API。
+ *
+ * 一般ユーザーの Cognito 認証とは別系統で、単一の管理者 ID + bcrypt ハッシュ
+ * (env: ADMIN_ID / ADMIN_PASSWORD_HASH) を検証して独自 JWT を発行する。
+ * ユーザー一覧 / 統計 / フィードバック閲覧などの運用機能を提供。
+ */
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
