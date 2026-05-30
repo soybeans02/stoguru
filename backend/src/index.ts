@@ -26,6 +26,11 @@ import { peekVerifiedUserId } from './middleware/auth';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
+// Render は edge proxy の後段。trust proxy=1 で X-Forwarded-For の
+// 先頭 (= 実クライアント IP) を req.ip に反映させる。これがないと
+// 全リクエストが proxy IP で同一バケットになり per-IP rate limit が崩壊する。
+app.set('trust proxy', 1);
+
 // ─── レート制限 ───
 
 // ユーザー単位のキー生成（認証済みならuserId、未認証ならIP）。
@@ -134,6 +139,7 @@ const videoUploadLimit = rateLimit({
 });
 
 
+
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, cb) => {
@@ -239,7 +245,7 @@ app.use('/api/public', publicRouter);
 app.use('/api/admin', authLimit);
 app.use('/api/admin', adminRouter);
 app.use('/api', featuresRouter); // /features (匿名アクセス可)
-// AI 推薦 (匿名アクセス可) — 有料 LLM を叩くので専用 limiter で厳しめに
+// AI 推薦 — 有料 LLM を叩くので専用 limiter + 認証必須 (router 側で requireAuth)
 app.use('/api/concierge', llmLimit, llmHourlyLimit);
 app.use('/api/concierge', conciergeRouter);
 

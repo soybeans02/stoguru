@@ -10,6 +10,7 @@
  * グローバルの globalLimit / hourlyLimit に乗る。
  */
 import { Router, Request, Response } from 'express';
+import { requireAuth } from '../middleware/auth';
 import {
   recommendRestaurants,
   pickTodayCached,
@@ -67,6 +68,10 @@ function normalizeHistory(raw: unknown): UserHistoryEntry[] {
 }
 
 const router = Router();
+
+// AI (LLM) は有料 API を叩くので全 concierge エンドポイントを認証必須にする
+// (= 匿名のコスト攻撃を防ぐ)。stoguru はログイン必須アプリなので実害なし。
+router.use(requireAuth);
 
 router.post('/', async (req: Request, res: Response) => {
   if (!isLLMAvailable()) {

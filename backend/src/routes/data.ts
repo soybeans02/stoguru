@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { randomUUID } from 'crypto';
 import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import {
@@ -32,6 +33,16 @@ const router = Router();
 
 // crypto.randomUUID() 形式の restaurantId のみ許可 (influencer.ts と同じ)
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// 動画 Good/Bad 投票の連打抑制 (二重投票は service 側でも弾くが、スパム自体を抑える)。
+// 1 分 20 票まで。trust proxy 設定済みなので per-IP/userId で効く。
+const feedbackVoteLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'フィードバックが多すぎます。少し待ってください。' },
+});
 
 // ─── スワイプ用フィード（geohashベース、スキャン不要） ───
 
@@ -418,9 +429,10 @@ router.get('/restaurants/following-posts', requireAuth, async (req: AuthRequest,
 /**
  * POST /api/restaurants/:id/feedback  { kind: "good" | "bad" }
  * 動画への 👍 / 👎。bad 率が高い投稿は自動でシャドウバン (= フィード露出減)。
- * 匿名でも押せる (optionalAuth)。rate limit はグローバルに乗る。
+ * 要認証 (= 1 ユーザー 1 店 1 票)。二重投票・存在しない店への投票は弾く。
+ * (匿名 + 連打で競合をシャドウバンする攻撃を防ぐため)
  */
-router.post('/restaurants/:id/feedback', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.post('/restaurants/:id/feedback', feedbackVoteLimit, requireAuth, async (req: AuthRequest, res: Response) => {
   const restaurantId = req.params.id as string;
   if (!UUID_RE.test(restaurantId)) {
     res.status(400).json({ error: '無効なお店 ID です' });
@@ -432,8 +444,13 @@ router.post('/restaurants/:id/feedback', optionalAuth, async (req: AuthRequest, 
     return;
   }
   try {
-    const result = await recordVideoFeedback(restaurantId, kind);
-    res.json({ ok: true, shadowBanned: result.shadowBanned });
+    const result = await recordVideoFeedback(restaurantId, kind, req.user!.userId);
+    if (result.notFound) {
+      res.status(404).json({ error: 'お店が見つかりません' });
+      return;
+    }
+    // 二重投票でも 200 を返す (= UX 上はエラーにしない、冪等)
+    res.json({ ok: true, shadowBanned: result.shadowBanned, alreadyVoted: result.alreadyVoted });
   } catch (err) {
     console.error('[feedback] error:', err);
     res.status(500).json({ error: 'フィードバックの記録に失敗しました' });
@@ -444,6 +461,11 @@ router.post('/restaurants/:id/feedback', optionalAuth, async (req: AuthRequest, 
 
 router.put('/restaurants/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const restaurantId = req.params.id as string;
+  // crypto.randomUUID() 形式のみ許可 (= 任意文字列の ID squat / 別 namespace 汚染を防ぐ)
+  if (!UUID_RE.test(restaurantId)) {
+    res.status(400).json({ error: '無効なお店 ID です' });
+    return;
+  }
   const v = validate(restaurantSchema, { id: restaurantId, ...req.body });
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
 

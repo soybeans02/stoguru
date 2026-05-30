@@ -159,27 +159,60 @@ export async function incrementStockCount(restaurantId: string, delta: number) {
   }));
 }
 
+/** recordVideoFeedback の結果。alreadyVoted = 二重投票で無視された。 */
+export interface VideoFeedbackResult {
+  shadowBanned: boolean;
+  alreadyVoted: boolean;
+  notFound: boolean;
+}
+
 /**
  * 動画の Good/Bad フィードバックを記録し、bad 率が高ければシャドウバン。
- * ATOMIC にカウンタを増やし、更新後の値でシャドウバン状態を判定する。
  *
- * シャドウバン条件: 合計 12 票以上 かつ bad 率 70% 以上。
- * (少数票での誤判定を防ぐため最低票数を設ける)
- * 一度シャドウバンされたら、bad 率が 50% 未満に戻れば解除。
+ * 不正対策:
+ *  - 1 ユーザー 1 店 1 票まで (feedbackVoterIds の String Set + ConditionExpression
+ *    で二重投票をアトミックに弾く)。連打で competitor をシャドウバンする攻撃を防ぐ。
+ *  - attribute_exists(restaurantId) で「存在する店」のみ受付 (= phantom item 生成防止)。
+ *
+ * シャドウバン条件: 合計 15 票以上 かつ bad 率 70% 以上 (ユニーク投票者ベース)。
+ * 一度バンされても bad 率 50% 未満に戻れば解除。
+ *
+ * NOTE: feedbackVoterIds は SS なので超人気店で肥大化しうる (アイテム 400KB 上限)。
+ *       数万票規模になったら別テーブル (restaurantId+userId PK) に移行する。
  */
 export async function recordVideoFeedback(
   restaurantId: string,
-  kind: 'good' | 'bad'
-): Promise<{ shadowBanned: boolean }> {
+  kind: 'good' | 'bad',
+  userId: string
+): Promise<VideoFeedbackResult> {
   const field = kind === 'good' ? 'goodCount' : 'badCount';
-  const result = await db.send(new UpdateCommand({
-    TableName: TABLE.restaurantsV2,
-    Key: { restaurantId },
-    UpdateExpression: `ADD ${field} :one`,
-    ExpressionAttributeValues: { ':one': 1 },
-    ReturnValues: 'ALL_NEW',
-  }));
-  const item = result.Attributes as RestaurantV2 | undefined;
+  let item: RestaurantV2 | undefined;
+  try {
+    const result = await db.send(new UpdateCommand({
+      TableName: TABLE.restaurantsV2,
+      Key: { restaurantId },
+      // カウンタ加算 + 投票者を Set に追加 (アトミック)
+      UpdateExpression: `ADD ${field} :one, feedbackVoterIds :voter`,
+      // 店が存在し、かつ未投票の時だけ成功
+      ConditionExpression: 'attribute_exists(restaurantId) AND (NOT contains(feedbackVoterIds, :uid))',
+      ExpressionAttributeValues: {
+        ':one': 1,
+        ':voter': new Set([userId]),
+        ':uid': userId,
+      },
+      ReturnValues: 'ALL_NEW',
+    }));
+    item = result.Attributes as RestaurantV2 | undefined;
+  } catch (err: unknown) {
+    // ConditionalCheckFailed = 二重投票 or 店が存在しない
+    if (err && typeof err === 'object' && (err as { name?: string }).name === 'ConditionalCheckFailedException') {
+      // 店が存在するか確認して理由を分ける
+      const exists = await getRestaurantV2(restaurantId);
+      return { shadowBanned: exists?.shadowBanned === true, alreadyVoted: !!exists, notFound: !exists };
+    }
+    throw err;
+  }
+
   const good = item?.goodCount ?? 0;
   const bad = item?.badCount ?? 0;
   const total = good + bad;
@@ -187,7 +220,7 @@ export async function recordVideoFeedback(
   const currentlyBanned = item?.shadowBanned === true;
 
   let shouldBan = currentlyBanned;
-  if (!currentlyBanned && total >= 12 && badRate >= 0.7) {
+  if (!currentlyBanned && total >= 15 && badRate >= 0.7) {
     shouldBan = true;
   } else if (currentlyBanned && badRate < 0.5) {
     shouldBan = false; // 評価が持ち直したら解除
@@ -202,7 +235,7 @@ export async function recordVideoFeedback(
     }));
     invalidateSearchCache(); // フィード/検索の cache を更新
   }
-  return { shadowBanned: shouldBan };
+  return { shadowBanned: shouldBan, alreadyVoted: false, notFound: false };
 }
 
 /**
