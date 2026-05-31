@@ -18,6 +18,7 @@ import influencerRouter from './routes/influencer';
 import feedbackRouter from './routes/feedback';
 import publicRouter from './routes/public';
 import conciergeRouter from './routes/concierge';
+import communityRouter from './routes/community';
 import { saveStats, loadStats, saveActivity, loadActivity } from './services/dynamo';
 import { stats, userActivity } from './state';
 import { peekVerifiedUserId } from './middleware/auth';
@@ -248,6 +249,8 @@ app.use('/api', featuresRouter); // /features (匿名アクセス可)
 // AI 推薦 — 有料 LLM を叩くので専用 limiter + 認証必須 (router 側で requireAuth)
 app.use('/api/concierge', llmLimit, llmHourlyLimit);
 app.use('/api/concierge', conciergeRouter);
+// コミュニティ掲示板 (要認証は router 側、書き込みは上の writeLimit に乗る)
+app.use('/api/community', communityRouter);
 
 // ─── ヘルスチェック ───
 app.get('/health', (_req, res) => {

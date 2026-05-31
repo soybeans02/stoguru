@@ -22,6 +22,7 @@ import type {
   Notification,
   NotificationType,
   InfluencerProfile,
+  Post,
 } from '../types';
 import { encode as geohashEncode } from '../utils/geohash';
 
@@ -49,6 +50,7 @@ const TABLE = {
   influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
   feedback: 'GourmetStock_Feedback',
   deletedAccounts: 'GourmetStock_DeletedAccounts',
+  posts: 'GourmetStock_Posts',
 } as const;
 
 // =============================================
@@ -1462,4 +1464,99 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
     chunks.push(arr.slice(i, i + size));
   }
   return chunks;
+}
+
+// =============================================
+// コミュニティ掲示板 (エリア別タイムライン)
+// PK=areaId, SK=createdAt(降順=最新)。like/report は voter Set で二重防止。
+// =============================================
+
+const POST_REPORT_HIDE_THRESHOLD = 5; // 通報がこの数に達したら自動非表示
+
+export async function createPost(post: Post): Promise<void> {
+  await db.send(new PutCommand({
+    TableName: TABLE.posts,
+    Item: post,
+  }));
+}
+
+/** エリアの投稿を新しい順に取得 (hidden は除外)。 */
+export async function listPostsByArea(areaId: string, limit = 30): Promise<Post[]> {
+  const result = await db.send(new QueryCommand({
+    TableName: TABLE.posts,
+    KeyConditionExpression: 'areaId = :a',
+    ExpressionAttributeValues: { ':a': areaId },
+    ScanIndexForward: false, // 降順 (最新が先)
+    Limit: limit * 2,        // hidden 除外で目減りする分を多めに取る
+  }));
+  const items = (result.Items ?? []) as Post[];
+  return items.filter((p) => !p.hidden).slice(0, limit);
+}
+
+export async function getPost(areaId: string, createdAt: number): Promise<Post | null> {
+  const result = await db.send(new GetCommand({
+    TableName: TABLE.posts,
+    Key: { areaId, createdAt },
+  }));
+  return (result.Item as Post) ?? null;
+}
+
+/** いいね (1 ユーザー 1 回、Set + ConditionExpression で二重防止)。 */
+export async function likePost(areaId: string, createdAt: number, userId: string): Promise<{ liked: boolean }> {
+  try {
+    await db.send(new UpdateCommand({
+      TableName: TABLE.posts,
+      Key: { areaId, createdAt },
+      UpdateExpression: 'ADD likeCount :one, likeVoterIds :voter',
+      ConditionExpression: 'attribute_exists(postId) AND (NOT contains(likeVoterIds, :uid))',
+      ExpressionAttributeValues: { ':one': 1, ':voter': new Set([userId]), ':uid': userId },
+    }));
+    return { liked: true };
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && (err as { name?: string }).name === 'ConditionalCheckFailedException') {
+      return { liked: false }; // 既にいいね済み or 投稿なし (冪等)
+    }
+    throw err;
+  }
+}
+
+/** 通報 (1 ユーザー 1 回)。閾値に達したら hidden=true。 */
+export async function reportPost(areaId: string, createdAt: number, userId: string): Promise<{ hidden: boolean }> {
+  let updated: Post | undefined;
+  try {
+    const result = await db.send(new UpdateCommand({
+      TableName: TABLE.posts,
+      Key: { areaId, createdAt },
+      UpdateExpression: 'ADD reportCount :one, reportVoterIds :voter',
+      ConditionExpression: 'attribute_exists(postId) AND (NOT contains(reportVoterIds, :uid))',
+      ExpressionAttributeValues: { ':one': 1, ':voter': new Set([userId]), ':uid': userId },
+      ReturnValues: 'ALL_NEW',
+    }));
+    updated = result.Attributes as Post | undefined;
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && (err as { name?: string }).name === 'ConditionalCheckFailedException') {
+      const existing = await getPost(areaId, createdAt);
+      return { hidden: existing?.hidden === true };
+    }
+    throw err;
+  }
+  const reportCount = updated?.reportCount ?? 0;
+  if (reportCount >= POST_REPORT_HIDE_THRESHOLD && !updated?.hidden) {
+    await db.send(new UpdateCommand({
+      TableName: TABLE.posts,
+      Key: { areaId, createdAt },
+      UpdateExpression: 'SET hidden = :t',
+      ExpressionAttributeValues: { ':t': true },
+    }));
+    return { hidden: true };
+  }
+  return { hidden: updated?.hidden === true };
+}
+
+/** 投稿削除 (本人のみ。呼び出し側で authorId 検証)。 */
+export async function deletePost(areaId: string, createdAt: number): Promise<void> {
+  await db.send(new DeleteCommand({
+    TableName: TABLE.posts,
+    Key: { areaId, createdAt },
+  }));
 }

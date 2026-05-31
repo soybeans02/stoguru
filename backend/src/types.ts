@@ -154,3 +154,20 @@ export interface Notification {
   fromNickname: string;
   read: boolean;
 }
+
+// ─── コミュニティ掲示板 (エリア別タイムライン) ───
+
+export interface Post {
+  areaId: string;            // PK — エリア ("umeda" 等)。"all" は全国
+  createdAt: number;         // SK — 降順で最新順
+  postId: string;            // 一意 ID (= 削除/いいね/通報のキー)
+  authorId: string;          // 投稿者 userId
+  authorNickname: string;
+  text: string;              // 本文 (最大 1000 字)
+  photoUrls?: string[];      // 添付写真 (任意、最大 4)
+  restaurantId?: string;     // 紐付けた店 (任意 → タップで Reel へ)
+  restaurantName?: string;   // 表示用に非正規化
+  likeCount: number;
+  reportCount: number;       // 通報数。閾値超で hidden
+  hidden: boolean;           // 通報多数 or 本人削除で非表示
+}
