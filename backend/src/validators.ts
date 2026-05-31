@@ -164,8 +164,15 @@ export const influencerRestaurantSchema = z.object({
   // photoUrls / urls は href / src に流れるため必ず http(s) スキームを強制
   photoUrls: z.array(httpUrl()).max(10, '写真は10枚まで').default([]),
   videoUrl: httpUrl().optional(),
-  // CloudFlare Stream の playback URL (HLS .m3u8)。アプリ内 AVPlayer で再生。
-  stoguruVideoUrl: httpUrl().optional(),
+  // CloudFlare Stream の動画参照。署名付き再生のため "cfstream:<32hex uid>" 形式
+  // を保存する (再生時に /upload/video-token で署名 URL を発行)。
+  // 旧データ互換で http(s) URL も許可。
+  stoguruVideoUrl: z.string().max(500).refine((s) => {
+    if (!s) return true;
+    if (/^cfstream:[0-9a-f]{32}$/i.test(s)) return true;
+    try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  }, { message: '無効な動画参照です' }).optional(),
   instagramUrl: httpUrl().optional(),
   tiktokUrl: httpUrl().optional(),
   youtubeUrl: httpUrl().optional(),

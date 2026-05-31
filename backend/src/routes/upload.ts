@@ -53,7 +53,9 @@ router.post('/upload/video', requireAuth, async (req: AuthRequest, res: Response
           maxDurationSeconds,
           // creator フィールドに userId を入れて、後で「誰がアップしたか」追跡可能に
           creator: req.user!.userId,
-          // metadata は任意のキー値。クライアントが渡した restaurantId 等を保存できる
+          // 署名付き URL 必須に = 直リンク/bot/スクレイパからの再生 (= 配信費漏れ) を防ぐ。
+          // 再生は POST /upload/video-token で発行した短命トークン経由のみ。
+          requireSignedURLs: true,
         }),
       }
     );
@@ -79,21 +81,78 @@ router.post('/upload/video', requireAuth, async (req: AuthRequest, res: Response
     }
 
     const { uploadURL, uid } = data.result;
-    const playbackUrl = customerCode
-      ? `https://customer-${customerCode}.cloudflarestream.com/${uid}/manifest/video.m3u8`
-      : `https://videodelivery.net/${uid}/manifest/video.m3u8`;
-      // customer code 未設定なら旧 URL (videodelivery.net) でも playback 可能。
-      // 完全切替したい場合は Cloudflare dashboard で customer code 確認して env 設定。
-
+    // 署名付き必須なので固定 playback URL は使えない。stoguruVideoUrl には
+    // "cfstream:{uid}" を保存させ、再生時に /upload/video-token で署名 URL を発行する。
     res.json({
       uploadUrl: uploadURL,
       videoUid: uid,
-      playbackUrl,
+      playbackRef: `cfstream:${uid}`,
     });
   } catch (err) {
     console.error('[upload/video] error:', err);
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: `動画 upload URL 発行に失敗: ${msg}` });
+  }
+});
+
+/**
+ * POST /api/upload/video-token  { ref: "cfstream:<uid>" }
+ *
+ * 署名付き再生 URL を発行する。requireSignedURLs=true の動画は、この短命
+ * トークン無しには再生できない (= 直リンク/bot からの配信費漏れを防ぐ)。
+ * トークンは CloudFlare の /stream/{uid}/token API で発行 (デフォルト有効期限)。
+ *
+ * Response: { playbackUrl: "https://customer-xxx.cloudflarestream.com/<uid>/manifest/video.m3u8?token=..." }
+ */
+router.post('/upload/video-token', requireAuth, async (req: AuthRequest, res: Response) => {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const apiToken = process.env.CLOUDFLARE_STREAM_TOKEN;
+  const customerCode = process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE;
+  if (!accountId || !apiToken) {
+    res.status(503).json({ error: '動画は現在利用できません' });
+    return;
+  }
+
+  const ref = (req.body as { ref?: unknown }).ref;
+  if (typeof ref !== 'string' || !ref.startsWith('cfstream:')) {
+    res.status(400).json({ error: '無効な動画参照です' });
+    return;
+  }
+  const uid = ref.slice('cfstream:'.length);
+  // uid は CloudFlare の hex 32 桁。想定外文字は弾く (URL/SSRF 安全)
+  if (!/^[0-9a-f]{32}$/i.test(uid)) {
+    res.status(400).json({ error: '無効な動画 ID です' });
+    return;
+  }
+
+  try {
+    // 署名トークンを発行 (有効期限はデフォルト。短命にしたい場合は exp を body で指定)
+    const tokenResp = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${uid}/token`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ downloadable: false }),
+      }
+    );
+    if (!tokenResp.ok) {
+      console.error('[video-token] CloudFlare error:', tokenResp.status, await tokenResp.text());
+      res.status(502).json({ error: '動画トークンの発行に失敗しました' });
+      return;
+    }
+    const data = await tokenResp.json() as { success: boolean; result?: { token: string } };
+    const token = data.result?.token;
+    if (!data.success || !token) {
+      res.status(502).json({ error: '動画トークンの発行に失敗しました' });
+      return;
+    }
+    const host = customerCode
+      ? `https://customer-${customerCode}.cloudflarestream.com`
+      : 'https://videodelivery.net';
+    res.json({ playbackUrl: `${host}/${token}/manifest/video.m3u8` });
+  } catch (err) {
+    console.error('[video-token] error:', err);
+    res.status(500).json({ error: '動画トークンの発行に失敗しました' });
   }
 });
 
