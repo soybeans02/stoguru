@@ -47,7 +47,6 @@ const TABLE = {
   stats: 'GourmetStock_Stats',
   shares: 'GourmetStock_Shares',
   influencerProfiles: 'GourmetStock_InfluencerProfiles',
-  influencerRestaurants: 'GourmetStock_InfluencerRestaurants',
   feedback: 'GourmetStock_Feedback',
   deletedAccounts: 'GourmetStock_DeletedAccounts',
   posts: 'GourmetStock_Posts',
@@ -1218,6 +1217,11 @@ export async function deleteAllUserData(userId: string) {
       await db.send(new DeleteCommand({ TableName: TABLE.feedback, Key: { id: it.id } })).catch(() => {});
     }
   } catch { /* skip */ }
+
+  // 13. コミュニティ投稿削除（GSI-Author でこのユーザーの投稿を全削除）
+  try {
+    await deletePostsByAuthor(userId);
+  } catch { /* skip */ }
 }
 
 // =============================================
@@ -1471,7 +1475,9 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 // PK=areaId, SK=createdAt(降順=最新)。like/report は voter Set で二重防止。
 // =============================================
 
-const POST_REPORT_HIDE_THRESHOLD = 5; // 通報がこの数に達したら自動非表示
+// 通報がこの数に達したら自動非表示。少人数の sockpuppet で正当な投稿を
+// 検閲されにくいよう 10 に設定 (将来は admin レビュー制に移行)。
+const POST_REPORT_HIDE_THRESHOLD = 10;
 
 export async function createPost(post: Post): Promise<void> {
   await db.send(new PutCommand({
@@ -1480,17 +1486,53 @@ export async function createPost(post: Post): Promise<void> {
   }));
 }
 
-/** エリアの投稿を新しい順に取得 (hidden は除外)。 */
+/** エリアの投稿を新しい順に取得 (hidden は除外)。
+ *  hidden が偏って 1 ページ分が目減りしても、LastEvaluatedKey で続きを
+ *  たどり limit 件集まるか尽きるまで取る (最大 5 ページで打ち切り = DoS 防止)。 */
 export async function listPostsByArea(areaId: string, limit = 30): Promise<Post[]> {
-  const result = await db.send(new QueryCommand({
-    TableName: TABLE.posts,
-    KeyConditionExpression: 'areaId = :a',
-    ExpressionAttributeValues: { ':a': areaId },
-    ScanIndexForward: false, // 降順 (最新が先)
-    Limit: limit * 2,        // hidden 除外で目減りする分を多めに取る
-  }));
-  const items = (result.Items ?? []) as Post[];
-  return items.filter((p) => !p.hidden).slice(0, limit);
+  const collected: Post[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  let pages = 0;
+  do {
+    const result = await db.send(new QueryCommand({
+      TableName: TABLE.posts,
+      KeyConditionExpression: 'areaId = :a',
+      ExpressionAttributeValues: { ':a': areaId },
+      ScanIndexForward: false, // 降順 (最新が先)
+      Limit: limit,
+      ExclusiveStartKey: lastKey,
+    }));
+    for (const p of (result.Items ?? []) as Post[]) {
+      if (!p.hidden) collected.push(p);
+      if (collected.length >= limit) break;
+    }
+    lastKey = result.LastEvaluatedKey;
+    pages += 1;
+  } while (lastKey && collected.length < limit && pages < 5);
+  return collected.slice(0, limit);
+}
+
+/** 指定ユーザーの全投稿を削除 (アカウント削除のクリーンアップ用、GSI-Author 利用)。 */
+export async function deletePostsByAuthor(authorId: string): Promise<void> {
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new QueryCommand({
+      TableName: TABLE.posts,
+      IndexName: 'GSI-Author',
+      KeyConditionExpression: 'authorId = :a',
+      ExpressionAttributeValues: { ':a': authorId },
+      ExclusiveStartKey: lastKey,
+    }));
+    const items = (result.Items ?? []) as Post[];
+    // GSI は KEYS_ONLY なので areaId + createdAt が返る。それで本体を削除。
+    await Promise.all(items.map((p) =>
+      db.send(new DeleteCommand({
+        TableName: TABLE.posts,
+        Key: { areaId: p.areaId, createdAt: p.createdAt },
+      })).catch(() => {})
+    ));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
 }
 
 export async function getPost(areaId: string, createdAt: number): Promise<Post | null> {

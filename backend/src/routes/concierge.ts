@@ -1,13 +1,12 @@
 /**
  * AI Concierge route.
  *
- * POST /api/concierge
- * iOS の SafeSearchScreen から呼ばれる。候補レストラン (クライアントが
- * 既にロード済みの feed) と気分タグ + 自由入力を受け取り、Claude Haiku で
- * 推薦リストを返す。
+ * POST /api/concierge          コンシェルジュ検索 (候補 + 気分 + 履歴 → 推薦)
+ * POST /api/concierge/recall   AI 記憶検索 (断片情報から全店検索)
  *
- * 認証不要 (匿名ユーザーも検索できるようにする)。レート制限は
- * グローバルの globalLimit / hourlyLimit に乗る。
+ * iOS の SafeSearchScreen から呼ばれる。有料 LLM を叩くため全エンドポイント
+ * 認証必須 (router.use(requireAuth))。さらに index.ts で LLM 専用 limiter
+ * (8/min + 60/hr) に乗る。
  */
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';

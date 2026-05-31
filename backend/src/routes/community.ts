@@ -10,6 +10,7 @@
  * 全エンドポイント要認証。投稿は NG ワード + 長さ + URL スキームを検証。
  */
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
   createPost, listPostsByArea, getPost,
@@ -21,6 +22,16 @@ import { randomUUID } from 'crypto';
 
 const router = Router();
 router.use(requireAuth);
+
+// 投稿作成は 1 ユーザー 1 時間 20 件まで (= タイムライン spam 防止)。
+// グローバル writeLimit (20/min) より厳しく、連投荒らしを抑える。
+const communityPostLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '投稿が多すぎます。少し時間をおいてください。' },
+});
 
 // 有効な areaId (HomeArea と揃える) + 全国
 const VALID_AREAS = new Set([
@@ -69,7 +80,7 @@ router.get('/posts', async (req: AuthRequest, res: Response) => {
 });
 
 // ─── 投稿 ───
-router.post('/posts', async (req: AuthRequest, res: Response) => {
+router.post('/posts', communityPostLimit, async (req: AuthRequest, res: Response) => {
   const body = req.body as {
     area?: unknown; text?: unknown; photoUrls?: unknown; restaurantId?: unknown;
   };
