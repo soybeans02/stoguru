@@ -1,0 +1,2025 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FAF6EE" />
+<title>stoguru</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap');
+
+  :root {
+    --bg: #FAF6EE;
+    --card: #FFFFFF;
+    --border: #ECE4D2;
+    --border-soft: #F2EDDF;
+    --border-hair: rgba(28,25,18,0.08);
+    --ink: #1A1A1A;
+    --ink-2: #3A3530;
+    --ink-3: #7C746A;
+    --ink-4: #ADA59A;
+    --ink-5: #D2CBBF;
+    --accent: #E55B30;
+    --accent-2: #C44518;
+    --accent-soft: #FCEEDB;
+    --accent-faint: #FDF5EA;
+    --map-bg: #EFE7D2;
+    --map-road: #FBF6E9;
+    --map-park: #D9D6B4;
+    --pin: #E55B30;
+    --visited: #6B8F4A;
+    --serif: 'Newsreader', 'Hoefler Text', 'Iowan Old Style', 'Times New Roman', Georgia, serif;
+    --shadow-pop: 0 4px 14px -4px rgba(28,25,18,0.08), 0 1px 2px rgba(28,25,18,0.04);
+    --shadow-up: 0 -8px 24px -10px rgba(28,25,18,0.1);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: #F1ECDF;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Hiragino Sans', system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body { display: grid; place-items: center; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* ====================================================
+     APP SHELL — mobile full / desktop framed
+     ==================================================== */
+  .app {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+  }
+  @media (min-width: 480px) and (min-height: 760px) {
+    body {
+      padding: 32px;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(229,91,48,0.05), transparent 60%),
+        #F1ECDF;
+    }
+    .app {
+      width: 390px; height: 844px;
+      border-radius: 50px;
+      box-shadow:
+        0 0 0 9px #161310,
+        0 0 0 11px #2c2620,
+        0 20px 60px -10px rgba(28,25,18,0.3);
+    }
+  }
+
+  /* ====================================================
+     STATUS BAR / NOTCH / TAB BAR
+     ==================================================== */
+  .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 32px;
+    background: #000; border-radius: 999px;
+    z-index: 200;
+  }
+  .status-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 54px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 28px 0 26px;
+    font-size: 14px; font-weight: 600;
+    z-index: 50; pointer-events: none;
+    color: var(--ink);
+    transition: color 0.2s ease;
+  }
+  .status-bar.over-dark { color: white; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { width: 16px; height: 11px; }
+  .status-icons .battery { width: 24px; height: 12px; }
+
+  /* SCREEN container */
+  .screen {
+    position: absolute; inset: 0;
+    overflow-y: auto;
+    background: var(--bg);
+    padding-top: 54px;
+    padding-bottom: 72px;
+    display: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen.active { display: block; }
+  .screen.full-bleed { padding-top: 0; padding-bottom: 0; }
+
+  /* TAB BAR — 5 列 icon only */
+  .tab-bar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 64px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-top: 0.5px solid var(--border-hair);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    padding-bottom: 18px;
+    z-index: 100;
+  }
+  .tab-bar::after {
+    content: '';
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px;
+    background: var(--ink); border-radius: 999px; opacity: 0.9;
+  }
+  .tab {
+    background: none; border: none; padding: 0;
+    display: grid; place-items: center;
+    color: var(--ink-3);
+    height: 100%;
+  }
+  .tab.active { color: var(--accent); }
+  .tab svg { width: 26px; height: 26px; pointer-events: none; }
+  .tab .ic-active { display: none; }
+  .tab.active .ic-active { display: block; }
+  .tab.active .ic-default { display: none; }
+
+  /* ====================================================
+     HOME
+     ==================================================== */
+  .h-pad { padding: 0 22px; }
+  .home-masthead {
+    padding: 14px 22px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--border-hair);
+  }
+  .home-mark {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--serif); font-style: italic; font-size: 18px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .home-mark::before {
+    content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--accent);
+  }
+  .home-date {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .home-avatar {
+    width: 30px; height: 30px; border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-2); font-weight: 700; font-size: 12px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border-soft);
+  }
+  .home-search-row {
+    margin: 18px 22px 0;
+    display: flex; gap: 10px;
+  }
+  .home-search {
+    flex: 1;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px; color: var(--ink-4);
+  }
+  .home-search svg { width: 16px; height: 16px; color: var(--ink-4); }
+  .home-swipe {
+    width: 52px; height: 46px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: none;
+    border-radius: 14px;
+    display: grid; place-items: center;
+    position: relative;
+    box-shadow: 0 4px 10px -2px rgba(229,91,48,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .home-swipe svg { width: 24px; height: 24px; color: white; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.18)); }
+  .home-swipe::after {
+    content: 'NEW'; position: absolute; top: -4px; right: -6px;
+    font-size: 7.5px; font-weight: 800; letter-spacing: 0.08em;
+    padding: 2px 5px; background: var(--ink); color: white;
+    border-radius: 999px; border: 1.5px solid var(--bg);
+  }
+
+  /* TODAY'S PICK card — タップで動画フィードへ */
+  .pick-card {
+    margin: 18px 22px 0;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: var(--shadow-pop);
+    cursor: pointer;
+  }
+  .pick-card:active { transform: scale(0.985); transition: transform 0.1s; }
+  .pick-photo {
+    height: 200px; position: relative;
+    background:
+      radial-gradient(ellipse 60% 80% at 30% 20%, rgba(255,224,178,0.7), transparent),
+      radial-gradient(ellipse 40% 50% at 75% 70%, rgba(192,86,48,0.85), transparent),
+      radial-gradient(ellipse 60% 50% at 50% 90%, rgba(120,52,28,0.9), transparent),
+      linear-gradient(135deg, #C8632F 0%, #8C3B17 60%, #4A1F0C 100%);
+  }
+  .pick-photo::before {
+    content: ''; position: absolute;
+    bottom: -30px; left: 50%; transform: translateX(-50%);
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(250,242,224,0.16) 0%, rgba(250,242,224,0.06) 38%, transparent 40%);
+  }
+  .pick-photo::after {
+    content: '湯気'; position: absolute;
+    top: 36%; left: 50%; transform: translateX(-50%);
+    font-size: 26px; color: rgba(255,255,255,0.12); letter-spacing: 0.3em;
+    font-family: var(--serif); font-style: italic;
+  }
+  .pick-tag {
+    position: absolute; top: 14px; left: 14px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: 0.18em;
+    padding: 5px 10px; background: rgba(28,25,18,0.78); color: white;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pick-tag::before { content: '✦'; font-size: 11px; color: var(--accent); }
+  .pick-body { padding: 16px 18px 18px; }
+  .pick-name {
+    font-family: var(--serif);
+    font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+    margin: 0 0 6px; line-height: 1.15;
+  }
+  .pick-meta {
+    font-size: 11.5px; color: var(--ink-3); margin: 0 0 14px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .pick-quote {
+    font-family: var(--serif); font-style: italic;
+    font-size: 14px; line-height: 1.55; color: var(--ink-2);
+    padding: 6px 0 6px 14px;
+    border-left: 2px solid var(--accent);
+  }
+
+  /* Section heads */
+  .section-head {
+    padding: 30px 22px 14px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .section-title {
+    font-size: 17px; font-weight: 800; letter-spacing: -0.005em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; width: 14px; height: 1.5px; background: var(--accent);
+  }
+  .section-sub {
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  /* Reels section — Home の動画フィードへの入口 */
+  .reel-section-head {
+    padding: 22px 22px 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .reel-section-title {
+    font-size: 17px; font-weight: 800; letter-spacing: -0.005em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .reel-section-title::before {
+    content: ''; width: 6px; height: 6px; border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(229,91,48,0.25);
+    animation: pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(229,91,48,0.25); }
+    50% { box-shadow: 0 0 0 6px rgba(229,91,48,0.12); }
+  }
+  .reel-section-sub {
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .reel-section-more {
+    font-size: 11px; font-weight: 800; color: var(--accent-2);
+    letter-spacing: 0.06em;
+    background: none; border: none; padding: 0;
+  }
+  .reel-grid {
+    display: flex; gap: 10px;
+    padding: 0 22px 4px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .reel-grid::-webkit-scrollbar { display: none; }
+  .reel-thumb {
+    flex: 0 0 134px;
+    height: 200px;
+    border-radius: 14px;
+    position: relative; overflow: hidden;
+    background: var(--card); border: none; padding: 0;
+    box-shadow: 0 6px 16px -6px rgba(28,25,18,0.2);
+  }
+  .reel-thumb-photo {
+    position: absolute; inset: 0;
+  }
+  .reel-thumb-photo.p1 {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 28%, rgba(255,220,180,0.6), transparent),
+      radial-gradient(ellipse 55% 60% at 75% 70%, rgba(192,86,48,0.85), transparent),
+      linear-gradient(160deg, #B85A24 0%, #6B2811 50%, #200E05 100%);
+  }
+  .reel-thumb-photo.p2 {
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 35%, rgba(255,225,170,0.45), transparent),
+      radial-gradient(ellipse 55% 60% at 30% 75%, rgba(140,90,46,0.85), transparent),
+      linear-gradient(160deg, #5A3E2A 0%, #2A1B10 60%, #100A05 100%);
+  }
+  .reel-thumb-photo.p3 {
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 30%, rgba(245,200,140,0.4), transparent),
+      radial-gradient(ellipse 55% 60% at 75% 70%, rgba(192,140,80,0.7), transparent),
+      linear-gradient(160deg, #4A2D1B 0%, #2A170C 60%, #120800 100%);
+  }
+  .reel-thumb-photo.p4 {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 25%, rgba(255,200,150,0.5), transparent),
+      radial-gradient(ellipse 60% 50% at 30% 80%, rgba(120,80,55,0.85), transparent),
+      linear-gradient(160deg, #2A1F1A 0%, #1A130E 60%, #0B0805 100%);
+  }
+  .reel-thumb-photo.p5 {
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 35%, rgba(220,180,140,0.4), transparent),
+      radial-gradient(ellipse 50% 60% at 70% 75%, rgba(100,60,30,0.85), transparent),
+      linear-gradient(160deg, #3A2014 0%, #1A0C06 60%, #080403 100%);
+  }
+  .reel-thumb-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 55%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+  }
+  .reel-thumb-views {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 9.5px; font-weight: 800;
+    padding: 3px 7px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border-radius: 999px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    letter-spacing: 0.04em;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .reel-thumb-views.like .ic { width: 9px; height: 9px; color: var(--accent); }
+  .reel-thumb-body {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 10px 10px 11px;
+    color: white;
+    text-align: left;
+  }
+  .reel-thumb-handle {
+    font-size: 10px; font-weight: 700;
+    margin-bottom: 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .reel-thumb-handle::before {
+    content: ''; width: 14px; height: 14px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    border: 1.5px solid white;
+  }
+  .reel-thumb-name {
+    font-family: var(--serif);
+    font-size: 14px; font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.65);
+    margin: 0;
+  }
+  /* もっと見る — 末尾の追加カード */
+  .reel-thumb.more {
+    background: var(--card);
+    border: 1px dashed var(--border);
+    display: grid; place-items: center;
+    color: var(--ink-3);
+    box-shadow: none;
+  }
+  .reel-thumb.more .lbl {
+    text-align: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--ink-2);
+    line-height: 1.4;
+  }
+  .reel-thumb.more .lbl span {
+    display: block;
+    color: var(--ink-4);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .reel-thumb.more .arrow {
+    width: 30px; height: 30px; border-radius: 999px;
+    background: var(--accent); color: white;
+    display: grid; place-items: center;
+    margin: 0 auto 8px;
+  }
+  .reel-thumb.more .arrow svg { width: 12px; height: 12px; transform: rotate(180deg); }
+
+  /* Theme cards row */
+  .theme-row { display: flex; gap: 10px; padding: 0 22px 8px; overflow-x: auto; scrollbar-width: none; }
+  .theme-row::-webkit-scrollbar { display: none; }
+  .theme-card {
+    flex: 0 0 100px; height: 130px;
+    border: none;
+    border-radius: 14px;
+    position: relative; overflow: hidden;
+    display: flex; align-items: flex-end; padding: 10px;
+    color: white;
+  }
+  .theme-card .label {
+    position: relative; z-index: 1;
+    font-size: 12px; font-weight: 800; letter-spacing: -0.005em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .theme-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.65));
+  }
+
+  /* ====================================================
+     MAP
+     ==================================================== */
+  .map-canvas {
+    position: absolute; inset: 0; overflow: hidden;
+    background: var(--map-bg);
+  }
+  .map-canvas::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 80px;
+    background: linear-gradient(180deg, rgba(239,231,210,0.96) 0%, rgba(239,231,210,0) 100%);
+    backdrop-filter: blur(10px);
+    z-index: 5; pointer-events: none;
+  }
+  .map-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(28,25,18,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28,25,18,0.025) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+  .map-road {
+    position: absolute; background: var(--map-road);
+    box-shadow: inset 0 0 0 0.5px rgba(28,25,18,0.06);
+  }
+  .map-road.h { left: 0; right: 0; height: 12px; }
+  .map-road.v { top: 0; bottom: 0; width: 12px; }
+  .map-park { position: absolute; border-radius: 30%; background: var(--map-park); opacity: 0.6; }
+
+  .map-search {
+    position: absolute; top: 64px; left: 22px; right: 22px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px; color: var(--ink-4);
+    z-index: 20;
+    box-shadow: var(--shadow-pop);
+  }
+  .map-search svg { width: 16px; height: 16px; color: var(--ink-4); flex-shrink: 0; }
+  .map-search .text { flex: 1; }
+  .map-search .area-chip {
+    font-size: 11px; font-weight: 700; color: var(--accent-2);
+    padding: 4px 9px; background: var(--accent-soft);
+    border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .map-search .area-chip::before { content: '📍'; font-size: 11px; }
+
+  .map-filters {
+    position: absolute; top: 118px; left: 22px; right: 22px;
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+    z-index: 19;
+  }
+  .map-filters::-webkit-scrollbar { display: none; }
+  .map-filter {
+    flex-shrink: 0;
+    padding: 8px 12px; border-radius: 999px;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--border-soft);
+    font-size: 11.5px; font-weight: 600; color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .map-filter.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .map-filter .badge {
+    padding: 0 6px; background: white; color: var(--ink); border-radius: 999px;
+    font-size: 10.5px; font-weight: 800;
+  }
+
+  .map-pin { position: absolute; transform: translate(-50%, -100%); }
+  .map-pin .shape { width: 22px; height: 28px; position: relative; filter: drop-shadow(0 3px 4px rgba(28,25,18,0.18)); }
+  .map-pin .shape svg { width: 100%; height: 100%; }
+  .map-pin.you {
+    width: 14px; height: 14px; border-radius: 999px;
+    background: #3B82F6; border: 3px solid white;
+    box-shadow: 0 0 0 4px rgba(59,130,246,0.25);
+    transform: translate(-50%, -50%);
+  }
+  .map-pin.you .shape { display: none; }
+
+  .map-sheet {
+    position: absolute; left: 0; right: 0; bottom: 64px;
+    background: var(--card);
+    border-radius: 22px 22px 0 0;
+    padding: 12px 0 14px;
+    box-shadow: var(--shadow-up);
+    z-index: 30;
+    border-top: 0.5px solid var(--border-hair);
+  }
+  .map-sheet-handle {
+    width: 38px; height: 5px; background: var(--ink-5);
+    border-radius: 999px; margin: 0 auto 12px;
+  }
+  .map-sheet-head {
+    padding: 0 22px 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .map-sheet-title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+  .map-sheet-count { font-size: 11.5px; color: var(--ink-3); }
+
+  .map-row {
+    padding: 11px 22px;
+    display: flex; gap: 12px; align-items: center;
+    border-top: 0.5px solid var(--border-hair);
+  }
+  .map-row-photo {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: var(--accent-faint);
+    display: grid; place-items: center; font-size: 18px;
+    flex-shrink: 0; border: 1px solid var(--border-soft);
+  }
+  .map-row-body { flex: 1; min-width: 0; }
+  .map-row-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; letter-spacing: -0.005em; }
+  .map-row-meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+  .map-row-dist {
+    font-size: 11.5px; font-weight: 700; color: var(--ink-2);
+    padding: 4px 10px; background: var(--bg); border: 1px solid var(--border-soft);
+    border-radius: 999px;
+  }
+
+  /* ====================================================
+     SAVED
+     ==================================================== */
+  .saved-head {
+    padding: 22px 22px 12px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    border-bottom: 0.5px solid var(--border-hair);
+  }
+  .saved-kicker {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-4);
+    margin-bottom: 4px;
+  }
+  .saved-title {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
+    line-height: 1; margin: 0;
+  }
+  .saved-head-action {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--border);
+    display: grid; place-items: center;
+  }
+  .saved-head-action svg { width: 16px; height: 16px; color: var(--ink-2); }
+
+  .saved-stats {
+    margin: 18px 22px 0;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    padding: 14px 0;
+  }
+  .saved-stat { text-align: center; position: relative; }
+  .saved-stat::after {
+    content: ''; position: absolute; right: 0; top: 14%; height: 72%;
+    width: 0.5px; background: var(--border-hair);
+  }
+  .saved-stat:last-child::after { display: none; }
+  .saved-stat .num {
+    font-family: var(--serif);
+    font-size: 26px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .saved-stat .num strong { color: var(--accent-2); font-weight: 700; }
+  .saved-stat .lbl {
+    font-size: 10px; color: var(--ink-3); margin-top: 6px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+
+  .saved-ai {
+    margin: 14px 22px 0;
+    background: linear-gradient(135deg, #FDF5EA 0%, #F8EFD9 100%);
+    border: 1px solid var(--accent-soft);
+    border-radius: 16px;
+    padding: 14px 16px 12px;
+    overflow: hidden;
+  }
+  .saved-ai-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .saved-ai-dot {
+    width: 22px; height: 22px; border-radius: 999px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    box-shadow: 0 2px 6px -1px rgba(229,91,48,0.4);
+  }
+  .saved-ai-dot svg { width: 12px; height: 12px; color: white; }
+  .saved-ai-title {
+    font-family: var(--serif);
+    font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em;
+    line-height: 1.2;
+  }
+  .saved-ai-title strong { color: var(--accent-2); }
+  .saved-ai-sub {
+    font-size: 10.5px; color: var(--ink-3); margin-top: 1px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .saved-ai-row {
+    display: flex; gap: 8px; overflow-x: auto;
+    margin: 0 -16px; padding: 2px 16px 0;
+    scrollbar-width: none;
+  }
+  .saved-ai-row::-webkit-scrollbar { display: none; }
+  .saved-ai-mini {
+    flex: 0 0 130px;
+    background: var(--card); border: 1px solid var(--border-soft);
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(28,25,18,0.03);
+  }
+  .saved-ai-mini-photo {
+    height: 70px; display: grid; place-items: center; font-size: 26px;
+    position: relative;
+  }
+  .saved-ai-mini-photo::before {
+    content: ''; position: absolute; top: 6px; left: 6px;
+    width: 7px; height: 7px; border-radius: 999px;
+    background: var(--accent); border: 1.5px solid white;
+    box-shadow: 0 0 0 1px rgba(229,91,48,0.25);
+  }
+  .saved-ai-mini-body { padding: 7px 9px 9px; }
+  .saved-ai-mini-name {
+    font-size: 11.5px; font-weight: 700; letter-spacing: -0.005em;
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .saved-ai-mini-meta {
+    font-size: 9.5px; color: var(--ink-3); margin-top: 3px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  .saved-segs {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding: 18px 22px 12px; scrollbar-width: none;
+  }
+  .saved-segs::-webkit-scrollbar { display: none; }
+  .saved-seg {
+    flex-shrink: 0;
+    padding: 7px 13px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--border);
+    font-size: 12px; font-weight: 700; color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .saved-seg.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .saved-seg .seg-count {
+    font-size: 10.5px; padding: 1px 6px;
+    background: var(--bg); color: var(--ink-3);
+    border-radius: 999px; font-weight: 800;
+  }
+  .saved-seg.active .seg-count { background: rgba(255,255,255,0.18); color: white; }
+
+  .saved-sort {
+    padding: 4px 22px 8px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .saved-sort-count {
+    font-family: var(--serif);
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .saved-sort-count strong { color: var(--accent-2); font-weight: 700; }
+  .saved-sort-by {
+    font-size: 11px; color: var(--ink-3); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .saved-sort-by svg { width: 11px; height: 11px; }
+
+  .saved-card {
+    display: flex; gap: 13px;
+    padding: 14px 22px;
+    border-top: 0.5px solid var(--border-hair);
+  }
+  .saved-card-photo {
+    width: 84px; height: 84px; flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--accent-faint);
+    display: grid; place-items: center; font-size: 32px;
+    border: 1px solid var(--border-soft);
+    position: relative; overflow: hidden;
+  }
+  .saved-card-photo .badge-state {
+    position: absolute; top: 4px; left: 4px;
+    font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
+    padding: 2px 6px; border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .saved-card-photo .badge-state.visited { background: var(--visited); color: white; }
+  .saved-card-photo .badge-state.untried { background: rgba(28,25,18,0.7); color: white; }
+  .saved-card-photo .video-marker {
+    position: absolute; bottom: 5px; right: 5px;
+    width: 26px; height: 26px; border-radius: 999px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px -1px rgba(0,0,0,0.3);
+  }
+  .saved-card-photo .video-marker svg { width: 10px; height: 10px; color: white; margin-left: 1px; }
+  .saved-card-body { flex: 1; min-width: 0; }
+  .saved-card-name {
+    font-family: var(--serif);
+    font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+    line-height: 1.15; margin: 0 0 3px;
+  }
+  .saved-card-meta {
+    font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .saved-card-foot {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 4px;
+  }
+  .saved-card-date {
+    font-family: var(--serif); font-style: italic;
+    font-size: 11.5px; color: var(--ink-3);
+  }
+  .saved-card-tag {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    background: var(--accent-faint); color: var(--accent-2);
+    border-radius: 999px;
+  }
+  .saved-card-tag.visited { background: rgba(107,143,74,0.12); color: var(--visited); }
+  .saved-card-dist {
+    font-size: 11px; font-weight: 700; color: var(--ink-2);
+    margin-left: auto;
+    padding: 3px 9px; background: var(--bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+  }
+
+  /* ====================================================
+     SEARCH (Concierge)
+     ==================================================== */
+  .con-wrap { padding: 22px 22px 110px; min-height: 100%; }
+  .con-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 22px;
+  }
+  .con-dot {
+    width: 34px; height: 34px; border-radius: 999px;
+    background: var(--accent); display: grid; place-items: center;
+    box-shadow: 0 4px 10px -2px rgba(229,91,48,0.4);
+  }
+  .con-dot svg { width: 18px; height: 18px; color: white; }
+  .con-head-name { font-size: 13.5px; font-weight: 700; }
+  .con-head-sub {
+    font-size: 11px; color: var(--ink-3); margin-top: 2px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .con-head-sub .live {
+    width: 6px; height: 6px; border-radius: 999px; background: var(--visited);
+    box-shadow: 0 0 0 2px rgba(107,143,74,0.2);
+  }
+  .con-title {
+    font-size: 24px; line-height: 1.3; font-weight: 800; letter-spacing: -0.015em;
+    margin: 0 0 24px;
+  }
+  .con-cat-tabs {
+    display: flex; gap: 22px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--border-soft);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .con-cat-tabs::-webkit-scrollbar { display: none; }
+  .con-cat {
+    padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--ink-3);
+    position: relative; background: none; border: none;
+    flex-shrink: 0;
+  }
+  .con-cat.active { color: var(--ink); }
+  .con-cat.active::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 2px; background: var(--ink); border-radius: 2px;
+  }
+  .con-chips {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .con-chip {
+    padding: 13px 16px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--border);
+    font-size: 13.5px; font-weight: 600; color: var(--ink);
+    text-align: center;
+    letter-spacing: -0.005em;
+  }
+  .con-chip.active {
+    background: var(--accent); color: white;
+    border-color: var(--accent);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .con-chip.active::after { content: '✓'; font-weight: 800; font-size: 12px; }
+  .con-recent-head {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-4);
+    margin: 26px 0 10px;
+  }
+  .con-recent {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .con-recent-item {
+    padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 0.5px solid var(--border-hair);
+    width: 100%; background: none; border-left: none; border-right: none; border-top: none;
+    text-align: left;
+  }
+  .con-recent-item:last-child { border-bottom: none; }
+  .con-recent-icon {
+    width: 26px; height: 26px; border-radius: 999px;
+    background: var(--bg);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .con-recent-icon svg { width: 13px; height: 13px; color: var(--ink-3); }
+  .con-recent-text { flex: 1; font-size: 13px; color: var(--ink-2); }
+  .con-recent-time { font-size: 11px; color: var(--ink-4); }
+
+  .con-input-dock {
+    position: absolute; left: 0; right: 0; bottom: 64px;
+    padding: 10px 16px 14px;
+    background: linear-gradient(180deg, rgba(250,246,238,0) 0%, var(--bg) 30%);
+    z-index: 50;
+  }
+  .con-input-bar {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 8px 8px 18px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow-pop);
+  }
+  .con-input-text { flex: 1; font-size: 13.5px; color: var(--ink-4); }
+  .con-input-mic {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: var(--accent); border: none;
+    display: grid; place-items: center;
+    box-shadow: 0 3px 8px -2px rgba(229,91,48,0.4);
+  }
+  .con-input-mic svg { width: 17px; height: 17px; color: white; }
+
+  /* ====================================================
+     YOU
+     ==================================================== */
+  .you-pad { padding: 18px 22px 0; }
+  .you-prof {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .you-avatar {
+    width: 56px; height: 56px; border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-2); font-weight: 800; font-size: 22px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border-soft);
+  }
+  .you-name-block { flex: 1; min-width: 0; }
+  .you-name {
+    font-family: var(--serif);
+    font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+    line-height: 1.1;
+  }
+  .you-handle { font-size: 12px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.02em; }
+  .you-edit {
+    padding: 7px 13px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px; font-weight: 700; color: var(--ink);
+  }
+  .you-stats {
+    margin: 22px 22px 0;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    padding: 14px 0;
+  }
+  .you-stat { text-align: center; position: relative; }
+  .you-stat::after {
+    content: ''; position: absolute; right: 0; top: 10%; height: 80%;
+    width: 0.5px; background: var(--border-hair);
+  }
+  .you-stat:last-child::after { display: none; }
+  .you-stat .num {
+    font-family: var(--serif);
+    font-size: 30px; font-weight: 600; letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .you-stat .lbl {
+    font-size: 10px; color: var(--ink-3); margin-top: 6px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .you-section-head {
+    padding: 26px 22px 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-4);
+  }
+  .you-prefs {
+    margin: 0 22px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .you-pref-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+  }
+  .you-pref-row .em { font-size: 16px; }
+  .you-pref-row .lbl { flex: 1; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+  .you-pref-row .meter { display: inline-flex; gap: 3px; }
+  .you-pref-row .meter span {
+    width: 7px; height: 14px; border-radius: 2px;
+    background: var(--ink-5);
+  }
+  .you-pref-row .meter span.on { background: var(--accent); }
+  .you-tile {
+    margin: 0 22px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .you-tile-icon {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: var(--accent-faint);
+    color: var(--accent-2);
+    display: grid; place-items: center;
+  }
+  .you-tile-icon svg { width: 16px; height: 16px; }
+  .you-tile-text { flex: 1; }
+  .you-tile-label { font-size: 13px; font-weight: 700; letter-spacing: -0.005em; }
+  .you-tile-sub { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+  .you-tile-arrow svg { width: 14px; height: 14px; color: var(--ink-4); }
+
+  /* ====================================================
+     MODAL — generic
+     ==================================================== */
+  .modal {
+    position: absolute; inset: 0;
+    z-index: 150;
+    pointer-events: none;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .modal.open {
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  /* ====================================================
+     REEL (TikTok) MODAL
+     ==================================================== */
+  .reel-bg {
+    position: absolute; inset: 0;
+    overflow: hidden; background: #000;
+  }
+  .reel-video {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 28%, rgba(255,220,180,0.6), transparent),
+      radial-gradient(ellipse 55% 60% at 75% 70%, rgba(192,86,48,0.85), transparent),
+      radial-gradient(ellipse 70% 50% at 40% 95%, rgba(60,25,10,0.95), transparent),
+      linear-gradient(160deg, #B85A24 0%, #6B2811 50%, #200E05 100%);
+  }
+  .reel-video::after {
+    content: '湯気';
+    position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+    font-family: var(--serif); font-style: italic;
+    font-size: 84px; color: rgba(255,255,255,0.08);
+    letter-spacing: 0.12em;
+  }
+  .reel-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 18%, transparent 50%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.88) 100%);
+    pointer-events: none;
+  }
+  .reel-progress {
+    position: absolute; top: 50px; left: 16px; right: 16px;
+    display: flex; gap: 4px; z-index: 18;
+  }
+  .reel-progress span {
+    flex: 1; height: 2px;
+    background: rgba(255,255,255,0.28);
+    border-radius: 2px;
+    overflow: hidden; position: relative;
+  }
+  .reel-progress span.played { background: white; }
+  .reel-progress span.playing::before {
+    content: ''; position: absolute; inset: 0;
+    background: white; width: 60%;
+  }
+  .reel-top {
+    position: absolute; top: 64px; left: 16px; right: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 20;
+  }
+  .reel-top-btn {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: rgba(0,0,0,0.35);
+    display: grid; place-items: center;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: none;
+  }
+  .reel-top-btn svg { width: 18px; height: 18px; color: white; }
+  .reel-rail {
+    position: absolute; right: 12px; bottom: 168px;
+    display: flex; flex-direction: column; gap: 14px;
+    align-items: center; z-index: 20;
+  }
+  .reel-creator {
+    position: relative;
+    width: 46px; height: 46px; border-radius: 999px;
+    background: var(--accent-soft);
+    border: 2px solid white;
+    display: grid; place-items: center;
+    color: var(--accent-2); font-weight: 800; font-size: 16px;
+    margin-bottom: 6px;
+  }
+  .reel-creator .plus {
+    position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 18px; border-radius: 999px;
+    background: var(--accent); color: white;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 800; line-height: 1;
+    border: 2px solid #000;
+  }
+  .reel-action { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .reel-action-btn {
+    width: 46px; height: 46px; border-radius: 999px;
+    background: rgba(0,0,0,0.32);
+    border: none;
+    display: grid; place-items: center;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .reel-action-btn svg { width: 22px; height: 22px; color: white; }
+  .reel-action-btn.is-saved {
+    background: var(--accent);
+    box-shadow: 0 6px 16px -4px rgba(229,91,48,0.6);
+  }
+  .reel-action-count {
+    font-size: 10.5px; font-weight: 700; color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  }
+  .reel-info {
+    position: absolute; bottom: 30px; left: 16px; right: 74px;
+    color: white; z-index: 18;
+  }
+  .reel-handle {
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 9px;
+    display: inline-flex; align-items: center; gap: 8px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .reel-handle .follow {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+    padding: 2px 8px;
+    background: var(--accent);
+    border-radius: 999px;
+    color: white; text-shadow: none;
+  }
+  .reel-name {
+    font-family: var(--serif);
+    font-size: 26px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.1; margin: 0 0 5px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  }
+  .reel-meta {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.88);
+    margin-bottom: 10px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .reel-quote {
+    font-family: var(--serif); font-style: italic;
+    font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,0.94);
+    margin-bottom: 11px;
+    padding-left: 8px; border-left: 1.5px solid var(--accent);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .reel-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 11px; }
+  .reel-tag {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px;
+    background: rgba(255,255,255,0.16); color: white;
+    border-radius: 999px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .reel-open-source {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 12px 7px 7px;
+    background: rgba(255,255,255,0.96);
+    border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; color: var(--ink);
+    box-shadow: 0 4px 14px -2px rgba(0,0,0,0.55);
+    border: none;
+  }
+  .reel-open-source .src {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
+    padding: 3px 7px; background: var(--ink); color: white;
+    border-radius: 999px;
+  }
+  .reel-open-source svg { width: 11px; height: 11px; color: var(--ink-3); }
+  .reel-swipe-hint {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    font-size: 9.5px; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.16em; text-transform: uppercase;
+    z-index: 18;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-weight: 700; pointer-events: none;
+  }
+  .reel-swipe-hint::before { content: '↑'; font-size: 11px; }
+
+  /* ====================================================
+     THEME DETAIL MODAL
+     ==================================================== */
+  .theme-nav {
+    position: absolute; top: 54px; left: 16px; right: 16px;
+    display: flex; justify-content: space-between;
+    z-index: 30;
+  }
+  .theme-nav-btn {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(20px);
+    display: grid; place-items: center; border: none;
+    box-shadow: var(--shadow-pop);
+  }
+  .theme-nav-btn svg { width: 18px; height: 18px; color: var(--ink); }
+  .theme-screen {
+    position: absolute; inset: 0;
+    background: var(--bg);
+    overflow-y: auto;
+  }
+  .theme-hero {
+    height: 320px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(ellipse 50% 60% at 30% 30%, rgba(255,200,150,0.3), transparent),
+      radial-gradient(ellipse 60% 50% at 75% 80%, rgba(120,80,55,0.85), transparent),
+      linear-gradient(160deg, #2A1F1A 0%, #1A130E 60%, #0B0805 100%);
+  }
+  .theme-hero::before {
+    content: '🥃';
+    position: absolute; top: 70px; right: 30px;
+    font-size: 100px; opacity: 0.18;
+    transform: rotate(-8deg);
+  }
+  .theme-hero::after {
+    content: 'solo';
+    position: absolute; bottom: 0; left: -10px;
+    font-family: var(--serif); font-style: italic;
+    font-size: 160px; line-height: 0.85; color: rgba(255,255,255,0.05);
+    letter-spacing: -0.04em;
+  }
+  .theme-hero-meta {
+    position: absolute; bottom: 24px; left: 22px; right: 22px;
+    color: white;
+  }
+  .theme-kicker {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.2em;
+    text-transform: uppercase; color: rgba(255,255,255,0.65);
+    margin-bottom: 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .theme-kicker::after {
+    content: ''; width: 24px; height: 1px; background: rgba(255,255,255,0.4);
+  }
+  .theme-hero-title {
+    font-family: var(--serif);
+    font-size: 38px; font-weight: 500; letter-spacing: -0.025em;
+    line-height: 1; margin: 0 0 8px;
+  }
+  .theme-hero-sub {
+    font-family: var(--serif); font-style: italic;
+    font-size: 14px; line-height: 1.4; color: rgba(255,255,255,0.75);
+    margin: 0;
+  }
+  .theme-hero-sub em { font-weight: 600; color: rgba(255,255,255,0.95); }
+  .theme-filter {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 16px 22px 14px;
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border-hair);
+    scrollbar-width: none;
+  }
+  .theme-filter::-webkit-scrollbar { display: none; }
+  .theme-filter-chip {
+    flex-shrink: 0;
+    padding: 8px 13px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .theme-filter-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .theme-filter-chip svg { width: 11px; height: 11px; }
+  .theme-result-head {
+    padding: 18px 22px 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .theme-result-count {
+    font-family: var(--serif);
+    font-size: 18px; font-weight: 600;
+  }
+  .theme-result-count strong { color: var(--accent-2); font-weight: 700; }
+  .theme-result-sort {
+    font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .mag-card {
+    display: flex; gap: 14px;
+    padding: 16px 22px;
+    border-top: 0.5px solid var(--border-hair);
+  }
+  .mag-card:first-of-type { border-top: none; }
+  .mag-photo {
+    width: 96px; height: 96px; flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--accent-faint);
+    display: grid; place-items: center; font-size: 36px;
+    border: 1px solid var(--border-soft);
+    position: relative; overflow: hidden;
+  }
+  .mag-photo .pin-mini {
+    position: absolute; top: 4px; left: 4px;
+    font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
+    padding: 2px 6px; background: rgba(28,25,18,0.7); color: white;
+    border-radius: 3px;
+  }
+  .mag-body { flex: 1; min-width: 0; }
+  .mag-num {
+    font-family: var(--serif);
+    font-size: 13px; color: var(--accent-2); font-weight: 600; font-style: italic;
+    margin-bottom: 2px;
+  }
+  .mag-name {
+    font-family: var(--serif);
+    font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+    line-height: 1.2; margin: 0 0 4px;
+  }
+  .mag-meta {
+    font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .mag-comment {
+    font-family: var(--serif); font-style: italic;
+    font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+    padding-left: 8px; border-left: 1.5px solid var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== Icon library ===== -->
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M11.3 2.7a1 1 0 0 1 1.4 0l8 7.6c.2.2.3.5.3.7v9a2 2 0 0 1-2 2h-3.6a1 1 0 0 1-1-1v-5.4a1 1 0 0 0-1-1h-2.8a1 1 0 0 0-1 1V21a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2v-9c0-.3.1-.6.3-.7l8-7.6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-home-fill" viewBox="0 0 24 24"><path d="M11.3 2.7a1 1 0 0 1 1.4 0l8 7.6c.2.2.3.5.3.7v9a2 2 0 0 1-2 2h-3.6a1 1 0 0 1-1-1v-5.4a1 1 0 0 0-1-1h-2.8a1 1 0 0 0-1 1V21a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2v-9c0-.3.1-.6.3-.7l8-7.6z" fill="currentColor"/></symbol>
+      <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 3 3 5.4v15.4l6-2.4 6 2.4 6-2.4V3l-6 2.4L9 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 3v15.4M15 5.4v15.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-map-fill" viewBox="0 0 24 24"><path d="M9 3 3 5.4v15.4l6-2.4 6 2.4 6-2.4V3l-6 2.4L9 3z" fill="currentColor"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-search-fill" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="m20 20-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+      <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-person-fill" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3a2 2 0 0 0-2 2v16l8-5 8 5V5a2 2 0 0 0-2-2H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-bookmark-fill" viewBox="0 0 24 24"><path d="M6 3a2 2 0 0 0-2 2v16l8-5 8 5V5a2 2 0 0 0-2-2H6z" fill="currentColor"/></symbol>
+      <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 4.5c.2 0 .4.13.46.32l1.32 4.04 4.04 1.32c.4.13.4.7 0 .83l-4.04 1.32-1.32 4.04c-.13.4-.7.4-.83 0L10.31 12.33 6.27 11.01c-.4-.13-.4-.7 0-.83l4.04-1.32 1.32-4.04A.5.5 0 0 1 12 4.5z" fill="currentColor"/><path d="M18.5 14.5c.13 0 .25.08.3.21l.66 2.04 2.04.66c.26.08.26.45 0 .54l-2.04.66-.66 2.04a.32.32 0 0 1-.6 0l-.66-2.04-2.04-.66c-.26-.09-.26-.46 0-.54l2.04-.66.66-2.04c.05-.13.17-.21.3-.21z" fill="currentColor" opacity="0.85"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 32 40"><path d="M16 0a14 14 0 0 0-14 14c0 11 14 26 14 26s14-15 14-26A14 14 0 0 0 16 0z" fill="currentColor"/><circle cx="16" cy="14" r="5" fill="white"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9-9.5C1.5 7.5 4.5 4 8 4c1.8 0 3.2 1 4 2 .8-1 2.2-2 4-2 3.5 0 6.5 3.5 5 7.5-2 5-9 9.5-9 9.5z" fill="currentColor"/></symbol>
+      <symbol id="i-pin-2" viewBox="0 0 24 24"><path d="M12 22s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5" fill="currentColor"/></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M10 19h4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M21 3 3 11l7 2 2 7 9-17z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M11 4 6 9H3v6h3l5 5V4z" fill="currentColor"/><path d="m17 9 5 6m0-6-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8L7 4z" fill="currentColor"/></symbol>
+      <symbol id="i-signal" viewBox="0 0 18 12"><rect x="1" y="8" width="3" height="3.5" rx="0.5" fill="currentColor"/><rect x="5.5" y="6" width="3" height="5.5" rx="0.5" fill="currentColor"/><rect x="10" y="3.5" width="3" height="8" rx="0.5" fill="currentColor"/><rect x="14.5" y="1" width="3" height="10.5" rx="0.5" fill="currentColor"/></symbol>
+      <symbol id="i-wifi" viewBox="0 0 18 12"><path d="M9 11.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z" fill="currentColor"/><path d="M3.5 6.5a8 8 0 0 1 11 0M5.5 8.5a5 5 0 0 1 7 0M1.5 4.5a11 11 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+      <symbol id="i-battery" viewBox="0 0 24 12"><rect x="0.5" y="0.5" width="20" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"/><rect x="21" y="4" width="2" height="4" rx="1" fill="currentColor" opacity="0.4"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="notch"></div>
+  <div class="status-bar" id="statusBar">
+    <span>13:42</span>
+    <span class="status-icons">
+      <svg><use href="#i-signal"/></svg>
+      <svg><use href="#i-wifi"/></svg>
+      <svg class="battery"><use href="#i-battery"/></svg>
+    </span>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <section id="screen-home" class="screen active">
+    <div class="home-masthead">
+      <span class="home-mark">stoguru</span>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="home-date">MON · MAY 11 · ISSUE 142</span>
+        <div class="home-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="home-search-row">
+      <div class="home-search">
+        <svg><use href="#i-search"/></svg>
+        <span>店名・キーワード</span>
+      </div>
+      <button class="home-swipe" data-open="modal-reel" aria-label="新着フィード">
+        <svg><use href="#i-sparkles"/></svg>
+      </button>
+    </div>
+
+    <!-- 新着フィード入口 — Home の一等地（写真も動画も混在） -->
+    <div class="reel-section-head">
+      <div>
+        <div class="reel-section-title">今夜の新着</div>
+        <div class="reel-section-sub">12 件 · 梅田</div>
+      </div>
+      <button class="reel-section-more" data-open="modal-reel">すべて →</button>
+    </div>
+    <div class="reel-grid">
+      <button class="reel-thumb" data-open="modal-reel">
+        <div class="reel-thumb-photo p1"></div>
+        <div class="reel-thumb-overlay"></div>
+        <span class="reel-thumb-views">12.4K 回再生</span>
+        <div class="reel-thumb-body">
+          <div class="reel-thumb-handle">@tabearuki_man</div>
+          <h4 class="reel-thumb-name">中華そば 信吉</h4>
+        </div>
+      </button>
+      <button class="reel-thumb" data-open="modal-reel">
+        <div class="reel-thumb-photo p2"></div>
+        <div class="reel-thumb-overlay"></div>
+        <span class="reel-thumb-views like"><svg class="ic"><use href="#i-heart"/></svg>1.2K</span>
+        <div class="reel-thumb-body">
+          <div class="reel-thumb-handle">@yoru_no_sake</div>
+          <h4 class="reel-thumb-name">立ち呑み 銀座屋</h4>
+        </div>
+      </button>
+      <button class="reel-thumb" data-open="modal-reel">
+        <div class="reel-thumb-photo p3"></div>
+        <div class="reel-thumb-overlay"></div>
+        <span class="reel-thumb-views">5.6K 回再生</span>
+        <div class="reel-thumb-body">
+          <div class="reel-thumb-handle">@cafe_nyx</div>
+          <h4 class="reel-thumb-name">喫茶 月読</h4>
+        </div>
+      </button>
+      <button class="reel-thumb" data-open="modal-reel">
+        <div class="reel-thumb-photo p4"></div>
+        <div class="reel-thumb-overlay"></div>
+        <span class="reel-thumb-views like"><svg class="ic"><use href="#i-heart"/></svg>890</span>
+        <div class="reel-thumb-body">
+          <div class="reel-thumb-handle">@sushi_yatai</div>
+          <h4 class="reel-thumb-name">寿司 弥助</h4>
+        </div>
+      </button>
+      <button class="reel-thumb" data-open="modal-reel">
+        <div class="reel-thumb-photo p5"></div>
+        <div class="reel-thumb-overlay"></div>
+        <span class="reel-thumb-views">2.4K 回再生</span>
+        <div class="reel-thumb-body">
+          <div class="reel-thumb-handle">@oden_kitayoshi</div>
+          <h4 class="reel-thumb-name">おでん 北吉</h4>
+        </div>
+      </button>
+      <button class="reel-thumb more" data-open="modal-reel">
+        <div>
+          <span class="arrow"><svg><use href="#i-back"/></svg></span>
+          <span class="lbl">もっと観る<span>FEED</span></span>
+        </div>
+      </button>
+    </div>
+
+    <div class="pick-card" data-open="modal-reel" role="button" tabindex="0">
+      <div class="pick-photo">
+        <span class="pick-tag">TODAY'S PICK</span>
+      </div>
+      <div class="pick-body">
+        <div class="pick-name">中華そば 信吉</div>
+        <div class="pick-meta">700m &nbsp;·&nbsp; ¥950 &nbsp;·&nbsp; あっさり醤油</div>
+        <div class="pick-quote">お昼はあっさり系をお好みかと存じます。</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="section-title">テーマで探す</div>
+        <div class="section-sub">気分に合わせて</div>
+      </div>
+    </div>
+    <div class="theme-row">
+      <button class="theme-card" data-open="modal-theme" style="background: linear-gradient(135deg, #2B241B, #100A05);"><span class="label">ひとり飲み</span></button>
+      <button class="theme-card" style="background: linear-gradient(135deg, #4A2D24, #1F0C07);"><span class="label">デート</span></button>
+      <button class="theme-card" style="background: linear-gradient(135deg, #2D213D, #0E0717);"><span class="label">深夜</span></button>
+      <button class="theme-card" style="background: linear-gradient(135deg, #5B311A, #20100A);"><span class="label">ご褒美</span></button>
+      <button class="theme-card" style="background: linear-gradient(135deg, #1F3A2A, #0A1810);"><span class="label">朝活</span></button>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="section-title">近くで人気</div>
+        <div class="section-sub">梅田 · 半径 1km</div>
+      </div>
+    </div>
+    <div class="saved-card" style="border-top: 0.5px solid var(--border-hair);">
+      <div class="saved-card-photo">🍶
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">立ち呑み 銀座屋</h3>
+        <div class="saved-card-meta">立ち飲み · ¥1,200 · 営業中</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">ひとり飲み</span>
+          <span class="saved-card-dist">450m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">☕
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">喫茶 月読</h3>
+        <div class="saved-card-meta">カフェバー · ¥1,000 · 24:00まで</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">深夜</span>
+          <span class="saved-card-dist">500m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">🍜
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">中華そば 信吉</h3>
+        <div class="saved-card-meta">ラーメン · ¥950 · 営業中</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">あっさり</span>
+          <span class="saved-card-dist">700m</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MAP ============ -->
+  <section id="screen-map" class="screen full-bleed">
+    <div class="map-canvas">
+      <div class="map-grid"></div>
+      <div class="map-road h" style="top: 38%;"></div>
+      <div class="map-road h" style="top: 68%;"></div>
+      <div class="map-road v" style="left: 28%;"></div>
+      <div class="map-road v" style="left: 62%;"></div>
+      <div class="map-park" style="top: 22%; left: 70%; width: 70px; height: 60px;"></div>
+      <div class="map-park" style="top: 50%; left: 10%; width: 50px; height: 40px;"></div>
+
+      <div class="map-search">
+        <svg><use href="#i-search"/></svg>
+        <span class="text">エリア・店名で検索</span>
+        <span class="area-chip">梅田</span>
+      </div>
+
+      <div class="map-filters">
+        <div class="map-filter active">絞り込み<span class="badge">2</span></div>
+        <div class="map-filter">いま開店中</div>
+        <div class="map-filter">ラーメン</div>
+        <div class="map-filter">未訪問</div>
+      </div>
+
+      <div class="map-pin" style="top: 32%; left: 42%; color: var(--pin);"><div class="shape"><svg><use href="#i-pin"/></svg></div></div>
+      <div class="map-pin" style="top: 48%; left: 22%; color: var(--visited);"><div class="shape"><svg><use href="#i-pin"/></svg></div></div>
+      <div class="map-pin" style="top: 30%; left: 74%; color: var(--pin);"><div class="shape"><svg><use href="#i-pin"/></svg></div></div>
+      <div class="map-pin" style="top: 56%; left: 52%; color: var(--pin);"><div class="shape"><svg><use href="#i-pin"/></svg></div></div>
+      <div class="map-pin" style="top: 53%; left: 80%; color: var(--visited);"><div class="shape"><svg><use href="#i-pin"/></svg></div></div>
+      <div class="map-pin you" style="top: 52%; left: 40%;"></div>
+
+      <div class="map-sheet">
+        <div class="map-sheet-handle"></div>
+        <div class="map-sheet-head">
+          <div class="map-sheet-title">表示中のお店</div>
+          <div class="map-sheet-count">5件 · 地図上のピン</div>
+        </div>
+        <div class="map-row">
+          <div class="map-row-photo">🍜</div>
+          <div class="map-row-body">
+            <div class="map-row-name">中華そば 信吉</div>
+            <div class="map-row-meta">ラーメン · ¥950 · 営業中</div>
+          </div>
+          <span class="map-row-dist">700m</span>
+        </div>
+        <div class="map-row">
+          <div class="map-row-photo">☕</div>
+          <div class="map-row-body">
+            <div class="map-row-name">喫茶 月読</div>
+            <div class="map-row-meta">カフェ · ¥1,000 · 営業中</div>
+          </div>
+          <span class="map-row-dist">500m</span>
+        </div>
+        <div class="map-row">
+          <div class="map-row-photo">🍶</div>
+          <div class="map-row-body">
+            <div class="map-row-name">立ち呑み 銀座屋</div>
+            <div class="map-row-meta">立ち飲み · ¥1,200 · 17時開店</div>
+          </div>
+          <span class="map-row-dist">450m</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SAVED ============ -->
+  <section id="screen-saved" class="screen">
+    <div class="saved-head">
+      <div>
+        <div class="saved-kicker">YOUR · COLLECTION</div>
+        <h1 class="saved-title">保存した店</h1>
+      </div>
+      <button class="saved-head-action" aria-label="検索">
+        <svg><use href="#i-search"/></svg>
+      </button>
+    </div>
+
+    <div class="saved-stats">
+      <div class="saved-stat"><div class="num"><strong>43</strong></div><div class="lbl">保存</div></div>
+      <div class="saved-stat"><div class="num">12</div><div class="lbl">行った</div></div>
+      <div class="saved-stat"><div class="num">31</div><div class="lbl">未訪問</div></div>
+    </div>
+
+    <div class="saved-ai">
+      <div class="saved-ai-head">
+        <div class="saved-ai-dot"><svg><use href="#i-sparkles"/></svg></div>
+        <div>
+          <div class="saved-ai-title">近くに <strong>未訪問のお店 3 軒</strong></div>
+          <div class="saved-ai-sub">いま開店中 · 徒歩 10 分以内</div>
+        </div>
+      </div>
+      <div class="saved-ai-row">
+        <div class="saved-ai-mini">
+          <div class="saved-ai-mini-photo" style="background: linear-gradient(135deg, #C8632F, #6B2811);">🍜</div>
+          <div class="saved-ai-mini-body">
+            <div class="saved-ai-mini-name">中華そば 信吉</div>
+            <div class="saved-ai-mini-meta">700M · ¥950</div>
+          </div>
+        </div>
+        <div class="saved-ai-mini">
+          <div class="saved-ai-mini-photo" style="background: linear-gradient(135deg, #8C5A2E, #3A2510);">☕</div>
+          <div class="saved-ai-mini-body">
+            <div class="saved-ai-mini-name">喫茶 月読</div>
+            <div class="saved-ai-mini-meta">500M · ¥1,000</div>
+          </div>
+        </div>
+        <div class="saved-ai-mini">
+          <div class="saved-ai-mini-photo" style="background: linear-gradient(135deg, #6A3A24, #2A1308);">🍶</div>
+          <div class="saved-ai-mini-body">
+            <div class="saved-ai-mini-name">立ち呑み 銀座屋</div>
+            <div class="saved-ai-mini-meta">450M · ¥1,200</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="saved-segs">
+      <div class="saved-seg active">すべて <span class="seg-count">43</span></div>
+      <div class="saved-seg">未訪問 <span class="seg-count">31</span></div>
+      <div class="saved-seg">行った <span class="seg-count">12</span></div>
+      <div class="saved-seg">ピン留め <span class="seg-count">5</span></div>
+    </div>
+
+    <div class="saved-sort">
+      <div class="saved-sort-count"><strong>43</strong> 軒</div>
+      <div class="saved-sort-by">近い順 <svg><use href="#i-arrow-down"/></svg></div>
+    </div>
+
+    <div class="saved-card">
+      <div class="saved-card-photo">
+        <span class="badge-state untried">未訪問</span>
+        🍶
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">立ち呑み 銀座屋</h3>
+        <div class="saved-card-meta">立ち飲み · ¥1,200 · 営業中</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">ひとり飲み</span>
+          <span class="saved-card-date">3 日前に保存</span>
+          <span class="saved-card-dist">450m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">
+        <span class="badge-state untried">未訪問</span>
+        ☕
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">喫茶 月読</h3>
+        <div class="saved-card-meta">カフェバー · ¥1,000 · 24:00まで</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">深夜</span>
+          <span class="saved-card-date">1 週間前</span>
+          <span class="saved-card-dist">500m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">
+        <span class="badge-state visited">訪問済</span>
+        🍜
+        <div class="video-marker"><svg><use href="#i-play"/></svg></div>
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">中華そば 信吉</h3>
+        <div class="saved-card-meta">ラーメン · ¥950 · 営業中</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag visited">★ 4.6</span>
+          <span class="saved-card-date">先週訪問</span>
+          <span class="saved-card-dist">700m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">
+        <span class="badge-state untried">未訪問</span>
+        🍣
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">寿司 弥助</h3>
+        <div class="saved-card-meta">寿司 · ¥4,500 · 17:00 開店</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag">ご褒美</span>
+          <span class="saved-card-date">2 週間前</span>
+          <span class="saved-card-dist">820m</span>
+        </div>
+      </div>
+    </div>
+    <div class="saved-card">
+      <div class="saved-card-photo">
+        <span class="badge-state visited">訪問済</span>
+        🍢
+      </div>
+      <div class="saved-card-body">
+        <h3 class="saved-card-name">おでん 北吉</h3>
+        <div class="saved-card-meta">おでん · ¥1,800 · 18:00開店</div>
+        <div class="saved-card-foot">
+          <span class="saved-card-tag visited">★ 4.4</span>
+          <span class="saved-card-date">先月訪問</span>
+          <span class="saved-card-dist">1.1km</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEARCH (Concierge) ============ -->
+  <section id="screen-search" class="screen">
+    <div class="con-wrap">
+      <div class="con-head">
+        <div class="con-dot"><svg><use href="#i-sparkles"/></svg></div>
+        <div style="min-width:0; flex:1;">
+          <div class="con-head-name">ストグル コンシェルジュ</div>
+          <div class="con-head-sub"><span class="live"></span>応答中・プライベート学習</div>
+        </div>
+      </div>
+
+      <h2 class="con-title">本日のお気分はいかがでしょう？</h2>
+
+      <div class="con-cat-tabs">
+        <button class="con-cat active">気分</button>
+        <button class="con-cat">食べたい</button>
+        <button class="con-cat">時間帯</button>
+        <button class="con-cat">シーン</button>
+      </div>
+
+      <div class="con-chips">
+        <button class="con-chip active">失恋・落ち込み</button>
+        <button class="con-chip">ご褒美</button>
+        <button class="con-chip">疲れた</button>
+        <button class="con-chip">飲みたい</button>
+        <button class="con-chip">あっさり</button>
+        <button class="con-chip">がっつり</button>
+        <button class="con-chip">深夜の小腹</button>
+        <button class="con-chip">デート</button>
+      </div>
+
+      <div class="con-recent-head">Recent</div>
+      <div class="con-recent">
+        <button class="con-recent-item">
+          <span class="con-recent-icon"><svg><use href="#i-clock"/></svg></span>
+          <span class="con-recent-text">あっさりラーメン</span>
+          <span class="con-recent-time">昨日</span>
+        </button>
+        <button class="con-recent-item">
+          <span class="con-recent-icon"><svg><use href="#i-clock"/></svg></span>
+          <span class="con-recent-text">デート向きの和食</span>
+          <span class="con-recent-time">3日前</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="con-input-dock">
+      <div class="con-input-bar">
+        <span class="con-input-text">話しかけるように打つ…</span>
+        <button class="con-input-mic"><svg><use href="#i-mic"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOU ============ -->
+  <section id="screen-you" class="screen">
+    <div class="you-pad">
+      <div class="you-prof">
+        <div class="you-avatar">A</div>
+        <div class="you-name-block">
+          <div class="you-name">あなた</div>
+          <div class="you-handle">@as · お気に入りを集める</div>
+        </div>
+        <button class="you-edit">編集</button>
+      </div>
+    </div>
+
+    <div class="you-stats">
+      <div class="you-stat"><div class="num">12</div><div class="lbl">行った</div></div>
+      <div class="you-stat"><div class="num">43</div><div class="lbl">保存</div></div>
+      <div class="you-stat"><div class="num">8</div><div class="lbl">フォロワー</div></div>
+    </div>
+
+    <div class="you-section-head">AI が学んだ傾向</div>
+    <div class="you-prefs">
+      <div class="you-pref-row">
+        <span class="em">🍜</span>
+        <span class="lbl">昼は あっさり系</span>
+        <span class="meter"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span>
+      </div>
+      <div class="you-pref-row">
+        <span class="em">🍶</span>
+        <span class="lbl">夜は 立ち飲み</span>
+        <span class="meter"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+      </div>
+      <div class="you-pref-row">
+        <span class="em">📍</span>
+        <span class="lbl">徒歩 850m が定番</span>
+        <span class="meter"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></span>
+      </div>
+      <div class="you-pref-row">
+        <span class="em">💸</span>
+        <span class="lbl">予算 ¥1,200 帯</span>
+        <span class="meter"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <div class="you-section-head">設定</div>
+    <div class="you-tile" style="margin-bottom: 1px; border-radius: 14px 14px 0 0;">
+      <div class="you-tile-icon"><svg><use href="#i-moon"/></svg></div>
+      <div class="you-tile-text">
+        <div class="you-tile-label">テーマ</div>
+        <div class="you-tile-sub">ライト</div>
+      </div>
+      <span class="you-tile-arrow"><svg><use href="#i-chev"/></svg></span>
+    </div>
+    <div class="you-tile" style="margin-bottom: 1px; border-radius: 0;">
+      <div class="you-tile-icon"><svg><use href="#i-shield"/></svg></div>
+      <div class="you-tile-text">
+        <div class="you-tile-label">プライバシー</div>
+        <div class="you-tile-sub">アプリ内で学習・送信なし</div>
+      </div>
+      <span class="you-tile-arrow"><svg><use href="#i-chev"/></svg></span>
+    </div>
+    <div class="you-tile" style="margin-bottom: 32px; border-radius: 0 0 14px 14px;">
+      <div class="you-tile-icon"><svg><use href="#i-sparkles"/></svg></div>
+      <div class="you-tile-text">
+        <div class="you-tile-label">プロアカウント</div>
+        <div class="you-tile-sub">認証バッジ・分析・近日公開</div>
+      </div>
+      <span class="you-tile-arrow"><svg><use href="#i-chev"/></svg></span>
+    </div>
+  </section>
+
+  <!-- ============ MODAL: REEL ============ -->
+  <div id="modal-reel" class="modal">
+    <div class="reel-bg">
+      <div class="reel-video"></div>
+      <div class="reel-overlay"></div>
+
+      <div class="reel-progress">
+        <span class="played"></span>
+        <span class="playing"></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="reel-top">
+        <button class="reel-top-btn" data-close><svg><use href="#i-close"/></svg></button>
+        <button class="reel-top-btn"><svg><use href="#i-more"/></svg></button>
+      </div>
+
+      <div class="reel-rail">
+        <div class="reel-creator">T<span class="plus">+</span></div>
+        <div class="reel-action">
+          <button class="reel-action-btn is-saved"><svg><use href="#i-heart"/></svg></button>
+          <span class="reel-action-count">248</span>
+        </div>
+        <div class="reel-action">
+          <button class="reel-action-btn"><svg><use href="#i-pin-2"/></svg></button>
+          <span class="reel-action-count">700m</span>
+        </div>
+        <div class="reel-action">
+          <button class="reel-action-btn"><svg><use href="#i-share"/></svg></button>
+          <span class="reel-action-count">12</span>
+        </div>
+        <div class="reel-action">
+          <button class="reel-action-btn"><svg><use href="#i-volume-off"/></svg></button>
+        </div>
+      </div>
+
+      <div class="reel-info">
+        <div class="reel-handle">@tabearuki_man <span class="follow">フォロー</span></div>
+        <h2 class="reel-name">中華そば 信吉</h2>
+        <div class="reel-meta">700M · ¥950 · あっさり醤油</div>
+        <div class="reel-quote">お昼はやっぱ信吉。あっさり醤油の沁み方が違う。</div>
+        <div class="reel-tags">
+          <span class="reel-tag">#ひとり飯</span>
+          <span class="reel-tag">#あっさり</span>
+          <span class="reel-tag">#梅田</span>
+        </div>
+        <button class="reel-open-source">
+          <span class="src">TikTok</span>
+          元の動画を観る
+          <svg><use href="#i-chev"/></svg>
+        </button>
+      </div>
+
+      <div class="reel-swipe-hint">次の動画へスワイプ</div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: THEME DETAIL ============ -->
+  <div id="modal-theme" class="modal">
+    <div class="theme-screen">
+      <div class="theme-nav">
+        <button class="theme-nav-btn" data-close><svg><use href="#i-back"/></svg></button>
+        <button class="theme-nav-btn"><svg><use href="#i-bookmark"/></svg></button>
+      </div>
+
+      <div class="theme-hero">
+        <div class="theme-hero-meta">
+          <div class="theme-kicker">THEME · 002</div>
+          <h1 class="theme-hero-title">ひとり飲み</h1>
+          <p class="theme-hero-sub"><em>一杯のあいだの孤独</em>を、愛そう。</p>
+        </div>
+      </div>
+
+      <div class="theme-filter">
+        <div class="theme-filter-chip active">並び替え · 近い順 <svg><use href="#i-arrow-down"/></svg></div>
+        <div class="theme-filter-chip">エリア</div>
+        <div class="theme-filter-chip">時間帯</div>
+        <div class="theme-filter-chip">価格</div>
+      </div>
+
+      <div class="theme-result-head">
+        <div class="theme-result-count"><strong>12</strong> 軒</div>
+        <div class="theme-result-sort">梅田 · 近い順</div>
+      </div>
+
+      <div class="mag-card">
+        <div class="mag-photo">🍶<span class="pin-mini">450M</span></div>
+        <div class="mag-body">
+          <div class="mag-num">No. 01</div>
+          <h3 class="mag-name">立ち呑み 銀座屋</h3>
+          <div class="mag-meta">立ち飲み · ¥1,200 · 17:00 開店</div>
+          <div class="mag-comment">カウンター 4 席のみ、誰とも目を合わせず一杯。</div>
+        </div>
+      </div>
+      <div class="mag-card">
+        <div class="mag-photo">☕<span class="pin-mini">500M</span></div>
+        <div class="mag-body">
+          <div class="mag-num">No. 02</div>
+          <h3 class="mag-name">喫茶 月読</h3>
+          <div class="mag-meta">カフェバー · ¥1,000 · 24:00 まで</div>
+          <div class="mag-comment">深夜まで開く、奥のボックス席が定位置。</div>
+        </div>
+      </div>
+      <div class="mag-card">
+        <div class="mag-photo">🍜<span class="pin-mini">700M</span></div>
+        <div class="mag-body">
+          <div class="mag-num">No. 03</div>
+          <h3 class="mag-name">中華そば 信吉</h3>
+          <div class="mag-meta">ラーメン · ¥950 · 11:00–22:00</div>
+          <div class="mag-comment">締めの一杯を心置きなく。座席広め。</div>
+        </div>
+      </div>
+      <div style="height: 80px;"></div>
+    </div>
+  </div>
+
+  <!-- ============ TAB BAR ============ -->
+  <nav class="tab-bar" id="tabBar">
+    <button class="tab active" data-target="screen-home">
+      <svg class="ic-default"><use href="#i-home"/></svg>
+      <svg class="ic-active"><use href="#i-home-fill"/></svg>
+    </button>
+    <button class="tab" data-target="screen-map">
+      <svg class="ic-default"><use href="#i-map"/></svg>
+      <svg class="ic-active"><use href="#i-map-fill"/></svg>
+    </button>
+    <button class="tab" data-target="screen-saved">
+      <svg class="ic-default"><use href="#i-bookmark"/></svg>
+      <svg class="ic-active"><use href="#i-bookmark-fill"/></svg>
+    </button>
+    <button class="tab" data-target="screen-search">
+      <svg class="ic-default"><use href="#i-search"/></svg>
+      <svg class="ic-active"><use href="#i-search-fill"/></svg>
+    </button>
+    <button class="tab" data-target="screen-you">
+      <svg class="ic-default"><use href="#i-person"/></svg>
+      <svg class="ic-active"><use href="#i-person-fill"/></svg>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+  // ===== Tab switching =====
+  const tabs = document.querySelectorAll('.tab[data-target]');
+  const screens = document.querySelectorAll('.screen');
+  const statusBar = document.getElementById('statusBar');
+
+  function activate(targetId) {
+    screens.forEach(s => s.classList.toggle('active', s.id === targetId));
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.target === targetId));
+    // Map は full-bleed & 背景が薄い土色なので status bar は dark のままで OK
+    statusBar.classList.toggle('over-dark', false);
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => activate(tab.dataset.target));
+  });
+
+  // ===== Modal open / close =====
+  document.querySelectorAll('[data-open]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.open;
+      const m = document.getElementById(id);
+      if (m) {
+        m.classList.add('open');
+        // Reel は dark なので status bar 文字色を白に
+        if (id === 'modal-reel') statusBar.classList.add('over-dark');
+        if (id === 'modal-theme') statusBar.classList.add('over-dark');
+      }
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = btn.closest('.modal');
+      if (m) {
+        m.classList.remove('open');
+        statusBar.classList.remove('over-dark');
+      }
+    });
+  });
+
+  // ===== Saved screen: segment toggle =====
+  document.querySelectorAll('.saved-seg').forEach(seg => {
+    seg.addEventListener('click', () => {
+      document.querySelectorAll('.saved-seg').forEach(s => s.classList.remove('active'));
+      seg.classList.add('active');
+    });
+  });
+
+  // ===== Concierge: chip toggle & cat toggle =====
+  document.querySelectorAll('.con-chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('active'));
+  });
+  document.querySelectorAll('.con-cat').forEach(cat => {
+    cat.addEventListener('click', () => {
+      document.querySelectorAll('.con-cat').forEach(c => c.classList.remove('active'));
+      cat.classList.add('active');
+    });
+  });
+
+  // ===== Reel save toggle =====
+  document.querySelectorAll('.reel-action-btn').forEach(btn => {
+    if (btn.classList.contains('is-saved') || btn.querySelector('use[href="#i-heart"]')) {
+      btn.addEventListener('click', (e) => {
+        if (btn.querySelector('use[href="#i-heart"]')) {
+          btn.classList.toggle('is-saved');
+        }
+      });
+    }
+  });
+</script>
+
+</body>
+</html>

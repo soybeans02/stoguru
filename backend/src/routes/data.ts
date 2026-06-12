@@ -242,6 +242,9 @@ router.get('/restaurants', requireAuth, async (req: AuthRequest, res: Response) 
       visitedAt: stock.visitedAt,
       createdAt: stock.createdAt,
       updatedAt: stock.updatedAt,
+      openingHours: r?.openingHours,
+      phone: r?.phone,
+      googleRating: r?.googleRating,
     };
   }).filter((item) => item.name); // レストランが見つからないものは除外
 
@@ -1127,6 +1130,9 @@ function toSwipeShape(r: RestaurantV2, profile?: InfluencerProfile) {
     description: r.description || '',
     menus: r.menus,
     menuPhotoUrls: r.menuPhotoUrls,
+    openingHours: r.openingHours,
+    phone: r.phone,
+    googleRating: r.googleRating,
   };
 }
 

@@ -1,5 +1,23 @@
 // ─── DynamoDB Item Interfaces ───
 
+// ─── 営業時間（Google Places 由来 / 将来オーナー上書き）───
+
+/** 1 営業区間。深夜跨ぎは closeDay !== openDay で表現。day は 0=日曜。 */
+export interface OpeningPeriod {
+  openDay: number;     // 0-6 (0=Sun)
+  openTime: string;    // "HHMM" 24h
+  closeDay: number;    // 0-6
+  closeTime: string;   // "HHMM"
+}
+
+export interface OpeningHours {
+  periods: OpeningPeriod[];
+  weekdayText?: string[];                       // 表示用（言語=ja）
+  source: 'google' | 'hotpepper' | 'owner';
+  fetchedAt: number;                            // 取得時刻 (ms)
+  ownerOverride?: boolean;                       // true ならバックフィルで上書きしない
+}
+
 // ─── V2: 正規化されたレストランマスター ───
 
 export interface RestaurantV2 {
@@ -36,6 +54,17 @@ export interface RestaurantV2 {
   badCount?: number;
   /// シャドウバン中か (= bad 率が高くフィード露出を絞られている)
   shadowBanned?: boolean;
+  // ─── 基本情報（Google Places 自動取得 / 将来オーナー編集）───
+  /// Google Places の place_id（無期限キャッシュ可。再取得のキー）
+  placeId?: string;
+  /// 営業時間（「今営業中か」判定用の構造化データ）
+  openingHours?: OpeningHours;
+  /// 電話番号（Places の formatted_phone_number）
+  phone?: string;
+  /// Google 評価（任意の社会的証明）
+  googleRating?: number;
+  /// Places 情報を最後に取得した時刻 (ms)。バックフィルの再取得判定用。
+  placeInfoFetchedAt?: number;
 }
 
 /// 料理 1 件 (= クリエイターが手打ちで登録するメニュー)

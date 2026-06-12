@@ -14,6 +14,7 @@ import {
 import type {
   Restaurant,
   RestaurantV2,
+  OpeningHours,
   UserStock,
   UrlIndexEntry,
   UserSettings,
@@ -258,6 +259,54 @@ export async function updateRestaurantV2Visibility(restaurantId: string, visibil
     UpdateExpression: 'SET visibility = :v, updatedAt = :u',
     ExpressionAttributeValues: { ':v': visibility, ':u': Date.now() },
   }));
+}
+
+/** Places から取得した基本情報（place_id / 営業時間 / 電話 / 評価）を保存。
+ *  ownerOverride 付きの既存 openingHours は上書きしない（オーナー編集を尊重）。 */
+export async function updateRestaurantPlaceInfo(
+  restaurantId: string,
+  info: { placeId?: string; openingHours?: OpeningHours; phone?: string; googleRating?: number },
+) {
+  const existing = await getRestaurantV2(restaurantId);
+  const keepOwnerHours = existing?.openingHours?.ownerOverride === true;
+
+  const sets: string[] = ['placeInfoFetchedAt = :f'];
+  const values: Record<string, unknown> = { ':f': Date.now() };
+  if (info.placeId) { sets.push('placeId = :p'); values[':p'] = info.placeId; }
+  if (info.openingHours && !keepOwnerHours) { sets.push('openingHours = :oh'); values[':oh'] = info.openingHours; }
+  if (info.phone) { sets.push('phone = :ph'); values[':ph'] = info.phone; }
+  if (info.googleRating != null) { sets.push('googleRating = :gr'); values[':gr'] = info.googleRating; }
+
+  await db.send(new UpdateCommand({
+    TableName: TABLE.restaurantsV2,
+    Key: { restaurantId },
+    UpdateExpression: 'SET ' + sets.join(', '),
+    ExpressionAttributeValues: values,
+  }));
+}
+
+/** バックフィル対象（openingHours 未設定の店）を limit 件スキャン。
+ *  Places 解決に必要な restaurantId / name / lat / lng のみ取得。 */
+export async function scanRestaurantsMissingHours(
+  limit = 20,
+): Promise<{ restaurantId: string; name: string; lat?: number; lng?: number }[]> {
+  const out: { restaurantId: string; name: string; lat?: number; lng?: number }[] = [];
+  let lastKey: Record<string, unknown> | undefined;
+  do {
+    const result = await db.send(new ScanCommand({
+      TableName: TABLE.restaurantsV2,
+      ProjectionExpression: 'restaurantId, #n, lat, lng',
+      ExpressionAttributeNames: { '#n': 'name' },
+      FilterExpression: 'attribute_not_exists(openingHours)',
+      ExclusiveStartKey: lastKey,
+    }));
+    for (const it of (result.Items ?? []) as { restaurantId: string; name: string; lat?: number; lng?: number }[]) {
+      out.push(it);
+      if (out.length >= limit) return out;
+    }
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+  return out;
 }
 
 // =============================================

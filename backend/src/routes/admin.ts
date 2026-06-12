@@ -13,7 +13,8 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { getUserPoolId, getUserById, adminDisableUser, adminEnableUser, adminResetPassword, adminDeleteUser } from '../services/cognito';
-import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback, recordAccountDeletion, listDeletedAccounts } from '../services/dynamo';
+import { deleteAllUserData, saveStats, listFeedback, markFeedbackRead, deleteFeedback, recordAccountDeletion, listDeletedAccounts, scanRestaurantsMissingHours, updateRestaurantPlaceInfo } from '../services/dynamo';
+import { resolvePlaceInfo, placesEnabled } from '../services/places';
 import { deleteAllUserPhotos } from '../services/s3';
 import { invalidateTokenCache } from '../middleware/auth';
 import { stats, userActivity } from '../state';
@@ -246,5 +247,39 @@ function formatAgo(ts: number): string {
   if (hr < 24) return `${hr}時間前`;
   return `${Math.floor(hr / 24)}日前`;
 }
+
+/**
+ * 営業時間バックフィル。openingHours 未設定の店を limit 件、Google Places から
+ * 取得して保存する。冪等（既に入った店はスキャン対象外）。営業時間は滅多に
+ * 変わらないので cron 不要、必要時に手叩きで回す想定。
+ * GOOGLE_PLACES_API_KEY 未設定なら 503。
+ */
+router.post('/backfill-hours', requireAdmin, async (req: Request, res: Response) => {
+  if (!placesEnabled) {
+    res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY が未設定です' });
+    return;
+  }
+  const limit = Math.min(Math.max(Number(req.body?.limit) || 20, 1), 50);
+  const targets = await scanRestaurantsMissingHours(limit);
+  let resolved = 0;
+  let withHours = 0;
+  const failed: string[] = [];
+  for (const t of targets) {
+    try {
+      const info = await resolvePlaceInfo(t.name, t.lat, t.lng);
+      if (info?.placeId) {
+        await updateRestaurantPlaceInfo(t.restaurantId, info);
+        resolved++;
+        if (info.openingHours) withHours++;
+      } else {
+        failed.push(t.name);
+      }
+    } catch (e) {
+      console.error('[backfill-hours] failed:', t.restaurantId, e);
+      failed.push(t.name);
+    }
+  }
+  res.json({ scanned: targets.length, resolved, withHours, failed });
+});
 
 export default router;
